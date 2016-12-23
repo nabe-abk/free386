@@ -1,0 +1,94 @@
+00 Divide by Zero$
+01 Single Step$
+02 NMI Int or Coprocessor Int$
+03 Breakpoint$
+04 Overflow$
+05 Print Screen$
+06 Invalid opcode$
+07 Coprocessor not Available$
+08 Timer Int$
+09 Keyboard Int$
+0A slave 8259 or EGA/VGA vertical retrace$
+0B Serial COM2$
+0C Serial COM1$
+0D Hard disk Int or Printer LPT2 Int$
+0E Floppy disk Int$
+0F Printer LPT1 int$
+10 Video Service$
+11 Equipment Check$
+12 Memory check$
+13 Disk service$
+14 Serial service$
+15 System service or Cassette$
+16 Keyboard service$
+17 Printer service$
+18 ROM BASIC Loader$
+19 Bootstrap Loader$
+1A Time of Day Service$
+1B Control Break$
+1C Timer Tick$
+1D Video Initialisation Table$
+1E Disk Parameter Table$
+1F Graphics Character Table, second set$
+20 Program Terminate$
+21 Function Calls$
+22 Terminate Address$
+23 Control Break Handler$
+24 Critical Error Handler$
+25 Absolute Disk Read$
+26 Absolute Disk Write$
+27 Terminate and Stay Resident$
+28 Idle task (background)$
+29 Fast TTY Output$
+2A Critical section and NETBIOS$
+2B DOS Reserved$
+2C DOS Reserved$
+2D DOS Reserved$
+2E Execute command (background)$
+2F Multiplex Interrupt$
+30 Far jump instruction for CP/M-style calls$
+31 DPMI function$
+32 DOS Reserved$
+33 Mouse Interface$
+34 Floating Point Emulation$
+35 Floating Point Emulation$
+36 Floating Point Emulation$
+37 Floating Point Emulation$
+38 Floating Point Emulation$
+39 Floating Point Emulation$
+3A Floating Point Emulation$
+3B Floating Point Emulation$
+3C Floating Point Emulation$
+3D Floating Point Emulation$
+3E Floating Point Emulation$
+3F Overlay Manager$
+40 Hard Disk BIOS$
+41 Hard disk #0 Parameter block$
+42 Relocated Video handler$
+43 User font table$
+44 Graphics characters$
+45 BIOS reserved$
+46 Hard disk #1 Parameter block$
+47 BIOS reserved$
+4A Clock alarm execution$
+4B Virtual DMA or IBM SCSI interface$
+50 Periodic alarm$
+59 GSS Computer Graphics interface$
+5A Cluster Adapter BIOS entry$
+5B Cluster Adapter Boot vector 19H$
+5C NETBIOS Interface$
+67 LIM EMS$
+6C System Resume Vector (Convertible)$
+70 IRQ 8, Real time clock$
+71 IRQ 9, LAN Adapter 1$
+74 IRQ 12, Mouse Interrupt$
+75 IRQ 13, 80287 Coprocessor NMI$
+76 IRQ 14, Hard Disk Controller$
+80 IBM Basic$
+81 IBM Basic$
+82 IBM Basic$
+83 IBM Basic$
+84 IBM Basic$
+85 IBM Basic$
+86 Revectored Bootstrap Int$
+87 IBM BASIC Interpreter$$

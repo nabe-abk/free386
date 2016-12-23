@@ -1,0 +1,303 @@
+;******************************************************************************
+;　Free386	＜プロテクトモード処理部＞
+;******************************************************************************
+;
+; 2001/02/24	作成開始
+;
+;==============================================================================
+;★PC/AT 簡易チェック
+;==============================================================================
+;Ret	Cy=0	AT じゃないの?
+;	Cy=1	AT って何よ、違うんじゃない
+;
+BITS	16
+	align	4
+check_AT:
+	xor	ah,ah		;AH = 0
+%rep	4		;偶数回繰り返し
+	in	al,41h		;タイマ カウンタ#01
+ 	xor	ah,al		;xor
+	in	al,42h		;タイマ カウンタ#02
+ 	xor	ah,al		;xor
+%endrep
+
+ 	test	ah,ah		;値確認
+	jz	.not_AT		;0 なら AT ではない
+	clc	;成功
+	ret
+
+.not_AT:
+	stc	;失敗
+	ret
+
+BITS	32
+;==============================================================================
+;★PC/AT互換機の初期設定
+;==============================================================================
+	align	4
+setup_AT:
+	mov	ebx,offset AT_memory_map	;メモリのマップ
+	call	map_memory			;
+
+	mov	esi,offset AT_selector_alias	;エイリアスの作成
+	call	make_aliases			;
+
+	;/// VESA3.0 の確認 ////////////////////////
+	mov	ax,4f00h	;install VESA?
+	mov	di,[work_adr]	;バッファアドレス (ボード名/Ver など多数が返る)
+	V86_INT	10h		;VGA/VESA BIOS call
+	cmp	ax,004fh	;サポートされてる？
+	jne	.no_VESA	;違えば VESA なし(jmp)
+	jmp	.no_VESA	;for debug**************************
+
+	;/// VESA3.0 Protect Mode Bios の検索 //////
+	push	b (DOSMEM_sel)
+	pop	es
+
+	mov	eax,'PMID'	;In other ASM 'DIMP'
+	mov	edi,0c0000h	;VESA-BIOS
+	mov	edx,0c8000h	;検索終了アドレス
+
+	align	4
+	;*** 低速な検索ルーチン(改良求む) ***
+.loop:	cmp	[es:edi],eax	;プロテクトモードインフォメーションブロック？
+	je	.check_PMIB	;
+	inc	edi
+	cmp	edi,edx		;終了アドレス？
+	jne	.loop
+	jmp	.no_VESA	;発見できず
+
+	align	4
+.check_PMIB:			;チェックサムの確認
+	mov	ecx,13h
+	mov	al,[es:edi]	;先頭
+
+	align	4
+.check_loop:
+	add	al,[es:edi+ecx]	;加算
+	loop	.check_loop
+	test	al,al		;al=0?
+	jnz	.loop		;check sum error なら続き検索
+
+	;/// VESA3.0 Protect Mode Interface発見 ///
+	xor	esi,esi
+	call	AT_VESA30_alloc	;VESA3.0 PMode-BIOS の配置
+
+	align	4
+.no_VESA:
+	ret
+
+
+;------------------------------------------------------------------------------
+;★VESA 3.0 Protect Mode Interface のセットアップ
+;------------------------------------------------------------------------------
+	align	4
+AT_VESA30_alloc.exit:
+	ret
+
+	align	4
+AT_VESA30_alloc:
+	and	edi,7fffh		;上位ビットを無視
+	mov	[VESA_PMIB],edi		;プロテクトモード構造体の offset
+
+	mov	ecx,64/4 +1 +VESA_buf_size	;64KB + 4KB + buf のメモリ
+	call	alloc_RAM			;メモリアロケーション
+	jc	.exit				;エラーなら exit
+
+	mov	edi,[work_adr]		;ワークアドレスロード
+
+	;/// VESA 呼び出し時のワーク ///
+	mov	d [edi  ],esi		;ベースアドレス
+	mov	d [edi+4],VESA_buf_size	;limit値
+	mov	d [edi+8],0200h		;R/X / 特権レベル=0
+	mov	eax,VESA_buf_sel	;VESA buffer segment
+	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+
+	;/// VESA Code Selector ////////
+	add	esi,(VESA_buf_size+1)*1000h	;4KB 余分にずらす
+	mov	d [edi  ],esi		;ベースアドレス
+	mov	d [edi+4],0ffffh	;limit値 64KB (32KB ではダメ)
+	mov	d [edi+8],1a00h		;R/X 286 / 特権レベル=0
+	mov	eax,VESA_cs		;VESA code segment
+	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+
+	;/// VESA Data Selector ////////
+	mov	d [edi+8],1200h		;R/W 286 / 特権レベル=0
+	mov	eax,VESA_ds		;VESA data segment(cs alias)
+	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+
+	;/// VESA 環境 Selector ////////
+	sub	esi,1000h		;4KB戻す
+	mov	edi,[work_adr]		;ワークアドレスロード
+	mov	d [edi  ],esi		;ベースアドレス
+	mov	d [edi+4],0		;limit値 (4KB)
+	mov	d [edi+8],0200h		;R/W / 特権レベル=0
+	mov	eax,VESA_ds2		;VESA data segment
+	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+
+	;/// VESA 環境データクリア /////
+	mov	eax,VESA_ds2		;環境データセレクタ
+	mov	es ,eax			;セレクタ設定
+	xor	edi,edi			;edi = 0
+	mov	ecx,600h / 4		;600h /4
+	xor	eax,eax			;0 クリア
+	rep	stosd			;塗り潰し
+
+	;/// VESA-BIOS のコピー ////////
+	mov	eax,VESA_ds		;VESA BIOS の書き込み先
+	mov	ebx,DOSMEM_sel		;VESA BIOS 転送元セレクタ
+	mov	es ,eax			;セレクタ設定
+	mov	ds ,ebx			;
+	xor	edi,edi			;edi = 0
+	mov	esi,0c0000h		;VESA BIOS
+	mov	ecx, 10000h / 4		;64KB /4
+	rep	movsd
+
+	mov	ebp,F386_ds		;
+	mov	ds ,ebp			;ds 復元
+	mov	edi,[VESA_PMIB]		;PM BIOS 構造体
+
+	;/// PM-BIOS 構造体 への設定 ///
+	mov	w [es:edi+08h],VESA_ds2	;環境セレクタ
+	mov	w [es:edi+0ah],VESA_A0	;a0000h - bffffh
+	mov	w [es:edi+0ch],VESA_B0	;b0000h - bffffh
+	mov	w [es:edi+0eh],VESA_B8	;b8000h - bffffh
+	mov	w [es:edi+10h],VESA_ds	;VESA cs alias
+	mov	b [es:edi+12h],1	;in Protect Mode
+
+	;*** far return op-code の張り付け ****
+	mov	w [es:0fffeh],0cb66h	;32bit far return
+
+	;*** VESA-BIOS の初期化 ********
+	movzx	ecx,w [es:edi+6]	;初期化ルーチン位置
+	push	ds			;ds 保存
+	push	cs
+	push	d (offset .VESA_ret0)	;戻りラベル
+	push	d (0fffeh)		;far return op-code のあるアドレス
+	push	d (VESA_cs)
+	push	ecx			;初期化ルーチン
+	retf				;ルーチンコール
+	;注意！
+	;　VESA3.0 の Protect Mode Bios は、Linux などのセグメントを
+	;使用しない環境を想定してか、(o32) near return するようになっている(;_;
+
+.VESA_ret0:
+	mov	es,[esp]		;es = F386_ds
+	pop	ds			;ds 復元
+	PRINT	VESA30_init		;初期化成功のメッセージ
+
+	;----------------------------------------------------------------------
+	;VESA bios call の準備
+	;----------------------------------------------------------------------
+	mov	ebx,offset VESA_call_point	;call 命令位置
+	mov	edx,offset VESA_call_point2	;
+	mov	eax,[VESA_PMIB]			;プロテクトモード構造体の位置
+	add	eax,byte 4			;entry point の位置
+	mov	[ebx-2],ax			;call 文の参照メモリの書き換え
+	mov	[edx-2],ax			;
+
+	push	es
+	mov	eax,VESA_ds			;VESAデータセグメント(cs alias)
+	mov	es ,eax				;es 設定
+	mov	edi,VESA_call_adr		;call プログラム設定位置
+	mov	esi,offset VESA_call		;コピー元
+
+	mov	ecx,(VESA_call_end-VESA_call)/4	;ルーチンサイズ /4
+	rep	movsd				;call-code の転送
+
+	;----------------------------------------------------------------------
+	;VRAM の張り付け
+	;----------------------------------------------------------------------
+	push	cs
+	push	d (offset .VESA_ret1)	;戻りラベル
+	push	d (VESA_cs)		;
+
+	mov	eax,offset VESA_call2 + VESA_call_adr
+	sub	eax,offset VESA_call	;差を算出
+	push	eax			;call-code アドレス
+
+	mov	ebx,VRAM_sel		;VRAM_sel
+	mov	 es,ebx			;es に VRAMセレクタ設定
+	mov	edx,VRAM_padr		;設定する物理アドレス
+	mov	 cx,dx			;cx = bit  0-15
+	shr	edx,16			;dx = bit 31-16
+
+	mov	ax,4f07h		;物理メモリの設定
+	xor	ebx,ebx			;bl=bh=0
+	retf				;ルーチンコール
+
+	align	4
+.VESA_ret1:
+	pop	es
+	ret
+
+VESA_entry:
+	dd	VESA_call_adr
+	dw	VESA_cs
+
+	;------------------------------------------------
+	;VESA bios call のためのルーチン (Copy して使う)
+	;------------------------------------------------
+	align	4
+BITS	16
+VESA_call:
+	push	es
+	push	w (VESA_buf_sel)	;es = バッファセレクタ
+	pop	es			;
+
+	xor	di,di			;es:di = buffer
+	push	di	;=push 0	;32bit return を発行してるので >VESA
+	call	word [cs:0000h]		;VESA-BIOS call
+VESA_call_point:
+	pop	es
+	db	66h			;size pureffix (次の命令をuse32で解釈)
+	retf				;32bit retf
+
+	align	4
+	;/// es指定 call ///////////////
+VESA_call2:
+	push	w 0
+	call	word [cs:0000h]
+VESA_call_point2:
+	db	66h
+	retf
+
+	align	4			;消去不可！！
+VESA_call_end:
+BITS	32
+
+;==============================================================================
+;★PC/AT互換機の終了処理
+;==============================================================================
+	align	4
+end_AT:
+	ret
+
+;==============================================================================
+;★AT固有のメモリ周り設定用データ
+;==============================================================================
+
+VESA30_init	db	'VESA3.0 Protect Mode BIOS inisalized!!',13,10,'$'
+
+	align	4
+VESA_PMIB	dd	0		;VESA Protect-Mode-Info-Block (構造体)
+
+AT_memory_map:
+		; sel  , base     ,   pages -1, type/level
+	dd	100h   ,0ffff0000h,    64/4 -1, 0a00h	;R/X : boot-ROM
+	dd	VESA_A0,   0a0000h,    64/4 -1, 0200h	;R/W : for VESA 3.0
+	dd	VESA_B0,   0b0000h,    64/4 -1, 0200h	;R/W : for VESA 3.0
+	dd	VESA_B8,   0b8000h,    32/4 -1, 0200h	;R/W : for VESA 3.0
+	dd	120h   , VRAM_padr,VRAM_size-1, 0200h	;R/W : VRAM
+	dd	0	;end of data
+
+	align	4
+AT_selector_alias:
+		;ORG, alias, type/level
+	dd	100h,  108h,  0000h	;boot-ROM
+	dd	120h,  128h,  0200h	;VRAM alias
+	dd	120h,  104h,  0200h	;VRAM alias
+	dd	128h,  10ch,  0200h	;VRAM alias
+	dd	0			;end of data
+
+

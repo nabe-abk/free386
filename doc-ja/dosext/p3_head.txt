@@ -1,0 +1,112 @@
+===============================================================================
+DOS-Extender RUN386
+	P3 実行形式ヘッダ略説
+===============================================================================
+[TAB=8]
+
+2001/02/10
+(C)nabe@abk, 転載自由
+------------------------------------------------------------------------------
+
+'/'以下は TONWS での .EXP の標準値。ほとんど決め打ちしても問題ない値。
+また，古い exp アプリケーションでは、'MZ' ヘッダを持つものもある。
+
+------------------------------------------------------------------------------
+	+00 w	'P3'
+	+02 w	1:フラットモデル(single segment)
+		2:multi segment					/1
+	+04 w	head size
+	+06 d	file size
+	+0A w	check sum
+	+0C d	runtime paramater block offset (file 先頭から)	
+	+10 d	ランタイムパラメータブロックの大きさ
+	+14 d	relocation table offset				
+	+18 d	relocation table size				
+	+1c d	segment infomation table offset			
+	+20 d	segment infomation table size			
+	+24 w	segment infomation table の要素の大きさ		
+	+26 d	load image offset (file 先頭から)
+	+2A d	load image size
+	+2E d	program symbol table offset			
+	+32 d	program symbol table size			
+	+36 d	GDT offset					
+	+3A d	GDT size					
+	+3E d	LDT offset					
+	+42 d	LDT size					
+	+46 d	IDT offset					
+	+4A d	IDT size					
+	+4E d	TSS offset					
+	+52 d	TSS size					
+	+56 d	プログラムの後ろへ割り当てるメモリ最小値
+	+5A d	プログラムの後ろへ割り当てるメモリ最大値	/0ffffffffh
+	+5E d	フラットモデル時のベースオフセット		/0
+	+62 d	ESP 初期値
+	+66 w	SS  初期値
+	+68 d	EIP 初期値
+	+6C w	CS  初期値
+	+6E w	LDT レジスタ初期値
+	+70 w	タスクレジスタ初期値
+	+72 w	flag初期値
+	+74 d	load image file size	※注：pack の項、参照
+	+78-17E	＜予約＞
+------------------------------------------------------------------------------
+
+　実物(.exp)を見れば分かるが、かなりいい加減であり、
+　かなり多くの値が実際には使われていないと推測される。
+
+
+★'-pack' option とヘッダについて
+
+　リンク時に -pack オプションを指定しすると、
+　pack（圧縮）された形式の .exp file が作成される。
+
+　TOWNS RUN386 及びリンカの挙動を調べた所、
+　+72h のフラグ領域が '00' の場合 pack なし、
+　'01'の場合 pack ありとなっている模様。
+　（フラグ初期値は、実際には無視されてる様である）
+
+　また、+2Ah に pack されたロードイメージの大きさ、
+　+74h には、pack 展開後のロードイメージサイズが書き込まれてる模様。
+　（pack されてない場合は、両方の値は同一）
+
+　ただ、+2Ah と +74h の値を比較して、pack してあるかどうかを判別すると、
+　自己解凍実行形式の場合もこの値が異なるので、問題が発生する。
+
+
+------------------------------------------------------------------------------
+★'-pack' 形式について
+
+　ロードイメージに単純な圧縮を施すのが -pack option である。
+
+while( ロードイメージ終了まで )
+{
+	C = 2 byte 読み込み;
+	if ( C & 0x8000 )
+	{
+		C = C & 0x7fff;
+		L = 1 byte 読み込み;
+		if (L == 0) {
+			0 を C byte 書き出し;
+		} else {
+			*STR = L byte 読み込み;
+			*STR を C byte 書き出し;	/* C 回ではない */
+		}
+	} else {
+		C byte 書き出し;
+	}
+}
+
+＃spacial thanks to PEN@海猫 氏
+
+
+------------------------------------------------------------------------------
+★追加情報
+
+　TOWNS の DOS-Extender である RUN386 は、
+　Phar Lap software 社 DOS-Extender Ver 1.2 相当である。
+
+　京都マイクロコンピュータ社製、run386 互換 DOS-Extender である exe386 は、
+　RUN386 Ver 2.2 相当だが、全ファンクションをサポートしてる訳ではない。
+
+
+

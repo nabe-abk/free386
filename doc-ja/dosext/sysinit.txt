@@ -1,0 +1,230 @@
+SYSINIT解析
+-------------------------------------------------------------------------------
+常駐したSYSINIT内にある情報
+-------------------------------------------------------------------------------
+  常駐したSYSINIT内にある情報
+
+  offset 0x0118 : (8byte) "TOWNS   " (固定)
+  offset 0x0120 : (dword) データモジュールリストのアドレス
+  offset 0x0124 : (dword) データモジュール領域開始アドレス
+  offset 0x0128 : (dword) 拡張メモリ未割り当て領域開始アドレス
+                          (データモジュール領域終了アドレス＋１)
+
+　ＲＡＭ上のデータモジュールにはセレクタ 0x40 を経由してアクセス可能。
+
+
+・データモジュールリストの構造
+  offset 0x0000 : (dword) 読み込んだデータの個数
+  offset 0x0004 : (dword) 読み込んだデータの総バイト数
+  offset 0x0010～         読み込まれている各データの情報(16バイト単位)
+          +0x00 : (dword)データ先頭アドレス
+          +0x04 : (4byte)データ種別(4文字)
+          +0x08 : (dword)データサイズ(バイト単位)
+          +0x0c : (byte) 使用プログラム数
+          +0x0e : (word) 割り当て済セレクタ(未割り当てなら 0)
+
+
+・現在確認できているデータ種別
+  "FONT" : 12ドットフォント
+  "ICON" : 24ドットアイコン
+  "SKBD" : T-OS V2.1のソフトウェアキーボードパターン
+  "MSGD" : サウンドメッセージ波形データ
+  "FINF" : フォント情報データ
+  "CLIP" : ポケット用領域
+  "FO20" : 20ドット明朝体フォント
+
+-------------------------------------------------------------------------------
+t_os.lib の mma_allocSeg/mma_freeSeg での管理のしかた
+-------------------------------------------------------------------------------
+
+・mma_allocSeg 手順
+
+１．SYSINIT 常駐確認
+
+　DOS-Extender 拡張 funciton の AX=2511h を用いて、
+　int 21h / ah=52h (DOS非公開function / 先頭MCB取得) を発効。
+　MCB を順に最後まで検索して、
+　MCB先頭 + 128h に 'TOWN' という文字列のあるものを探している。
+
+
+２．既に利用されているか確認
+
+　データリストの該当データを検索する。
+　+0ch(byte) を読み出し、この値が 7fh 以上なら割り当て失敗。
+
+　+0ch が 0 でない場合は、既に何らかのプログラムで使用されてると判別し
+　+0eh からセレクタ値をロード。そのセレクタの存在ビットを調べ、
+　そのセレクタが存在すれば、+0ch の値をインクメントし、
+　既に存在するセレクタ値を返してルーチン終了。
+
+３，セレクタのアロケーション
+
+　サイズ 0 セレクタを作成する。
+　その後 CR3 をレジスタを参照し、セクレタ 40h を使用しながら、
+　（セレクタ 40h が物理メモリと１対１であると過程している）
+　ページテーブル及びセグメントディスクリプタを直接操作（推測）。
+
+＃詳細は未調査
+
+４．値を返す
+
+　+0ch の値をインクリメント。
+　+0eh にセレクタ値を設定して、ルーチン終了。
+
+
+＊その他考察
+
+　・セレクタを多重アロケーションしないようになっている。
+　・おそらくページテーブルなども多重アロケーションしないようになっていると
+　　思われる。
+　・ディスクリプタが存在するか確認するところから、LDT が複数ある環境か、
+　　はたまた LDT が破壊された状況などを想定していると思われる。
+　　そこから推測するに、ページテーブルが既に構築されている場合なども
+　　想定している可能性がある。
+
+＊謎
+
+　・T-BIOS や CoCo のように RUN386 にその機能を与えなかったのが謎。
+　　（必要なときしかアロケーションしないから？）
+　・DOS-Extender 拡張コールを使わず直接システムレジスタを操作してるのが謎。
+　　（ページテーブルが足りない可能性を考えて？？？）
+
+-------------------------------------------------------------------------------
+フロー解析
+-------------------------------------------------------------------------------
+	mma_allocSeg(char *('NAME'))
+	{
+		mma_alloc(char *('NAME'),000)
+	}
+
+
+	mma_alloc('NAME', XXX)
+	{
+		s = _mma_scanDirTbl(*('NAME'), 4, 1)
+		if (s==0) return 0;
+
+		;s = 'NAME' データ情報がある先頭ポインタ（リニアアドレス）
+
+		edi = s;
+		ebx = [edi + 8]  /* size */
+		esi = [edi] & 0fffff000h;  /* data top */
+		al  = [edi + 0ch]
+		if (al > 7fh) return 0
+		if (al != 0) {
+			push ebx
+			ebx = [edi + 0eh];
+			call _mma_getDesc;	/* ASM の模様 */
+			eax = bx;
+			pop ebx
+			if (dl & 80h) goto RET:; /* セレクタが存在している */
+		}
+		b [edi +0ch] = 0;
+		eax =(ebx >>12);  /* eax = size [/page] */
+		if (XXX==0)  call _mma_mapDatsSeg (esi, eax)
+			else call _mma_mapCodeSeg (esi, eax)
+				/* eax= return */
+
+		/*** __mma_cleanup ***/
+		push ebx
+		ebx = eax;  /* ebx = selector */
+		while (1)
+		{
+			s = _mma_scanDirTbl(ebx, 0eh, 0);
+			if (s) {
+				w [eax + 0eh] = 0h
+				b [eax + 0ch] = 0h
+			} else 	break;
+		}
+		eax = ebx;
+		pop ebx
+		[edi + 0eh] = ax;	/* alloc selector */
+	RET:
+		[edi + 0ch] ++;		/* 使用カウンタ? */
+		edx = esi /* 戻り値 */
+		ecx = ebx /* 戻り値 */
+	}
+
+	_mma_getDesc(レジスタ bx:セレクタ値)
+	{
+		push ebx;
+		ebx = bx;
+		ecx = selector_size(bx) +1  /* lsl ecx,bx; ecx++; */
+		ecx = ecx >>12; /* page 単位 */
+		ds  = LDT/GDT アクセスセレクタ (bx の値で判別)
+		ebx &= 0fff8h;
+		eax = セレクタベースオフセット;
+		dx  = セレクタ属性;
+		pop ebx
+	}
+
+	_mma_scanDirTbl('NAME', xx0, xx1 )
+	{
+		if (xx1) *(19eh)=66 else *(19eh)=90
+		s = mma_getDirPtr()
+		if (s==0) return 0;
+
+		c = *(s)   /* リニアアドレス word 読み出し */
+		if (c==0) return 0;
+
+		s += 10h;
+		s += xx0;
+		d  = 'NAME'
+
+		/* テーブルから 'NAME' を探す */
+		if (found = yes)
+		{
+			p = 'NAME'のあるポインタ;
+			p &= 0ffff_fff0h;
+			return p;
+		} else  return 0;
+	}
+
+	mma_getDirPtr()
+	{
+		s = _mma_srch(char *buf)
+		if (s==0) return 0;
+		return [s + 20h]  << リニアアドレス
+	}
+
+	_mma_srch(char *buf)
+	{
+		buf を使って MCB 先頭取得 (int 21h / ah=52h)
+		bx + 22h : UMB? の検索
+		bx - 2   : MCB の検索
+			MCBの直後のパラグラフが PSP であることを確認している
+		'TOWN' という文字列を探している
+
+		return MCB or 0 (=失敗)
+	}
+	
+	mma_allocCodeAlias( sel )
+	{
+		int 21h / ax=2513 (make alias)
+		return sel  / (失敗なら return 0)
+	}
+
+	_mma_mapCodeSeg (XX0, XX1)
+	_mma_mapDataSeg (XX0, XX1)
+	{
+		if (_mma_mapCodeSeg) al = 93h  ←セレクタ属性 R/W
+		if (_mma_mapDataSeg) al = 9bh  ←セレクタ属性 R/X
+		ah = c0h;			←特権レベルなど
+		call _mma_mapSeg(XX0, XX1, eax)
+	}
+	_mma_mapSeg(XX0, XX1, eax)	/* こんな関数はない */
+	{
+		sel = (int 21h / ah=48h);    ←大きさ 0 のセレクタ作成
+		if (失敗) return 0 (edx = エラーコード);
+
+		_mma_page(sel, XX0, XX1, eax);
+		if (失敗) 作成したセレクタを削除して return 0 (edx = sel);
+
+		return sel; (成功 sel != 0 である)
+	}
+
+
+	_mma_page(sel, XX0, XX1, ACC)
+	{
+		ページテーブルの直接操作による、
+		物理メモリの張りつけ。
+	}
