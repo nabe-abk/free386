@@ -21,11 +21,11 @@ This is written in assembly language only.
 
 ## Document (Japanese)
 
-* doc-ja/README.txt    - Free386 User's Manual
-* doc-ja/api.txt       - Free386 API Reference
-* doc-ja/for_AT.txt    - PC-AT    Version's information
-* doc-ja/for_PC98.txt  - PC-98x1  Version's information
-* doc-ja/for_TOWNS.txt - FM-TOWNS Version's information
+* [doc-ja/README.txt](doc-ja/README.txt)    - Free386 User's Manual
+* [doc-ja/api.txt](doc-ja/api.txt)       - Free386 API Reference
+* [doc-ja/for_AT.txt](doc-ja/for_AT.txt)    - PC-AT    Version's information
+* [doc-ja/for_PC98.txt](doc-ja/for_PC98.txt)  - PC-98x1  Version's information
+* [doc-ja/for_TOWNS.txt](doc-ja/to_TOWNS.txt) - FM-TOWNS Version's information
 
 ## Tool Files (redistributed)
 
