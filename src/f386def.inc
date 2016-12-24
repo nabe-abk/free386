@@ -15,7 +15,7 @@ F386_Date	equ		20161224h	;Develop date
 ; Operation setting
 ;==============================================================================
 MEMORY_INFO	equ	0	;Internal 64KB memory information with -v opt.
-INT_HOOK	equ	0	;interrupt hook and register dump
+INT_HOOK	equ	1	;interrupt hook and register dump
 INT_REGDUMP	equ	0ffh	;interrupt for user program register dump 
 PRINT_TO_FILE	equ	0	;int 21/ah=09h, Force output to "dump.txt" file
 
@@ -56,15 +56,16 @@ V86_stack_size	equ	 200h	;=byte / V86 モードスタックサイズ
 PM_stack_size	equ	 400h	;=byte / プロテクトモードスタックサイズ
 VCPI_stack_size	equ	  80h	;VCPI call(to V86)時のみ使用するスタックサイズ
 
-ISTK_size	equ	400h	;モード切り換え時、V86 側スタック保証サイズ
-ISTK_nest_max	equ	8	;V86切り替え1回に使う量割り込みネスト数 
+ISTK_size	equ	400h	;モード切り換え時スタックサイズ（ネスト対応）
+INT_BUF_size	equ	1000h	;V86←→Protect間データ渡し配列サイズ（ネスト対応）
+INT_BUF_sizebits equ	12	;↑のビット数
+ISTK_nest_max	equ	4	;CPUモード切り替えネスト数
+
+work_size	equ	200h	;汎用ワークサイズ / min 200h
 
 _POOL_mem_pages	equ	8	;ページングのために予約するメモリページ数
 _CALL_buf_size	equ	4	;CALLバッファとして使用するDOSメモリサイズ (KB)
 _REAL_mem_pages	equ	4	;プログラム実行用リアルメモリ (page)
-work_size	equ	200h	;汎用ワークサイズ / min 200h
-INT_BUF_size	equ	4000h	;V86 ←→ Protect 間データ渡し配列サイズ
-	;min 200h		;増やせば大量データ転送が高速化される。
 
 Unit_of_MEM	equ	400000h	;メモリアドレスの割り当て単位(byte)
 MIN_heap_mem	equ	200000h	;最小ヒープリニアアドレス
