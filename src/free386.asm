@@ -33,7 +33,9 @@ public		page_dir
 public		to_PM_EIP, to_PM_data_ladr
 public		VCPI_entry
 public		v86_cs
-public		int_buf_adr, VCPI_stack_adr
+public		int_buf_adr, int_buf_adr_org
+public		int_rwbuf_adr
+public		VCPI_stack_adr
 public		heap_malloc, stack_malloc
 public		f386err
 
@@ -482,9 +484,11 @@ alloc_real_mem_for_exp:
 
 	;//////////////////////////////////////////////////
 	;プロテクトモード←→V86 仲介バッファ
-	mov	ax,INT_BUF_size		;バッファサイズ
-	call	heap_malloc		;上位メモリ割り当て
-	mov	[int_buf_adr],di	;記録
+	mov	ax,INT_BUF_size * ISTK_nest_max	;バッファサイズ
+	call	heap_malloc			;上位メモリ割り当て
+	mov	[int_buf_adr],di		;記録
+	mov	[int_buf_adr_org],di
+
 
 ;------------------------------------------------------------------------------
 ;●XMS の確認と呼び出しアドレスの取得
@@ -1058,6 +1062,7 @@ BITS	32
 ;------------------------------------------------------------------------------
 	align	4
 END_program:
+	cli
 	mov	bx,F386_ds		;ds 復元
 	mov	ds,ebx			;
 	mov	es,ebx			;VCPI で切り換え時、

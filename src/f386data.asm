@@ -112,7 +112,8 @@ v86_sp		dw	0,0		;V86モード時 sp
 v86_ret		dw	0		;CS / リターン位置のスタック作成に使用
 		dw	V86_flags	;FLAGS の内容
 
-int_buf_adr	dd	0		;int 21h等 配列バッファアドレス
+int_buf_adr	dd	0		;int 21h等/nest対応
+int_buf_adr_org	dd	0		;int 21h等 配列バッファアドレス
 DOS_int21h_adr	dd	0		;DOS int 21h   CS:IP
 VCPI_entry	dd	0		;VCPI サービスエントリ
 		dw	VCPI_sel	;VCPI セレクタ

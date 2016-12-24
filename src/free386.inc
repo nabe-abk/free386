@@ -15,7 +15,9 @@ extern		page_dir
 extern		to_PM_EIP, to_PM_data_ladr
 extern		VCPI_entry
 extern		v86_cs
-extern		int_buf_adr, VCPI_stack_adr
+extern		int_buf_adr
+extern		int_buf_adr_org
+extern		VCPI_stack_adr
 extern		heap_malloc, stack_malloc
 extern		f386err
 

@@ -91,13 +91,19 @@ BITS	32
 ;------------------------------------------------------------------------------
 	align	4
 clear_mode_data:
+	pushfd
+	cli
 	push	eax
 	mov	eax,[ISTK_adr_org]		;初期値ロード
 	mov	[ISTK_adr], eax			;セーブ
 
+	mov	eax,[int_buf_adr_org]		;初期値ロード
+	mov	[int_buf_adr],eax		;セーブ
+
 	xor	eax, eax
 	mov	[ISTK_nest],eax			;nestカウンタ初期化
 	pop	eax
+	popfd
 	ret
 
 
@@ -215,7 +221,6 @@ BITS	16
 	mov	eax,[cs:save_eax]	;eax の値復元
 	mov	esi,[cs:save_esi]	;eax の値復元
 
-	sti
 	push	w (-1)			;mark / iret,retf両対応のため
 	pushf				;flag save for INT
 	call	far [cs:call_v86_adr]	;目的ルーチンのコール
@@ -348,6 +353,7 @@ BITS	32
 ;--------------------------------------------------------------------
 	align	4
 .32:
+	cli
 	mov	eax,F386_ds		;
 	mov	 ds,eax			;ds ロード
 	mov	 es,eax			;
@@ -368,6 +374,7 @@ BITS	32
 .int_no	db	 00h
 	pop	ds
 
+	cli
 	mov	[save_eax], eax		;eax 保存
 	mov	[save_esi], esi		;esi
 
@@ -400,6 +407,8 @@ BITS	32
 ;==============================================================================
 	align	4
 alloc_ISTK_32:
+	pushf
+	cli
 	mov	eax, [ISTK_nest]
 	cmp	eax, ISTK_nest_max
 	jae	short .error_exit
@@ -407,6 +416,15 @@ alloc_ISTK_32:
 	mov	eax, [ISTK_adr]
 	inc	d [ISTK_nest]
 	sub	d [ISTK_adr], ISTK_size
+
+	push	eax
+	mov	eax, [ISTK_nest]
+	shl	eax, INT_BUF_sizebits
+	add	eax, [int_buf_adr_org]
+	mov	[int_buf_adr],eax
+	pop	eax
+
+	popf
 	ret
 
 .error_exit:
@@ -418,7 +436,10 @@ alloc_ISTK_32:
 ;==============================================================================
 	align	4
 free_ISTK_32:
+	pushf
 	push	eax
+	cli
+
 	mov	eax, [ISTK_nest]
 	test	eax, eax
 	jz	short .error_exit
@@ -426,7 +447,13 @@ free_ISTK_32:
 	dec	d [ISTK_nest]
 	add	d [ISTK_adr], ISTK_size
 
+	mov	eax, [ISTK_nest]
+	shl	eax, INT_BUF_sizebits
+	add	eax, [int_buf_adr_org]
+	mov	[int_buf_adr],eax
+
 	pop	eax
+	popf
 	ret
 
 .error_exit:
