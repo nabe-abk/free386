@@ -7,6 +7,7 @@ extern	clear_mode_data		;モード切替えデータの初期化
 
 extern	call_V86_int		;int 呼び出し
 extern	call_V86_int21		;int 21h 呼び出し
+extern	call_V86_HARD_int	;call hardware interrupt
 
 extern	call_V86		;汎用的なな呼び出しルーチン (call して使用)
 extern	rint_labels_adr		;リアルモード割り込みフックルーチン先頭アドレス

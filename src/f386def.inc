@@ -56,10 +56,10 @@ V86_stack_size	equ	 200h	;=byte / V86 モードスタックサイズ
 PM_stack_size	equ	 400h	;=byte / プロテクトモードスタックサイズ
 VCPI_stack_size	equ	  80h	;VCPI call(to V86)時のみ使用するスタックサイズ
 
-ISTK_size	equ	400h	;モード切り換え時スタックサイズ（ネスト対応）
+ISTK_size	equ	1000h	;モード切り換え時スタックサイズ（ネスト対応）
 INT_BUF_size	equ	1000h	;V86←→Protect間データ渡し配列サイズ（ネスト対応）
 INT_BUF_sizebits equ	12	;↑のビット数
-ISTK_nest_max	equ	4	;CPUモード切り替えネスト数
+ISTK_nest_max	equ	3	;CPUモード切り替えネスト数
 
 work_size	equ	200h	;汎用ワークサイズ / min 200h
 

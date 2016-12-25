@@ -413,8 +413,8 @@ DOS_Ext_fn_2503h:
 ;------------------------------------------------------------------------------
 	align	4
 DOS_Ext_fn_2504h:
-	cmp	cl,21h		;21h は書き換え禁止
-	je	.exit
+;	cmp	cl,21h		;21h は書き換え禁止
+;	je	.exit
 
 	push	eax
 	push	ecx
@@ -473,8 +473,8 @@ DOS_Ext_fn_2505h:
 
 	align	4
 set_V86_vector:
-	cmp	cl,21h		;21h は書き換え禁止
-	je	.exit
+;	cmp	cl,21h		;21h は書き換え禁止
+;	je	.exit
 
 	push	ds
 	push	ebx
@@ -733,8 +733,18 @@ DOS_Ext_fn_250dh:		; eax未対応（仮対応！）
 	mov	 es, eax
 
 	xor	eax, eax
+	mov	eax, [cs:v86_cs]
+	shl	eax, 16
+	mov	 ax, offset .test
+
 	clear_cy
 	iret
+
+.test:
+	cli
+	inc	ebp
+	jmp	short .test
+
 
 ;------------------------------------------------------------------------------
 ;・プロテクトモードアドレスをリアルモードアドレスに変換　AX=250fh

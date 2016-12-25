@@ -23,6 +23,7 @@ public	clear_mode_data		;モード切替えデータの初期化
 
 public	call_V86_int		;int 呼び出し
 public	call_V86_int21		;int 21h 呼び出し
+public	call_V86_HARD_int
 
 public	call_V86		;汎用的なな呼び出しルーチン (call して使用)
 public	rint_labels_adr		;リアルモード割り込みフックルーチン先頭アドレス
@@ -116,7 +117,7 @@ clear_mode_data:
 call_V86_int21:
 	push	d (21h * 4)		;ds : ベクタ番号 ×4
 call_V86_int:
-	sub	esp, 0ch		;es --> gs
+	sub	esp, 10h		;es --> gs
 	push	eax
 
 	push	ds
@@ -126,7 +127,7 @@ call_V86_int:
 	cli
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
 	mov	 es,eax			;gs にロード
-	mov	eax,[esp + 4*6]		;引数（ベクタ番号*4）を取得
+	mov	eax,[esp + 4*7]		;引数（ベクタ番号*4）を取得
 	mov	eax,[es:eax]		;V86 割り込みベクタロード
 	mov	[call_v86_adr],eax	;呼び出しアドレスセーブ
 
@@ -143,14 +144,48 @@ call_V86_int:
 	xchg	[esp], eax		;[esp]=呼び出し先, eax=オリジナル
 	call	call_V86
 
-	; フラグ設定
+	; Carryフラグ設定
 	pushfd
 	push	eax
+
 	mov	eax, [esp+4]
-	mov	[esp+24h], eax
+	and	b [esp+28h], 0feh
+	and	al, 01h
+	or	b [esp+28h], al
 
 	pop	eax
-	add	esp, 18h		;スタック除去
+	add	esp, 1ch		;スタック除去
+	iret
+
+
+;******************************************************************************
+;■V86モードの割り込みルーチン呼び出し (ハードウェア割り込み用)
+;******************************************************************************
+;	引数	+00h d Int_No * 4
+
+	align	4
+call_V86_HARD_int:
+	xchg	[esp], esi		;eax = int番号*4
+	push	eax
+	push	es
+
+	mov	eax,[cs:v86_cs]
+	push	eax			;ds
+	push	eax			;es
+	push	eax			;fg
+	push	eax			;gs
+
+	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
+	mov	 es,eax
+	push	d [es:esi]		;V86割り込みベクタ
+
+	call	call_V86
+
+	add	esp, 14h		;スタック除去
+
+	pop	es
+	pop	eax
+	pop	esi
 	iret
 
 
@@ -281,17 +316,10 @@ BITS	32
 	pop	es			;
 	pop	ds			;
 
-	pushfd		;flags
-
-	mov	eax,[cs:call_v86_flags]	;V86 時フラグ
-	and	eax,    00cffh		;IF/IOPL 以外取り出し
-	and	w [esp],0f300h		;IF/IOPL など取り出し
-	or	  [esp],ax		;結果のフラグを混ぜる
-
 	mov	eax,[cs:save_eax]	;eax 復元
 	mov	esi,[cs:save_esi]	;esi 復元
 
-	popfd
+	bt	d [cs:call_v86_flags],0	;V86時 Carryフラグ設定
 	ret
 
 

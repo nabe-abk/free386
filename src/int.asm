@@ -354,7 +354,7 @@ INTR_intM:
 	mov	[esp+4],eax				;int番号*4 記録
 
 	pop	eax			;eax 復元
-	jmp	call_V86_int		;V86 ルーチンコール
+	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	eax
@@ -389,7 +389,7 @@ INTR_intM:
 	mov	[esp+8],eax		;呼び出しINT番号として記録
 	pop	edx
 	pop	eax
-	jmp	call_V86_int		;V86 ルーチンコール
+	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 
 	align	4
@@ -415,7 +415,7 @@ INTR_intS:
 
 	mov	[esp+4],eax		;int番号*4 記録
 	pop	eax			;eax 復元
-	jmp	call_V86_int		;V86 ルーチンコール
+	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	eax
@@ -450,7 +450,7 @@ INTR_intS:
 	mov	[esp+8],eax		;呼び出しINT番号として記録
 	pop	edx
 	pop	eax
-	jmp	call_V86_int		;V86 ルーチンコール
+	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 
 	align	4
