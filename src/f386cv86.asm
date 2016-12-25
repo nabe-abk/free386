@@ -170,10 +170,10 @@ call_V86_HARD_int:
 	push	es
 
 	mov	eax,[cs:v86_cs]
-	push	eax			;ds
-	push	eax			;es
-	push	eax			;fg
 	push	eax			;gs
+	push	eax			;fs
+	push	eax			;es
+	push	eax			;ds
 
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
 	mov	 es,eax
