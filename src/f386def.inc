@@ -15,10 +15,10 @@ F386_Date	equ		20161226h	;Develop date
 ; Operation setting
 ;==============================================================================
 MEMORY_INFO	equ	0	;Internal 64KB memory information with -v opt.
-INT_HOOK	equ	0	;interrupt hook and register dump
+INT_HOOK	equ	1	;interrupt hook and register dump
 INT_HOOK_F386	equ	0	; with F386 CS's INT
 INT_REGDUMP	equ	0ffh	;interrupt for user program register dump 
-PRINT_TO_FILE	equ	0	;int 21/ah=09h, Force output to "dump.txt" file
+PRINT_TO_FILE	equ	1	;int 21/ah=09h, Force output to "dump.txt" file
 
 	; Target Machine / If all of zero, for DOS general purpose binary.
 TOWNS		equ	1	;for FM-TOWNS binary
