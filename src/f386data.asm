@@ -24,6 +24,13 @@ call_buf_adr	dw	0		; offset / for DOS-X ax=250dh
 call_buf_seg	dw	0		; segment / min 1KB
 call_buf_ladr	dd	0		;リアルモードアドレス
 
+int_buf_adr	dd	0		;int 21h等/nest対応
+int_rwbuf_adr	dd	0		;File R/W専用バッファアドレス
+int_rwbuf_size	dd	0		;サイズ
+
+int_buf_adr_org		dd	0	;バッファアドレス初期値
+int_rwbuf_adr_org	dd	0	;
+
 ;--------------------------------------------------------------------
 ;----- 一般の内部変数 -----------------------------------------------
 ;
@@ -112,8 +119,6 @@ v86_sp		dw	0,0		;V86モード時 sp
 v86_ret		dw	0		;CS / リターン位置のスタック作成に使用
 		dw	V86_flags	;FLAGS の内容
 
-int_buf_adr	dd	0		;int 21h等/nest対応
-int_buf_adr_org	dd	0		;int 21h等 配列バッファアドレス
 DOS_int21h_adr	dd	0		;DOS int 21h   CS:IP
 VCPI_entry	dd	0		;VCPI サービスエントリ
 		dw	VCPI_sel	;VCPI セレクタ

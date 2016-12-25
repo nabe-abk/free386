@@ -168,9 +168,10 @@ PM_int_21h:
 	;
 	cmp	b [esp + 01h], 09h	;呼び出し時 AH
 	jz	short .normal_call
+%if !INT_HOOK_F386
 	cmp	d [esp + 08h], F386_cs	;呼び出し側 CS
 	jz	short .normal_call
-
+%endif
 	; この時点で original eax が積まれている
 	push	cs			; cs
 	push	d offset .call_retern	; EIP
@@ -517,49 +518,46 @@ int_21h_38h:
 ;------------------------------------------------------------------------------
 	align	4
 int_21h_3fh:
-	push	ecx
 	push	edx
 	push	esi
 	push	edi
 	push	ebp
 	push	es
 	push	ds
+	push	ecx	;スタック参照注意
 
 	mov	esi,F386_ds		;DS
- 	mov	es,[esp]		;読み込み先を
 	mov	ds,esi			;DS ロード
-
-	sub	esp,byte 0ch		;*** call_V86 ***
-	push	d [v86_cs]		;引数	+04h	call adress / cs:ip
-	push	d [DOS_int21h_adr]	;	+08h～+14h	ds,es,fs,gs
+ 	mov	es,[esp+4]		;読み込み先
 
 	mov	edi,edx			;データは  es:edi へ読み込み
 	mov	edx,ecx			;edx = 残り転送バイト数
-	mov	ebp,ecx			;ebp = 転送バイト数
+	mov	ebp,[int_rwbuf_size]	;ebp = バッファサイズ
 
-	cmp	edx,INT_BUF_size	;残りとバッファサイズを比較
+	cmp	edx,ebp			;残りとを比較
 	jbe	.last			;以下ならジャンプ
 
 	align	4	;-------------------------
 .loop:
+	xor	eax,eax
 	mov	ah,3fh			;File Read (dos function)
 
-	mov	[Idata0],edx	;退避
-	mov	edx,[int_buf_adr]	;読み出しバッファ
-	mov	ecx,INT_BUF_size	;バッファサイズ
-	call	call_V86		;ファイル読み込み  / DOS call
-	mov	edx,[Idata0]	;復元
+	push	edx		;退避
+	mov	edx,[int_rwbuf_adr]	;読み出しバッファ
+	mov	ecx,ebp			;バッファサイズ
+	calli	call_V86_int21		;ファイル読み込み  / DOS call
+	pop	edx
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
 	movzx	ecx,ax			;ecx = 読み込んだバイト数
-	mov	esi,[int_buf_adr]	;バッファアドレスロード
+	mov	esi,[int_rwbuf_adr]	;バッファアドレスロード
 	sub	edx,ecx			;edx = 残り転送バイト数
 	rep	movsb			;一括転送 ds:esi -> es:edi
 
-	cmp	ax,INT_BUF_size		;転送サイズと実際の転送量比較
+	cmp	eax,ebp			;転送サイズと実際の転送量比較
 	jne	.end			;違えば転送終了（読み終えた）
 
-	cmp	edx,INT_BUF_size	;残りとバッファサイズを比較
+	cmp	edx,ebp			;残りとバッファサイズを比較
 	ja	short .loop		;大きければ (edx > BUF_size) ループ
 
 	align	4 ;--------------------------------
@@ -567,43 +565,41 @@ int_21h_3fh:
 	mov	ah,3fh			;File Read (dos function)
 
 	mov	ecx,edx			;ecx = 残りサイズ
-	mov	[Idata0],edx	;退避
-	mov	edx,[int_buf_adr]	;読み出しバッファ
-	call	call_V86		;ファイル読み込み  / DOS call
-	mov	edx,[Idata0]	;復元
+	push	edx		;退避
+	mov	edx,[int_rwbuf_adr]	;読み出しバッファ
+	calli	call_V86_int21		;ファイル読み込み  / DOS call
+	pop	edx		;復元
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
 	movzx	ecx,ax			;ecx = 読み込んだバイト数
 	sub	edx,ecx			;edx = 残り転送バイト数
-	mov	esi,[int_buf_adr]	;バッファアドレスロード
+	mov	esi,[int_rwbuf_adr]	;バッファアドレスロード
 	rep	movsb			;一括転送
 
 .end:
-	mov	eax,ebp			;指定転送サイズ
+	mov	eax,[esp]		;指定転送サイズ
 	sub	eax,edx			;残り転送量を引く -> 実際の転送量
 
-	add	esp,byte 14h		;スタック除去
- 	pop	ds
-	pop	es
-	pop	ebp
-	pop	edi
-	pop	esi
-	pop	edx
 	pop	ecx
-	clear_cy
-	iret
-
-
-	align	4
-.error_exit:
-	add	esp,byte 14h		;スタック除去
 	pop	ds
 	pop	es
 	pop	ebp
 	pop	edi
 	pop	esi
 	pop	edx
+	clear_cy
+	iret
+
+
+	align	4
+.error_exit:
 	pop	ecx
+	pop	ds
+	pop	es
+	pop	ebp
+	pop	edi
+	pop	esi
+	pop	edx
 	set_cy
 	iret
 
@@ -613,92 +609,86 @@ int_21h_3fh:
 ;------------------------------------------------------------------------------
 	align	4
 int_21h_40h:
-	push	ecx
 	push	edx
 	push	esi
 	push	edi
 	push	ebp
 	push	es
+	push	ecx	;スタック参照注意
 
 	mov	edi,F386_ds		;DS
 	mov	es ,edi			;  es:edi 転送先（バッファ用）
 	mov	esi,edx			;  ds:esi 書き込みデータ
 
-	sub	esp,byte 0ch		;*** call_V86 ***
-	push	d [es:v86_cs]		;引数	+04h	call adress / cs:ip
-	push	d [es:DOS_int21h_adr]	;	+08h～+14h	ds,es,fs,gs
-
 	mov	edx,ecx			;edx = 残り転送バイト数
-	mov	ebp,ecx			;ebp = 転送バイト数
+	mov	ebp,[es:int_rwbuf_size]	;ebp = バッファサイズ
 
-	cmp	edx,INT_BUF_size	;残りとバッファサイズを比較
+	cmp	edx,ebp			;残りとバッファサイズを比較
 	jbe	.last			;以下ならジャンプ
 
 	align	4	;-------------------------
 .loop:
 	mov	ah,40h			;File Read (dos function)
 
-	mov	edi,[es:int_buf_adr]	;バッファアドレスロード
-	mov	ecx,INT_BUF_size	;ecx = 書き込んだバイト数
+	mov	edi,[es:int_rwbuf_adr]	;バッファアドレスロード
+	mov	ecx,ebp			;ecx = 書き込んだバイト数
 	rep	movsb			;一括転送
 
-	mov	[es:Idata0],edx	;退避
-	mov	edx,[es:int_buf_adr]	;書き込みバッファ
-	mov	ecx,INT_BUF_size	;バッファサイズ
-	call	call_V86		;ファイル書き込み  / DOS call
-	mov	edx,[es:Idata0]	;復元
+	push	edx		;退避
+	mov	edx,[es:int_rwbuf_adr]	;書き込みバッファ
+	mov	ecx,ebp			;バッファサイズ
+	calli	call_V86_int21		;ファイル書き込み  / DOS call
+	pop	edx		;復元
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
 	movzx	eax,ax			;eax = 書き込んだバイト数
 	sub	edx,eax			;残り転送サイズから引く
 
-	cmp	eax,INT_BUF_size	;転送サイズと実際の転送量比較
+	cmp	eax,ebp			;転送サイズと実際の転送量比較
 	jne	.end			;違えば転送終了（書き込み終えた）
 
-	cmp	edx,INT_BUF_size	;残りとバッファサイズを比較
+	cmp	edx,ebp			;残りとバッファサイズを比較
 	ja	.loop			;バッファサイズより大きかったらループ
 
 	;----------------------------------------
 .last:
 	mov	ah,40h			;File Read (dos function)
 
-	mov	edi,[es:int_buf_adr]	;バッファアドレスロード
+	mov	edi,[es:int_rwbuf_adr]	;バッファアドレスロード
 	mov	ecx,edx			;ecx = 残りサイズ
 	rep	movsb			;一括転送
 
 	mov	ecx,edx			;ecx = 残りサイズ
-	mov	[es:Idata0],edx	;退避
-	mov	edx,[es:int_buf_adr]	;書き込みバッファ
-	call	call_V86		;ファイル書き込み  / DOS call
-	mov	edx,[es:Idata0]	;復元
+	push	edx		;退避
+	mov	edx,[es:int_rwbuf_adr]	;書き込みバッファ
+	calli	call_V86_int21		;ファイル書き込み  / DOS call
+	pop	edx		;復元
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
 	movzx	ecx,ax			;ecx = 書き込んだバイト数
 	sub	edx,ecx			;edx = 残り転送バイト数
 
 .end:
-	mov	eax,ebp			;指定転送サイズ
+	mov	eax,[esp]		;指定転送サイズ
 	sub	eax,edx			;残り転送量を引く -> 実際の転送量
 
-	add	esp,byte 14h		;スタック除去
+	pop	ecx
 	pop	es
 	pop	ebp
 	pop	edi
 	pop	esi
 	pop	edx
-	pop	ecx
 	clear_cy
 	iret
 
 	align	4
 .error_exit:
-	add	esp,byte 14h		;スタック除去
+	pop	ecx
 	pop	es
 	pop	ebp
 	pop	edi
 	pop	esi
 	pop	edx
-	pop	ecx
 	set_cy
 	iret
 

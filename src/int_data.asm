@@ -12,8 +12,6 @@ group	comgroup text data
 ;šˆê”Ê•Ï”
 ;/////////////////////////////////////////////////////////////////////////////
 	align	4
-Idata0	dd	0		;”Ä—p•Ï”
-
 stack_pointer:
 _esp	dd	0		;esp •Û‘¶—p
 _ss	dd	0		;ss

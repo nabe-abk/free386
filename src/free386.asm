@@ -34,13 +34,14 @@ public		to_PM_EIP, to_PM_data_ladr
 public		VCPI_entry
 public		v86_cs
 public		int_buf_adr, int_buf_adr_org
+public		int_rwbuf_adr, int_rwbuf_adr_org
+public		int_rwbuf_size
 public		int_rwbuf_adr
 public		VCPI_stack_adr
 public		heap_malloc, stack_malloc
 public		f386err
 
 	;--- for int.asm ----------------------------------
-;public		int_buf_adr
 public		work_adr
 public		PM_stack_adr
 public		END_program
@@ -488,6 +489,12 @@ alloc_real_mem_for_exp:
 	call	heap_malloc			;上位メモリ割り当て
 	mov	[int_buf_adr],di		;記録
 	mov	[int_buf_adr_org],di
+
+	mov	ax,INT_RWBUF_size		;ファイル入出力専用
+	mov	[int_rwbuf_size],ax
+	call	heap_malloc			;上位メモリ割り当て
+	mov	[int_rwbuf_adr],di		;記録
+	mov	[int_rwbuf_adr_org],di
 
 
 ;------------------------------------------------------------------------------

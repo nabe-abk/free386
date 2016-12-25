@@ -427,28 +427,33 @@ BITS	32
 ;■ISTKサブルーチン 32bit
 ;******************************************************************************
 ;==============================================================================
-;■ISTKからスタックメモリを確保
+;■ISTK領域からスタックメモリを確保
 ;==============================================================================
 	align	4
-alloc_ISTK_32:
-	pushf
+alloc_ISTK_32:		;eax = 確保したISTKバッファ
+	pushfd
 	cli
+
 	mov	eax, [ISTK_nest]
 	cmp	eax, ISTK_nest_max
 	jae	short .error_exit
 
-	mov	eax, [ISTK_adr]
-	inc	d [ISTK_nest]
-	sub	d [ISTK_adr], ISTK_size
+	;nest counter +1
+	inc	eax
+	mov	[ISTK_nest], eax
 
-	push	eax
-	mov	eax, [ISTK_nest]
+	;int_buf のアドレス更新
 	shl	eax, INT_BUF_sizebits
 	add	eax, [int_buf_adr_org]
-	mov	[int_buf_adr],eax
-	pop	eax
+	mov	[int_buf_adr]  ,eax
+	mov	[int_rwbuf_adr],eax
+	mov	d [int_rwbuf_size],INT_BUF_size
 
-	popf
+	;return ISTK
+	mov	eax, [ISTK_adr]
+	sub	d [ISTK_adr], ISTK_size
+
+	popfd
 	ret
 
 .error_exit:
@@ -456,28 +461,44 @@ alloc_ISTK_32:
 	F386_end	26h		; ISTK Overflow
 
 ;==============================================================================
-;■ISTKメモリを開放
+;■ISTK領域のメモリを開放
 ;==============================================================================
 	align	4
 free_ISTK_32:
-	pushf
-	push	eax
+	pushfd
 	cli
+	push	eax
+	push	ebx
 
 	mov	eax, [ISTK_nest]
 	test	eax, eax
 	jz	short .error_exit
 
-	dec	d [ISTK_nest]
+	;nest counter -1
+	dec	eax
+	mov	[ISTK_nest], eax
+
+	;int_buf のアドレス更新
+	mov	ebx, eax
+	shl	ebx, INT_BUF_sizebits
+	add	ebx, [int_buf_adr_org]
+	mov	[int_buf_adr],ebx
+
+	test	eax, eax
+	jnz	short .nested
+
+	;ネストなしならRead/Write bufferは大きいのを使う
+	mov	d [int_rwbuf_size],INT_RWBUF_size
+	mov	ebx,[int_rwbuf_adr_org]
+.nested:
+	mov	[int_rwbuf_adr],ebx
+
+	;free ISTK
 	add	d [ISTK_adr], ISTK_size
 
-	mov	eax, [ISTK_nest]
-	shl	eax, INT_BUF_sizebits
-	add	eax, [int_buf_adr_org]
-	mov	[int_buf_adr],eax
-
+	pop	ebx
 	pop	eax
-	popf
+	popfd
 	ret
 
 .error_exit:

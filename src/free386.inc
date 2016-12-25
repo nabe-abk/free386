@@ -17,6 +17,9 @@ extern		VCPI_entry
 extern		v86_cs
 extern		int_buf_adr
 extern		int_buf_adr_org
+extern		int_rwbuf_adr
+extern		int_rwbuf_adr_org
+extern		int_rwbuf_size
 extern		VCPI_stack_adr
 extern		heap_malloc, stack_malloc
 extern		f386err
