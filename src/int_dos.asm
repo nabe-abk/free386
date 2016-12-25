@@ -318,9 +318,9 @@ int_21h_09h_output_file:
 
 	; file open
 	push	edx
-	mov	al, 01000010b
+	mov	al, 00010010b
 	mov	ah, 3dh
-	mov	edx, .file
+	mov	edx, offset .file
 	calli	call_V86_int21
 	pop	edx
 	jc	.exit
@@ -328,11 +328,13 @@ int_21h_09h_output_file:
 	mov	ebx, eax	; bx = handle
 
 	; file seek
+	push	edx
 	mov	al, 02h
 	mov	ah, 42h
 	xor	ecx,ecx
 	xor	edx,edx
 	calli	call_V86_int21
+	pop	edx
 
 	mov	es,[esp]
 	mov	esi, edx

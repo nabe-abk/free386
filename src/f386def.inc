@@ -16,7 +16,7 @@ F386_Date	equ		20161226h	;Develop date
 ;==============================================================================
 MEMORY_INFO	equ	0	;Internal 64KB memory information with -v opt.
 INT_HOOK	equ	0	;interrupt hook and register dump
-INT_HOOK_F386	equ	0	; with F386 CS's INT
+INT_HOOK_F386	equ	0	;(DANGER!) with F386 CS's INT
 INT_REGDUMP	equ	0ffh	;interrupt for user program register dump 
 PRINT_TO_FILE	equ	0	;int 21/ah=09h, Force output to "dump.txt" file
 
@@ -57,10 +57,10 @@ V86_stack_size	equ	 200h	;=byte / V86 モードスタックサイズ
 PM_stack_size	equ	 400h	;=byte / プロテクトモードスタックサイズ
 VCPI_stack_size	equ	  80h	;VCPI call(to V86)時のみ使用するスタックサイズ
 
-ISTK_nest_max	equ	3	;CPUモード切り替えネスト数
+ISTK_nest_max	equ	4	;CPUモード切り替えネスト数
 ISTK_size	equ	400h	;モード切り換え時スタックサイズ（ネスト対応）
 INT_BUF_size	equ	800h	;V86←→Protect間データ渡し配列サイズ（ネスト対応）
-INT_BUF_sizebits equ	11	;↑のビット数
+INT_BUF_sizebits equ	10	;↑のビット数
 INT_RWBUF_size	equ	4000h	;ファイル入出力専用バッファサイズ
 
 work_size	equ	200h	;汎用ワークサイズ / min 200h

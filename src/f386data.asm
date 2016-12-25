@@ -26,7 +26,7 @@ call_buf_ladr	dd	0		;リアルモードアドレス
 
 int_buf_adr	dd	0		;int 21h等/nest対応
 int_rwbuf_adr	dd	0		;File R/W専用バッファアドレス
-int_rwbuf_size	dd	0		;サイズ
+int_rwbuf_size	dd	INT_RWBUF_size	;サイズ
 
 int_buf_adr_org		dd	0	;バッファアドレス初期値
 int_rwbuf_adr_org	dd	0	;

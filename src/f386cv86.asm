@@ -97,6 +97,10 @@ clear_mode_data:
 	mov	eax,[int_buf_adr_org]		;初期値ロード
 	mov	[int_buf_adr],eax		;セーブ
 
+	mov	eax,[int_rwbuf_adr_org]		;初期値ロード
+	mov	[int_rwbuf_adr] ,eax		;セーブ
+	mov   d	[int_rwbuf_size],INT_RWBUF_size	;セーブ
+
 	xor	eax, eax
 	mov	[ISTK_nest],eax			;nestカウンタ初期化
 	pop	eax
@@ -385,7 +389,7 @@ BITS	32
 	mov	 gs,eax			;
 
 	lss	esp, [ISTK_adr]		;ss:esp を設定
-	call	alloc_ISTK_32		;DS復元後
+	call	alloc_ISTK_32		;スタック領域確保
 
 	push	d [save_ss]		;リアルモードスタック
 	push	d [save_esp]
