@@ -733,17 +733,8 @@ DOS_Ext_fn_250dh:		; eax–¢‘Î‰i‰¼‘Î‰Ij
 	mov	 es, eax
 
 	xor	eax, eax
-	mov	eax, [cs:v86_cs]
-	shl	eax, 16
-	mov	 ax, offset .test
-
 	clear_cy
 	iret
-
-.test:
-	cli
-	inc	ebp
-	jmp	short .test
 
 
 ;------------------------------------------------------------------------------
