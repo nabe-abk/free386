@@ -109,7 +109,7 @@ F386_ds2	equ	20h	;free386用 DSセレクタ / 286互換
 PSP_sel1	equ	24h	;PSP領域
 PSP_sel2	equ	04h	;
 DOSENV_sel	equ	2ch	;DOS 環境変数領域
-DOSMEM_L_sel	equ	34h	;DOS メモリ空間 (in LDT)
+DOSMEM_Lsel	equ	34h	;DOS メモリ空間 (in LDT)
 
 ;==============================================================================
 ;★固定定数

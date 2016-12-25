@@ -729,7 +729,7 @@ DOS_Ext_fn_250dh:		; eax–¢‘Î‰i‰¼‘Î‰Ij
 	mov	 cl, b [cs:call_buf_sizeKB]
 	mov	edx, d [cs:call_buf_ladr]
 
-	mov	eax, DOSMEM_sel
+	mov	eax, DOSMEM_Lsel
 	mov	 es, eax
 
 	clear_cy

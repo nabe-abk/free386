@@ -366,7 +366,8 @@ int_21h_09h_output_file:
 
 .file	db	"dump.txt",0
 %endif
-;
+
+
 ;------------------------------------------------------------------------------
 ;・バッファ付き標準1行入力  AH=0ah
 ;------------------------------------------------------------------------------
@@ -428,7 +429,7 @@ int_21h_1ch:
 	mov	esi,[cs:call_v86_ds]	;real ds
 	shl	esi, 4			;セグメントを16倍 (para -> byte)
 	add	ebx,esi			;ebx = FAT:ID ベースアドレス
-	push	d (DOSMEM_sel)		;DOSメモリアクセスセレクタ
+	push	d (DOSMEM_Lsel)		;DOSメモリアクセスセレクタ
 	pop	ds			;ds に設定
 
 	pop	esi
@@ -831,18 +832,16 @@ int_21h_4fh:
 
 
 ;------------------------------------------------------------------------------
-;・IO.SYSのワークエリアアドレス取得／MCB取得  AH=52h
+;【汎用】ES:BXでのみ、戻り値が返る。 AH=34h(InDOS flag), AH=52h(MCB/Undoc)
 ;------------------------------------------------------------------------------
 	align	4
-int_21h_52h:
-	push	ebx
+int_21h_ret_esbx:
 	xor	ebx, ebx
 	calli	call_V86_int21		;int 21h 割り込み処理ルーチン呼び出し
-	jc	short .error
 
 	push	eax
 
-	mov	eax,DOSMEM_sel
+	mov	eax,DOSMEM_Lsel
 	mov	es, eax
 
 	mov	eax, [cs:call_v86_es]
@@ -850,15 +849,7 @@ int_21h_52h:
 	add	ebx, eax
 
 	pop	eax
-	add	esp, byte 4
-	clear_cy
 	iret
-
-.error:
-	pop	ebx
-	set_cy
-	iret
-
 
 ;------------------------------------------------------------------------------
 ;・ファイルの移動（リネーム）  AH=56h

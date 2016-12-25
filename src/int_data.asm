@@ -114,7 +114,7 @@ int21h_table:
 	dd	offset int_21h_31h	;常駐終了
 	dd	offset int_21h_notsupp	;DOS ディスクブロック入手
 	dd	offset call_V86_int21	;CTRL-C 検出状態 設定／取得
-	dd	offset call_V86_int21	;ブートドライブ番号取得
+	dd	offset int_21h_ret_esbx	;InDOSフラグのアドレス取得
 	dd	offset DOS_Extender_fn	;DOS-Extender ファンクション
 	dd	offset call_V86_int21	;ディスク残り容量取得
 	dd	offset int_21h_unknown	;unknown
@@ -152,7 +152,7 @@ int21h_table:
 	;### function 50h-57h ######
 	dd	offset int_21h_unknown	;unknown
 	dd	offset int_21h_unknown	;unknown
-	dd	offset int_21h_52h	;先頭 MCB 取得 / IO.SYSワークアドレス取得
+	dd	offset int_21h_ret_esbx	;先頭 MCB 取得 / IO.SYSワークアドレス取得
 	dd	offset int_21h_unknown	;unknown
 	dd	offset call_V86_int21	;ベリファイフラグの取得
 	dd	offset int_21h_unknown	;unknown
