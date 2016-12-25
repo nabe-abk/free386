@@ -732,6 +732,7 @@ DOS_Ext_fn_250dh:		; eax–¢‘Î‰i‰¼‘Î‰Ij
 	mov	eax, DOSMEM_Lsel
 	mov	 es, eax
 
+	xor	eax, eax
 	clear_cy
 	iret
 
