@@ -255,7 +255,7 @@ make_all_mem_sel:
 	mov	d [edi  ],0			;base
 	mov	d [edi+4],(DOSMEMsize / 4096)-1	;1MB空間
 	;mov	d [edi+8],0200h			;R/W タイプ / 特権レベル=0
-	mov	eax,DOSMEM_L_sel		;DOS 環境変数セレクタ
+	mov	eax,DOSMEM_Lsel			;DOS 環境変数セレクタ
 	call	make_mems_4k			;メモリセレクタ作成 edi=構造体
 
 
