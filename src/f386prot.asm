@@ -274,12 +274,12 @@ make_all_mem_sel:
 ;------------------------------------------------------------------------------
 ;●デバッグ処理
 ;------------------------------------------------------------------------------
-debug_code:
+Debug_code:
 %if PRINT_TO_FILE
 	xor	ecx, ecx
 	mov	edx, .file
 	mov	ah, 3ch
-	int	21h	; debug file create
+	int	21h	; Debug file create
 
 	jmp	.skip
 .file	db	"dump.txt",0
