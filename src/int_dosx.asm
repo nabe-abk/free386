@@ -727,6 +727,7 @@ DOS_Ext_fn_250dh:		; eax–¢‘Î‰i‰¼‘Î‰Ij
 	xor	ecx,ecx
 	mov	ebx, d [cs:call_buf_adr]
 	mov	 cl, b [cs:call_buf_sizeKB]
+	shl	ecx, 10
 	mov	edx, d [cs:call_buf_ladr]
 
 	mov	eax, DOSMEM_Lsel
