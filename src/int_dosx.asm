@@ -817,31 +817,27 @@ DOS_Ext_fn_250fh:
 ;・リアルモードのルーチンfarコール　AX=250eh
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_250eh:			;仮対応！！
+DOS_Ext_fn_250eh:		;仮対応！！　v86 call時、フラグ保存しない
+
 	test	ecx,ecx		;スタックコピー回数
 	jnz	.fail		;指定があれば失敗
 
+	push	eax		;+14h : eax ※スタック参照注意
+
 	mov	eax,ebx		;eax =0
 	shr	eax,16		;ax = cs (seg-reg)
-	push	eax		;gs
-	push	eax		;fs
-	push	eax		;es
-	push	eax		;ds
-	push	ebx		;呼び出しアドレス
+	push	eax		;+10h : gs
+	push	eax		;+0ch : fs
+	push	eax		;+08h : es
+	push	eax		;+04h : ds
+	push	ebx		;+00h : 呼び出しアドレス
+
+	mov	eax,[esp+14h]	;eax復元
 	call	call_V86	;目的ルーチンの call
 
-	;フラグセーブ
-	push	eax
-	pushf				;flag
-	pop	eax			;edx = flag
-	and	eax,0cfeh		;IF/IOPL 以外取り出し / Cy=0
-	and	w [esp + 20h],0f300h	;IF/IOPL など取り出し
-	or	  [esp + 20h],ax	;結果のフラグを混ぜる
-
-	add	esp,18h		;スタック除去
+	add	esp,14h		;スタック除去
 	clear_cy
 	iret
-
 
 .fail:
 	mov	eax,1		;エラーコード(嘘)
@@ -963,29 +959,25 @@ DOS_Ext_fn_2511h:
 	mov	[esp],edx		;スタックトップへ記録
 	mov	edx,[esp +14h]		;edx 復元 / スッタク参照！！
 
-	mov	[esp+18h],eax		;eax 保存
-	pop	eax			;edx
+	mov	[esp +18h],eax		;eax 保存
+	pop	eax			;0 : edx
 	mov	[edx +14],eax
-	pop	eax			;ds
+	pop	eax			;1 : ds
 	mov	[edx + 2],ax
-	pop	eax			;es
+	pop	eax			;2 : es
 	mov	[edx + 4],ax
-	pop	eax			;fs
+	pop	eax			;3 : fs
 	mov	[edx + 6],ax
-	pop	eax			;gs
+	pop	eax			;4 : gs
 	mov	[edx + 8],ax
 
-	mov	eax,[esp +4h]		;eax 復元
-
 	;フラグセーブ
-	pushf				;flag
-	pop	edx			;edx = flag
-	and	edx,0cffh		;IF/IOPL 以外取り出し
-	and	w [esp + 14h],0f300h	;IF/IOPL など取り出し
-	or	  [esp + 14h],dx	;結果のフラグを混ぜる
+	setc	al
+	and	b [esp + 14h],0feh	;Cy以外取り出し
+	or	b [esp + 14h],al	;Cyを混ぜる
 
 	pop	edx
-	add	esp,byte 4		;自動変数領域除去
+	pop	eax	;書き換えた領域。自動変数領域除去
 	pop	es
 	iret
 

@@ -241,7 +241,7 @@ call_V86:
 	push	d (offset .in86)	;** V86 IP を記録
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
-	VCPI_function			;VCPI far call
+	call 	far [VCPI_entry]	;VCPI far call
 
 
 ;--------------------------------------------------------------------
@@ -381,7 +381,6 @@ BITS	32
 ;--------------------------------------------------------------------
 	align	4
 .32:
-	cli
 	mov	eax,F386_ds		;
 	mov	 ds,eax			;ds ロード
 	mov	 es,eax			;
@@ -424,7 +423,7 @@ BITS	32
 	push	d (offset .ret_PM)	;** V86 IP を記録
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
-	VCPI_function			;VCPI far call
+	call 	far [VCPI_entry]	;VCPI far call
 
 
 ;******************************************************************************
