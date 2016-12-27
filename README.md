@@ -6,8 +6,8 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.60
-* Date: **2016/12/24**
+* Version: 0.61
+* Date: **2016/12/28**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
 * Machine: PC/AT(DOS/V)
 * Machine in Japanese: FM-TOWNS, PC-9801/PC-9821

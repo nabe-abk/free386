@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.61 2016/12/26'
+%define	VER_STRING	'Ver0.61 2016/12/28'
 Major_ver	equ		00h
 Minor_ver	equ		61h
-F386_Date	equ		20161226h	;Develop date
+F386_Date	equ		20161228h	;Develop date
 
 ;==============================================================================
 ; Operation setting
@@ -20,10 +20,12 @@ INT_HOOK_F386	equ	0	;(DANGER!) with F386 CS's INT
 INT_REGDUMP	equ	0ffh	;interrupt for user program register dump 
 PRINT_TO_FILE	equ	0	;int 21/ah=09h, Force output to "dump.txt" file
 
+%ifndef AUTO_RELEASE
 	; Target Machine / If all of zero, for DOS general purpose binary.
-TOWNS		equ	1	;for FM-TOWNS binary
+TOWNS		equ	0	;for FM-TOWNS binary
 PC_98		equ	0	;for PC-98x1 binary
 PC_AT		equ	0	;for PC/AT binary
+%endif
 
 USE_MZ_EXP	equ	1	;MP ヘッダロードルーチンを搭載する
 Check_EMS	equ	1	;EMS が install されているか確認する
