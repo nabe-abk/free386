@@ -1128,6 +1128,7 @@ Rec_vector:
 	mov	eax,[v86_cs]		;V86時 cs,ds
 	mov	ebx,[v86_sp]		;V86時 sp
 
+	cli				;割り込み禁止
 	lss	esp,[VCPI_stack_adr]	;専用スタックロード
 	push	eax			;V86 gs
 	push	eax			;V86 fs
@@ -1140,8 +1141,7 @@ Rec_vector:
 	push	d (offset END_program16) ;V86 EIP / 終了ラベル
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
-	cli				;割り込み禁止
-	VCPI_function			;VCPI call
+	call    far [VCPI_entry]	;VCPI call
 
 
 ;******************************************************************************
