@@ -411,7 +411,6 @@ BITS	32
 	call	free_ISTK_32		;スタック開放
 
 	mov	eax,[v86_cs]		;V86時 cs,ds
-	lss	esp,[VCPI_stack_adr]	;専用スタックロード
 	push	eax			;** V86 gs
 	push	eax			;** V86 fs
 	push	eax			;** V86 ds

@@ -433,6 +433,9 @@ alloc_real_mem_for_exp:
 	call	stack_malloc		;下位メモリ割り当て
 	mov	sp,di			;スタック切替え
 
+	mov	[v86_cs],cs		;cs 退避
+	mov	[v86_sp],di		;sp 退避
+
 	mov	ax,PM_stack_size	;プロテクトモード時 stack
 	call	stack_malloc		;下位メモリ割り当て
 	mov	[PM_stack_adr],di	;記録
@@ -881,11 +884,6 @@ setup_IDT:
 	add	esi,offset to_PM_data	;切替え用構造体アドレス
 	mov	[to_PM_data_ladr],esi	;上記リニアアドレス記録
 
-	;最終退避
-	mov	[v86_cs ],cs		;cs 退避
-	mov	[v86_sp ],sp		;sp 退避
-	mov	[v86_ret],cs		;ret スタック作成用
-
 	int	67h			;プロテクトモードの start32 へ
 
 	call		free_EMB	; 拡張メモリの開放
@@ -1129,7 +1127,6 @@ Rec_vector:
 	mov	ebx,[v86_sp]		;V86時 sp
 
 	cli				;割り込み禁止
-	lss	esp,[VCPI_stack_adr]	;専用スタックロード
 	push	eax			;V86 gs
 	push	eax			;V86 fs
 	push	eax			;V86 ds
