@@ -445,12 +445,14 @@ end_TOWNS:
 	test	bl,01			;VRAMに アクセスあり ?
 	jz	.no_reset_VRAM		;0 なら VRAM 未使用 (jmp)
 
-.res_v:	mov	eax,120h		;VRAM セレクタ
+.res_v:	push	es
+	mov	eax,120h		;VRAM セレクタ
 	mov	 es,eax			;Load
 	xor	edi,edi			;edi = 0
 	mov	ecx,512*1024 / 4	;512 KB
 	xor	eax,eax			;塗りつぶす値
 	rep	stosd			;0 クリア
+	pop	es
 .no_reset_VRAM:
 .no_reset:
 
