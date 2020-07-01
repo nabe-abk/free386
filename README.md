@@ -6,10 +6,10 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.61
-* Date: **2016/12/28**
+* Version: 0.62
+* Date: **2020/07/01**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
-* Machine: PC/AT(DOS/V)
+* Machine: PC/AT
 * Machine in Japanese: FM-TOWNS, PC-9801/PC-9821
 * Compatible: MS-DOS and XMS and **VCPI** (with HIMEM.SYS and EMM386.EXE)
 * Language: NASM (Full assembly language)
