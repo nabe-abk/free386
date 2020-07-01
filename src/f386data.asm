@@ -20,9 +20,9 @@ default_API	db	Free386_API,0	;ディフォルトの API
 ;----- バッファ情報 -------------------------------------------------
 ;
 work_adr	dd	0		;汎用ワークのアドレス (min 200h)
-call_buf_adr	dw	0		; offset / for DOS-X ax=250dh
-call_buf_seg	dw	0		; segment / min 1KB
-call_buf_ladr	dd	0		;リアルモードアドレス
+callbuf_adr16	dw	0		; offset / for DOS-X ax=250dh
+callbuf_seg16	dw	0		; segment / min 1KB
+callbuf_adr32	dd	0		;リニアモードアドレス
 
 int_buf_adr	dd	0		;int 21h等/nest対応
 int_rwbuf_adr	dd	0		;File R/W専用バッファアドレス

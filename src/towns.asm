@@ -71,18 +71,18 @@ init_CoCo:
 
 	cmp	bh, 32h
 	jb	.fail
-	cmp	cx, 436fh
+	cmp	cx, 436fh	; 'Co'
 	jne	.fail
-	cmp	dx, 436fh
+	cmp	dx, 436fh	; 'Co'
 	jne	.fail
-	cmp	si, 204bh
+	cmp	si, 204bh	; ' K'
 	jne	.fail
-	cmp	di, 656eh
+	cmp	di, 656eh	; 'en'
 	jne	.fail
 
 	xor	bp, bp			; counter
-	mov	si, [call_buf_adr]
-	mov	es, [call_buf_seg]
+	mov	si, [callbuf_adr16]
+	mov	es, [callbuf_seg16]
 	mov	di, offset nsdd_selectors
 .loop:
 	push	di
@@ -95,7 +95,7 @@ init_CoCo:
 	test	ah, ah
 	jnz	.end
 
-	; CS save
+	; CS save to [nsdd_selectors]
 	mov	[di], bx
 	add	di, 2
 
@@ -142,9 +142,9 @@ segdata_to_seglist:
 	mov	 ax,  bx
 	mov	[es:si],eax	; selector
 
-	; Å¶dxÇégÇÌÇ»Ç¢Ç±Ç∆
+	; di, dxîÒîjâÛ
 
-	mov	ah, [di+6]	; type and limit - bit 
+	mov	ah, [di+6]	; type and limit - bit
 	test	ah, 40h		; 32bit seg?
 	jz	.skip		; if 16bit seg jump
 

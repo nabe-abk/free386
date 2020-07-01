@@ -6,44 +6,55 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.61 2016/12/28'
+%define	VER_STRING	'Ver0.62 2020/07/01'
 Major_ver	equ		00h
-Minor_ver	equ		61h
-F386_Date	equ		20161228h	;Develop date
+Minor_ver	equ		62h
+F386_Date	equ		20200701h	;Develop date
 
 ;==============================================================================
 ; Operation setting
 ;==============================================================================
-MEMORY_INFO	equ	0	;Internal 64KB memory information with -v opt.
-INT_HOOK	equ	1	;interrupt hook and register dump
-INT_HOOK_F386	equ	0	;(DANGER!) with F386 CS's INT
-INT_REGDUMP	equ	0ffh	;interrupt for user program register dump 
-PRINT_TO_FILE	equ	0	;int 21/ah=09h, Force output to "dump.txt" file
+%ifndef AUTO_RELEASE
+; for DEVELOP build
+MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
+INT_HOOK	equ	0	; interrupt hook and register dump
+INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
+INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
+PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
+
+%else
+; for RELEASE
+MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
+INT_HOOK	equ	0	; interrupt hook and register dump
+INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
+INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
+PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
+%endif
 
 %ifndef AUTO_RELEASE
 	; Target Machine / If all of zero, for DOS general purpose binary.
-TOWNS		equ	1	;for FM-TOWNS binary
-PC_98		equ	0	;for PC-98x1 binary
-PC_AT		equ	0	;for PC/AT binary
+TOWNS		equ	1	; for FM-TOWNS binary
+PC_98		equ	0	; for PC-98x1 binary
+PC_AT		equ	0	; for PC/AT binary
 %endif
 
-USE_MZ_EXP	equ	1	;MP ヘッダロードルーチンを搭載する
-Check_EMS	equ	1	;EMS が install されているか確認する
-USE_frag_mem	equ	1	;Program末端とpage-dir間の空きメモリを使用する
-USE_XMS20	equ	0	;XMS Ver2.0にも対応する（通常不要）
+USE_MZ_EXP	equ	1	; MP ヘッダロードルーチンを搭載する
+Check_EMS	equ	1	; EMS が install されているか確認する
+USE_frag_mem	equ	1	; Program末端とpage-dir間の空きメモリを使用する
+USE_XMS20	equ	0	; XMS Ver2.0にも対応する（通常不要）
 
-_TITLE_disp	equ	1	;タイトル表示
-_Verbose	equ	0	;冗長な表示
-_see_PATH386	equ	1	;環境変数 PATH386 を参照する
-_see_PATH	equ	0	;環境変数 PATH を参照する
+_TITLE_disp	equ	1	; タイトル表示
+_Verbose	equ	0	; 冗長な表示
+_see_PATH386	equ	1	; 環境変数 PATH386 を参照する
+_see_PATH	equ	0	; 環境変数 PATH を参照する
 
-_reset_CRTC	equ	3	;[TOWNS] 終了時 CRTC/VRAM の初期化設定
+_reset_CRTC	equ	3	; [TOWNS] 終了時 CRTC/VRAM の初期化設定
 				;	0 = 初期化せず,     1 = 初期化, 
 				;	2 = CRTCのみ初期化, 3 = 自動判別
-_check_MACHINE	equ	1	;簡易機種判別を行う
+_check_MACHINE	equ	1	; 簡易機種判別を行う
 
-SAVE_8259A	equ	1	;ハードウェア割り込みマスクを終了時に復元する
-Rec_Real_Vec	equ	1	;リアルモード割り込みベクタの復元
+SAVE_8259A	equ	1	; ハードウェア割り込みマスクを終了時に復元する
+Rec_Real_Vec	equ	1	; リアルモード割り込みベクタの復元
 
 ;==============================================================================
 ; General define
@@ -68,7 +79,7 @@ INT_RWBUF_size	equ	4000h	;ファイル入出力専用バッファサイズ
 work_size	equ	200h	;汎用ワークサイズ / min 200h
 
 _POOL_mem_pages	equ	8	;ページングのために予約するメモリページ数
-_CALL_buf_size	equ	4	;CALLバッファとして使用するDOSメモリサイズ (KB)
+_CALLBUF_sizeKB	equ	4	;CALLバッファとして使用するDOSメモリサイズ (KB)
 _REAL_mem_pages	equ	4	;プログラム実行用リアルメモリ (page)
 
 Unit_of_MEM	equ	400000h	;メモリアドレスの割り当て単位(byte)
@@ -137,11 +148,10 @@ TSS_ESP0_off	equ	04h	;
 %if TOWNS
 
 MACHINE_CODE	equ	20h	;TOWNSシリーズ
-%define	MACHINE_STRING	'FM-TOWNS'
 
+%define	MACHINE_STRING	'FM-TOWNS'
 %define	Free386_API	'f386_fmt.api'	;機種固有APIのファイル名
 
-%define	SET_TOWNS_MEM		;TOWNS 固有のメモリセレクタを配置する
 INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する
 
 TBIOS_cs	equ	110h	;T-BIOS の code セレクタ
@@ -169,8 +179,8 @@ I8259A_IMR_S	equ	12h	;
 %if PC_98
 
 MACHINE_CODE	equ	10h	;PC-98x1 シリーズ
-%define	MACHINE_STRING	'PC-9801/9821'
 
+%define	MACHINE_STRING	'PC-9801/9821'
 %define	Free386_API	'f386_98.api'	;機種固有APIのファイル名
 
 VRAM_16padr	equ 0E00A8000h	;16色VRAM を配置する物理アドレス
@@ -193,33 +203,33 @@ I8259A_IMR_S	equ	0ah	;
 ;------------------------------------------------------------------------------
 %if PC_AT
 
-MACHINE_CODE	equ	30h	;PC/AT互換機
+MACHINE_CODE	equ	30h	; PC/AT
+
 %define	MACHINE_STRING	'PC/AT'
+%define	Free386_API	'f386_at.api'	; API file
 
-%define	Free386_API	'f386_at.api'	;機種固有APIのファイル名
+VESA_buf_sel	equ	148h	; VESA-BIOS buffer selector
+VESA_buf_size	equ	1	; VESA-BIOS buffer size (page / 1=4kb)
+VESA_call_adr	equ	0ffc0h	; VESA-BIOS call を置く VESA_cs 内アドレス
+				; ↑call code が入りきらない誤動作する
 
-VESA_buf_sel	equ	148h	;VESA-BIOS 用バッファのセレクタ
-VESA_buf_size	equ	1	;VESA-BIOS 用バッファのサイズ(page / 1=4kb)
-VESA_call_adr	equ	0ffc0h	;VESA-BIOS call を置く VESA_cs 内アドレス
-				;↑call code が入りきらない誤動作する
+VESA_cs		equ	150h	; VESA-BIOS code selector
+VESA_ds		equ	158h	; VESA-BIOS data selector (cs alias)
+VESA_ds2	equ	160h	; VESA-BIOS data selector 2 (needs 600h)
+VESA_A0		equ	168h	; VESA-BIOS selector A0000h (64kb)
+VESA_B0		equ	170h	; VESA-BIOS selector B0000h (64kb)
+VESA_B8		equ	178h	; VESA-BIOS selector B8000h (32kb)
 
-VESA_cs		equ	150h	;VESA-BIOS の code セレクタ
-VESA_ds		equ	158h	;VESA-BIOS の data セレクタ(cs alias)
-VESA_ds2	equ	160h	;VESA-BIOS データ (needs 600h)
-VESA_A0		equ	168h	;VESA-BIOS 用セレクタ A0000h (64kb)
-VESA_B0		equ	170h	;VESA-BIOS 用セレクタ B0000h (64kb)
-VESA_B8		equ	178h	;VESA-BIOS 用セレクタ B8000h (32kb)
+VRAM_padr	equ 0e6000000h	; VRAM physical address
+VRAM_size	equ	200h	; size=8MB / [page unit] ex)100h=4MB
+VRAM_sel	equ	120h	; VRAM selector (Change with at.asm)
 
-VRAM_padr	equ 0e6000000h	;VRAM を配置する物理アドレス
-VRAM_size	equ	200h	;size=8MB / [page単位] 100h=4MB
-VRAM_sel	equ	120h	;VRAM セレクタ (変更時はソース即値も変更のこと)
-
-enable_INTR	equ	1	;プロテクトモードでの割り込みを許可する
-INTR_MASTER	equ	 08h	;マスタ：ハードウェア割り込み先頭
-INTR_SLAVE	equ	 70h	;スレーブ
-I8259A_ISR_M	equ	 20h	;サービスレジスタ
+enable_INTR	equ	1	; Enable hardware interrrupt
+INTR_MASTER	equ	 08h	; master
+INTR_SLAVE	equ	 70h	; slave
+I8259A_ISR_M	equ	 20h	; service register
 I8259A_ISR_S	equ	0a0h	;
-I8259A_IMR_M	equ	 21h	;マスクレジスタ
+I8259A_IMR_M	equ	 21h	; mask register
 I8259A_IMR_S	equ	0a1h	;
 
 %endif
@@ -237,14 +247,14 @@ I8259A_IMR_S	equ	0a1h	;
 
 %elif (TOWNS + PC_98 + PC_AT) = 0
 
-MACHINE_CODE	equ	00h	;無判別
+MACHINE_CODE	equ	00h
+
 %define	MACHINE_STRING	'MS-DOS'
+%define	Free386_API	'f386_all.api'	; dummy
 
-%define	Free386_API	'f386_all.api'	;ダミー値
-
-enable_INTR	equ	0	;プロテクトモードでの割り込み使用しない
-INTR_MASTER	equ	0f0h	;ダミー値
-INTR_SLAVE	equ	0f0h	;ダミー値
+enable_INTR	equ	0	; Do not use hardware interrupt
+INTR_MASTER	equ	0f0h	; dummy
+INTR_SLAVE	equ	0f0h	; dummy
 
 %endif
 

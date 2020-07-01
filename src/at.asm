@@ -288,7 +288,7 @@ AT_memory_map:
 	dd	VESA_A0,   0a0000h,    64/4 -1, 0200h	;R/W : for VESA 3.0
 	dd	VESA_B0,   0b0000h,    64/4 -1, 0200h	;R/W : for VESA 3.0
 	dd	VESA_B8,   0b8000h,    32/4 -1, 0200h	;R/W : for VESA 3.0
-	dd	120h   , VRAM_padr,VRAM_size-1, 0200h	;R/W : VRAM
+	dd	VRAM_sel,VRAM_padr,VRAM_size-1, 0200h	;R/W : VRAM
 	dd	0	;end of data
 
 	align	4

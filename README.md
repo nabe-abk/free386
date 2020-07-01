@@ -15,6 +15,8 @@ This is written in assembly language only.
 * Language: NASM (Full assembly language)
 * Licence: PDS (Free386.com and Free386's source files)
 
+[CHANGES.txt](CHANGES.txt) for update information (Japanese).
+
 ## Download
 
 [https://github.com/nabe-abk/free386](https://github.com/nabe-abk/free386)

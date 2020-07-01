@@ -36,8 +36,7 @@ extern		DOS_int21h_adr
 extern		top_adr
 extern		default_API
 
-extern		call_buf_adr
-extern		call_buf_seg
-extern		call_buf_ladr
-
+extern		callbuf_adr16
+extern		callbuf_seg16
+extern		callbuf_adr32
 

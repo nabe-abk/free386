@@ -147,7 +147,22 @@ int_21h_unknown:
 ;==============================================================================
 	align	4
 PM_int_21h:
+%if INT_HOOK
+	cmp	ah, 09h
+	je	.skip
+
+	push	eax
+	mov	eax,[esp+8]	; CS
+	cmp	al, 20h
+	pop	eax
+	ja	.skip
+
+	;cmp	ah, 25h
+	;je	.skip
+.do:
 	call_RegisterDumpInt	21h
+.skip:
+%endif
 
 %if (int_21h_MAXF < 0ffh)
 	cmp	ah,int_21h_MAXF		;テーブル最大値
@@ -167,6 +182,8 @@ PM_int_21h:
 	; この時点で original eax が積まれている
 	;
 	cmp	b [esp + 01h], 09h	;呼び出し時 AH
+	jz	short .normal_call
+	cmp	b [esp + 01h], 25h	;呼び出し時 AH
 	jz	short .normal_call
 %if !INT_HOOK_F386
 	cmp	d [esp + 08h], F386_cs	;呼び出し側 CS
@@ -206,8 +223,6 @@ PM_int_21h:
 int_21h_ds_edx:
 	push	ds
 	push	es
-	push	fs
-	push	gs
 	push	edx
 
 	push	d (F386_ds)		;F386 ds
@@ -243,8 +258,6 @@ int_21h_ds_edx:
 	calli	call_V86_int21
 
 	pop	edx
-	pop	gs
-	pop	fs
 	pop	es
 	pop	ds
 	iret_save_cy		;キャリーセーブ & iret
@@ -259,8 +272,6 @@ int_21h_09h:
 %else
 	push	ds
 	push	es
-	push	fs
-	push	gs
 	push	edx
 
 	push	d (F386_ds)		;F386 ds
@@ -296,8 +307,6 @@ int_21h_09h:
 	calli	call_V86_int21
 
 	pop	edx
-	pop	gs
-	pop	fs
 	pop	es
 	pop	ds
 	iret_save_cy		;キャリーセーブ & iret
@@ -307,11 +316,12 @@ int_21h_09h:
 ;【デバッグ】文字列出力を強制的にファイル出力  AH=09h
 ;------------------------------------------------------------------------------
 %if PRINT_TO_FILE
+	align	4
 int_21h_09h_output_file:
 	; 強制ファイル出力
 	pushad
-	push	es
 	push	ds
+	push	es
 
 	mov	eax, F386_ds
 	mov	ds, eax
@@ -336,7 +346,7 @@ int_21h_09h_output_file:
 	calli	call_V86_int21
 	pop	edx
 
-	mov	es,[esp]
+	mov	es,[esp+4]	; original ds
 	mov	esi, edx
 	mov	edi, [int_buf_adr]
 	mov	edx, edi
@@ -361,8 +371,8 @@ int_21h_09h_output_file:
 	calli	call_V86_int21
 
 .exit:
-	pop	ds
 	pop	es
+	pop	ds
 	popad
 	iret
 

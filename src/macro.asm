@@ -81,7 +81,7 @@
 	jmp	call_V86_int
 
 	align	4
-.ret_label
+.ret_label:
 %endmacro
 
 %macro	V86_INT_21h	0
@@ -136,14 +136,6 @@ cy_clear:	;
 %endmacro
 
 ;------------------------------------------------------------------------------
-;・F386_dsをロードする
-;------------------------------------------------------------------------------
-%imacro	LOAD_F386_ds	0
-	push	d F386_ds
-	pop	ds
-%endmacro
-
-;------------------------------------------------------------------------------
 ;・レジスタダンプ
 ;------------------------------------------------------------------------------
 %imacro call_RegisterDump_with_code	1
@@ -176,64 +168,23 @@ cy_clear:	;
 	pop	dx
 %endmacro
 
-%imacro		OFF_ON	0	;ディバグ用 > 互換モード切替え
+%imacro	PAD_WAIT	0	;ディバグ用 > 互換モード切替え
 	push	eax
 	push	edx
+	push	ebp
 
-	mov	dx,5ech
-	xor	al,al
-	out	dx,al
+	mov	dx,4d0h
+._off	in	al,dx
+	test	al,10h
+	jz	._off
 
-	_WAIT	10
+._on	in	al,dx
+	dec	ebp
+	test	al,10h
+	jnz	._on
 
-	mov	al,1
-	out	dx,al
-
-	_WAIT2	10
-
+	pop	ebp
 	pop	edx
-	pop	eax
-%endmacro
-
-
-%imacro	_WAIT	1
-	push	eax
-	push	ecx
-	push	edx
-	mov	dx,5ech
-	mov	al,0
-	out	dx,al
-
-	xor	eax,eax
-	mov	ecx,%1
-	mov	edx,4000
-.wa.lp:
-	in	ax,26h
-	cmp	eax,edx
-	ja	.wa.lp
-.wa.lp2:
-	in	ax,26h
-	cmp	eax,edx
-	jbe	.wa.lp2
-	loop	.wa.lp
-
-	mov	dx,5ech
-	mov	al,1
-	out	dx,al
-	mov	ecx,%1
-	mov	edx,4000
-.wa.lp3:
-	in	ax,26h
-	cmp	eax,edx
-	ja	.wa.lp3
-.wa.lp4:
-	in	ax,26h
-	cmp	eax,edx
-	jbe	.wa.lp4
-	loop	.wa.lp3
-
-	pop	edx
-	pop	ecx
 	pop	eax
 %endmacro
 

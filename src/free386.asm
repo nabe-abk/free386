@@ -52,9 +52,9 @@ public		DOS_int21h_adr
 public		top_adr
 public		default_API
 
-public		call_buf_adr
-public		call_buf_seg
-public		call_buf_ladr
+public		callbuf_adr16
+public		callbuf_seg16
+public		callbuf_adr32
 
 ;******************************************************************************
 ;■コード(16 bit)
@@ -159,7 +159,7 @@ parameter_check:
 	;メモリを限界まで使う
 .para_m:
 	mov	b [POOL_mem_pages],0	;プールメモリ量 = 0
-	mov	b [call_buf_sizeKB],1	;CALL buffer size = 1KB
+	mov	b [callbuf_sizeKB],1	;CALL buffer size = 1KB
 	mov	b [real_mem_pages],250	;DOSメモリを最大まで使う, 255指定不可
 	jmp	short .loop
 
@@ -350,11 +350,11 @@ get_vcip_memory_size:
 ;------------------------------------------------------------------------------
 alloc_call_buffer:
 	xor	bh, bh
-	mov	bl, [call_buf_sizeKB]	;CALL Buffer size (KB)
+	mov	bl, [callbuf_sizeKB]	;CALL Buffer size (KB)
 	test	bl, bl
 	jnz	short .step
 	mov	bl, 1			;最低1KBは確保
-	mov	[call_buf_sizeKB], bl
+	mov	[callbuf_sizeKB], bl
 .step:
 	xor	eax, eax
 	shl	bx, 10-4 		; KB to para
@@ -366,9 +366,9 @@ alloc_call_buffer:
 	Program_end	F386ERR		; 終了
 
 .alloc:
-	mov	[call_buf_seg], ax	; real segment
+	mov	[callbuf_seg16], ax	; real segment
 	shl	eax, 4
-	mov	[call_buf_ladr],eax	; liner address
+	mov	[callbuf_adr32],eax	; liner address
 
 	;//////////////////////////////////////////////////
 	;汎用ワーク領域

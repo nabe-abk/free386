@@ -724,10 +724,10 @@ DOS_Ext_fn_250ch:
 	align	4
 DOS_Ext_fn_250dh:		; eax未対応（仮対応！）
 	xor	ecx,ecx
-	mov	ebx, d [cs:call_buf_adr]
-	mov	 cl, b [cs:call_buf_sizeKB]
+	mov	ebx, d [cs:callbuf_adr16]
+	mov	 cl, b [cs:callbuf_sizeKB]
 	shl	ecx, 10
-	mov	edx, d [cs:call_buf_ladr]
+	mov	edx, d [cs:callbuf_adr32]
 
 	mov	eax, DOSMEM_Lsel
 	mov	 es, eax
@@ -943,14 +943,15 @@ DOS_Ext_fn_2511h:
 
 %if INT_HOOK
 	push	ds
-	LOAD_F386_ds
+	push	d F386_ds
+	pop	ds
 	mov	[dump_err_code], eax	;err = int number
 	pop	ds
 %endif
 
 	mov	eax,[edx + 0ah]		;パラメタブロックからロード
 	mov	edx,[edx + 0eh]		;
-%if INT_HOOK
+%if 1 < INT_HOOK
 	call	register_dump	;safe
 %endif
 	call	call_V86		;目的ルーチンの call

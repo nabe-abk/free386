@@ -148,12 +148,12 @@ make_page_tables:
 	call	bin2hex_32
 
 	;/// call buffer ///
-	movzx	eax,b [call_buf_sizeKB]
+	movzx	eax,b [callbuf_sizeKB]
 	mov	edi,offset msg_02f	;数値記録用 文字列
 	mov	cl,6			;変換桁数 = 6
 	call	bin2deg_32		;10進数に変換
 
-	mov	eax,[call_buf_ladr]	;先頭アドレス
+	mov	eax,[callbuf_adr32]	;先頭アドレス
 	mov	edi,offset msg_02g
 	mov	cl,8
 	call	bin2hex_32
@@ -257,19 +257,6 @@ make_all_mem_sel:
 	;mov	d [edi+8],0200h			;R/W タイプ / 特権レベル=0
 	mov	eax,DOSMEM_Lsel			;DOS 環境変数セレクタ
 	call	make_mems_4k			;メモリセレクタ作成 edi=構造体
-
-
-;------------------------------------------------------------------------------
-;●各機種対応ルーチン
-;------------------------------------------------------------------------------
-%if TOWNS
-	call	setup_TOWNS		;TOWNS 固有の設定
-%elif PC_98
-	call	setup_PC98		;PC-98x1 固有の設定
-%elif PC_AT
-	call	setup_AT		;PC/AT互換機 固有の設定
-%endif
-
 
 ;------------------------------------------------------------------------------
 ;●デバッグ処理
@@ -444,17 +431,45 @@ search_file:
 	call	string_print		;文字列表示 (null:終端)
 .no_verbose:
 
-
 ;------------------------------------------------------------------------------
-;●EXP ファイルのロードと実行
+;●EXP ファイルのロード
 ;------------------------------------------------------------------------------
+call_load_exp:
 	mov	esi,[work_adr]		;ワーク領域ロード
 	call	load_exp		;EXP ファイルのロード
-	jnc	NEAR run_exp		;ロード成功なら EXP ファイルの実行
+	jnc	.skip			;ロード成功なら EXP ファイルの実行
 
-	align	4
-exp_load_error:
 	mov	[f386err],al		;エラー番号記録
 	xor	al,al
 	mov	ah,4ch
 	int	21h			;プログラム終了
+.skip:
+
+;------------------------------------------------------------------------------
+;●各機種対応ルーチン
+;------------------------------------------------------------------------------
+%if TOWNS || PC_98 || PC_AT
+	push	edx
+	push	ebp
+	push	fs
+	push	gs
+
+%if TOWNS
+	call	setup_TOWNS		;TOWNS 固有の設定
+%elif PC_98
+	call	setup_PC98		;PC-98x1 固有の設定
+%elif PC_AT
+	call	setup_AT		;PC/AT互換機 固有の設定
+%endif
+
+	pop	gs
+	pop	fs
+	pop	ebp
+	pop	edx
+%endif
+
+;------------------------------------------------------------------------------
+;●EXP ファイル実行
+;------------------------------------------------------------------------------
+	jmp	NEAR run_exp
+

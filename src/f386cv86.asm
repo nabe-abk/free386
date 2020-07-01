@@ -122,11 +122,13 @@ call_V86_int:
 
 	push	ds
 	push	es
-	LOAD_F386_ds			;データセグメント
+
+	push	d F386_ds
+	pop	ds
 
 	cli
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
-	mov	 es,eax			;gs にロード
+	mov	 es,eax			;es にロード
 	mov	eax,[esp + 4*7]		;引数（ベクタ番号*4）を取得
 	mov	eax,[es:eax]		;V86 割り込みベクタロード
 	mov	[call_v86_adr],eax	;呼び出しアドレスセーブ
@@ -505,8 +507,29 @@ free_ISTK_32:
 
 .error_exit:
 	call	clear_mode_data
+	push	d 0
+	push	d 3F0h
+	call	debug_write
+
 	F386_end	27h		; ISTK Underflow
 
+;******************************************************************************
+; debug
+;******************************************************************************
+debug_write:
+	ret
+	push	es
+	push	eax
+	push	ebx
+	mov	eax, ALLMEM_sel
+	mov	 es, eax
+	mov	ebx, [esp+0ch]
+	mov	eax, [esp+10h]
+	mov	d [es:ebx], eax
+	pop	ebx
+	pop	eax
+	pop	es
+	ret
 
 BITS	32
 ;******************************************************************************

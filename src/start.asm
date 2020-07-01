@@ -11,7 +11,7 @@ global	title_disp, verbose
 global	see_PATH386, see_PATH
 global	reset_CRTC, check_MACHINE
 global	POOL_mem_pages
-global	call_buf_sizeKB
+global	callbuf_sizeKB
 global	real_mem_pages
 
 ;----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ check_MACHINE	db	_check_MACHINE	;簡易機種判別
 		db	0
 	;[+12 byte]
 POOL_mem_pages	db	_POOL_mem_pages	;ページング用の予約メモリ
-call_buf_sizeKB	db	_CALL_buf_size	;CALL buffer size (KB)
+callbuf_sizeKB	db	_CALLBUF_sizeKB	;CALL buffer size (KB)
 real_mem_pages	db	_REAL_mem_pages	;プログラム実行用リアルメモリ
 		db	0
 
