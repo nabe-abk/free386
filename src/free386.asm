@@ -1080,6 +1080,11 @@ END_program:
 	;///////////////////////////////
 	;各機種固有の終了処理
 	;///////////////////////////////
+%if TOWNS || PC_98 || PC_AT
+	mov	al,[init_machine],
+	test	al,al
+	jz	.skip_machin_recovery
+
 %if TOWNS
 	call	end_TOWNS		;TOWNS の終了処理
 %elif PC_98
@@ -1088,6 +1093,8 @@ END_program:
 	call	end_AT			;PC/AT互換機の終了処理
 %endif
 
+.skip_machin_recovery:
+%endif
 	;///////////////////////////////
 	;リアルモードベクタの復元
 	;///////////////////////////////

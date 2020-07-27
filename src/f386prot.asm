@@ -449,6 +449,7 @@ call_load_exp:
 ;●各機種対応ルーチン
 ;------------------------------------------------------------------------------
 %if TOWNS || PC_98 || PC_AT
+	mov	b [init_machine], 1
 	push	edx
 	push	ebp
 	push	fs

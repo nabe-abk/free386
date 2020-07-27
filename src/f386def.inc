@@ -6,15 +6,20 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.62 2020/07/01'
+%define	VER_STRING	'Ver0.63 2020/07/27'
 Major_ver	equ		00h
-Minor_ver	equ		62h
-F386_Date	equ		20200701h	;Develop date
+Minor_ver	equ		63h
+F386_Date	equ		20200723h	;Develop date
 
 ;==============================================================================
 ; Operation setting
 ;==============================================================================
 %ifndef AUTO_RELEASE
+; Target Machine / If all of zero, for DOS general purpose binary.
+TOWNS		equ	1	; for FM-TOWNS binary
+PC_98		equ	0	; for PC-98x1 binary
+PC_AT		equ	0	; for PC/AT binary
+
 ; for DEVELOP build
 MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
 INT_HOOK	equ	0	; interrupt hook and register dump
@@ -23,21 +28,19 @@ INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
 
 %else
+
 ; for RELEASE
 MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
 INT_HOOK	equ	0	; interrupt hook and register dump
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
 INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
+
 %endif
 
-%ifndef AUTO_RELEASE
-	; Target Machine / If all of zero, for DOS general purpose binary.
-TOWNS		equ	1	; for FM-TOWNS binary
-PC_98		equ	0	; for PC-98x1 binary
-PC_AT		equ	0	; for PC/AT binary
-%endif
-
+;==============================================================================
+; Settings
+;==============================================================================
 USE_MZ_EXP	equ	1	; MP ヘッダロードルーチンを搭載する
 Check_EMS	equ	1	; EMS が install されているか確認する
 USE_frag_mem	equ	1	; Program末端とpage-dir間の空きメモリを使用する
