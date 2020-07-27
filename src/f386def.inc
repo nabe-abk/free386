@@ -15,12 +15,12 @@ F386_Date	equ		20200723h	;Develop date
 ; Operation setting
 ;==============================================================================
 %ifndef AUTO_RELEASE
-; Target Machine / If all of zero, for DOS general purpose binary.
+		; Target Machine / If all of zero, for DOS general purpose.
 TOWNS		equ	1	; for FM-TOWNS binary
-PC_98		equ	0	; for PC-98x1 binary
+PC_98		equ	0	; for PC-9801/9821 binary
 PC_AT		equ	0	; for PC/AT binary
 
-; for DEVELOP build
+		; for DEVELOP build
 MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
 INT_HOOK	equ	0	; interrupt hook and register dump
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
@@ -28,14 +28,12 @@ INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
 
 %else
-
-; for RELEASE
-MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
-INT_HOOK	equ	0	; interrupt hook and register dump
-INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
-INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
-PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
-
+		; for RELEASE
+MEMORY_INFO	equ	0
+INT_HOOK	equ	0
+INT_HOOK_F386	equ	0
+INT_REGDUMP	equ	0ffh
+PRINT_TO_FILE	equ	0
 %endif
 
 ;==============================================================================
