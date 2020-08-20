@@ -116,11 +116,13 @@ init_CoCo:
 .end:
 	xor	eax, eax
 	mov	[es:si], eax	; end mark
-.fail:
+.exit:
 	mov	ax, ds
 	mov	es, ax
 	ret
-
+.fail:
+	mov	b [nsdd_load], 0
+	jmp	.exit
 
 	align	4
 	;----------------------------------------------------
@@ -260,6 +262,9 @@ setup_nsdd:
 
 	jmp	short .loop
 .exit:
+	ret
+.error:
+	mov	b [nsdd_load], 0
 	ret
 
 ;------------------------------------------------------------------------------

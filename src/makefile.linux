@@ -11,7 +11,7 @@ ASMOP = -f obj
 # for alink.exp
 
 LINK   = ../tools/alink-p1
-LINKOP = -oCOM -o free386.com
+LINKOP = -oCOM -o free386.com -m
 
 #///////////////////////////////////////////////////////////////////
 # remove
