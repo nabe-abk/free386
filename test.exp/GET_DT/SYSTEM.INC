@@ -46,4 +46,3 @@ IOPL_adress 		equ	1000h	; TSS“à IOPL ƒAƒhƒŒƒX
 
 
 
-

@@ -26,11 +26,11 @@ void main()
 	mdes.level	=0x00;
 	mdes.type	=0x2;
 	make_mems(0x134, &mdes);
-
+/*
 	printf("PSP 5ch : %08xh\n", load_far_mem(0x24, (void *)0x5c));
 	printf("PSP 60h : %08xh\n", load_far_mem(0x24, (void *)0x60));
 	printf("PSP 64h : %08xh\n", load_far_mem(0x24, (void *)0x64));
-
+*/
 /*	for(int i=0x100; i<0x10000; i++) {
 		p = (int *)(i*1024);
 		*p = 0x1234;

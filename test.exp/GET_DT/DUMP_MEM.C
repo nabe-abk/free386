@@ -12,8 +12,55 @@ void main()
 	int		i,j;
 	descriptor	des;
 
-	printf("Segment List:\n");
-	for(i=4; i<0x200; i+=4) {
+	i = mma_allocSeg("FONT");
+	printf("mma_AllocSeg(FONT) : %xh\n", i);
+
+
+	printf("GDT Segment List:\n");
+	for(i=8; i<0x200; i+=8) {
+		int r = get_dt(i, &des);
+		if (r & 4) continue;	// not found
+
+		char	*type;
+		char	*sdt;
+		long	base;
+		long	size;
+		int	level;
+		char	buf[16];
+
+		if (r==0) {
+			type  = "MEM ";
+			base  = des.mem.base;
+			size  = des.mem.limit;
+			level = des.mem.level;
+
+			for(j=0; j<8; j++) buf[j]=' ';
+			strcpy(buf, sd_type_s[ des.mem.type ]);
+			if (des.mem.use == 16)
+				strcat(buf, " 16");
+			else
+				strcat(buf, " 32");
+			sdt=buf;
+
+		} else if (r==1) {
+			type  = "SYS ";
+			base  = des.sys.base;
+			size  = des.sys.limit;
+			level = des.sys.level;
+			sdt   = sd_type_s[ des.sys.type ];
+		} else if (r==2) {
+			type  = "GATE";
+			base  = des.gate.offset;
+			size  = 0;
+			level = des.gate.level;
+			sdt   = sd_type_s[ des.sys.type ];
+		}
+		if (base==0 && size==1) continue;
+		printf("  %03Xh %s %6s %08Xh size=%08X L%d\n", i, type, sdt, base, size, level);
+	}
+
+	printf("\nLDT Segment List:\n");
+	for(i=4; i<0x200; i+=8) {
 		int r = get_dt(i, &des);
 		if (r & 4) continue;	// not found
 
