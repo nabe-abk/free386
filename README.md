@@ -6,14 +6,14 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.62
-* Date: **2020/07/01**
+* Version: 0.63
+* Date: **2021/08/07**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
 * Machine: PC/AT
 * Machine in Japanese: FM-TOWNS, PC-9801/PC-9821
 * Compatible: MS-DOS and XMS and **VCPI** (with HIMEM.SYS and EMM386.EXE)
 * Language: NASM (Full assembly language)
-* Licence: PDS (Free386.com and Free386's source files)
+* Licence: PDS (only Free386.com and Free386's source files)
 
 [CHANGES.txt](CHANGES.txt) for update information (Japanese).
 
@@ -88,7 +88,7 @@ CR0 = 8000_0021  CR2 = 0000_0000  CR3 = 0002_9000    D0 S0 P1 C0
 
 すばらしい。終わり。
 
-……という風に解決したらよかったんですけどね（苦笑）
+……という風に解決したらよかったんですけどね。
 
 TOWNS-OSというのは不思議な構造のOSでして、グラフィック処理などに32bit NativeモードのBIOS（TBIOS）があるにも関わらず、タイマなどの一部のサービスはFM-R互換の16bit動作のBIOSをそのまま使っています。16bitタイマBIOSなどに資源の管理をさせながら、32bitプログラム側からそれを使用するという意味不明な構造をしています。
 
@@ -100,7 +100,7 @@ RUN386環境では forRBIOS.NSD が組み込まれていると、int 8eh など�
 
 もしや「常駐しているNSD自身に初期化させてるのでは？」と思い、常駐している forRBIOS のエントリーにパッチを充て、サービスルーチンが呼び出された時に無限ループに陥るという荒業を使ってみたところビンゴでした。
 
-ようやく、F-BASIC386 などで生成した EXPファイル が実行できるようになりました。解析結果は doc 内に収録してあります。ちなみに、forRBIOSを必要としない（High-C等で書かれた）プログラムを実行する際に、forRBIOS を初期化すると初期化しない時に比べ全体の処理が遅くなります。本当にここは TOWNS-OS のクソ仕様だと思います（笑）
+ようやく、F-BASIC386 などで生成した EXPファイル が実行できるようになりました。解析結果は doc 内に収録してあります。ちなみに、forRBIOSを必要としない（High-C等で書かれた）プログラムを実行する際に、forRBIOS を初期化すると初期化しない時に比べ全体の処理が遅くなります。本当にここは TOWNS-OS のクソ仕様だと思います。
 
 
 そんなこんなで、2001年の開発停止から十数年ぶりに CoCo の謎が解決され、RUN386 と互換性の高い DOS-Extender が出来ました、ということで。
