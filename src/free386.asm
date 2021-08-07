@@ -217,6 +217,7 @@ machine_check:
 	;----- EMSの存在確認 -----
 	;
 %if Check_EMS
+check_ems_driver:
 	mov	ax,3567h	;int 67h のベクタ取得
 	int	21h		;es:[bx] = ベクタ位置
 	mov	bx,000ah	;ドライバ確認用文字列開始位置 'EMMXXXX0'
@@ -224,43 +225,41 @@ machine_check:
 	mov	ax,[es:bx  ]	;前半の4文字確認
 	mov	dx,[es:bx+2]	;
 	cmp	ax,'EM'
-	jne	EMS_not_find
+	jne	short .not_found
 	cmp	dx,'MX'
-	jne	EMS_not_find
+	jne	short .not_found
 
 	mov	ax,[es:bx+4]	;後半4文字
 	mov	dx,[es:bx+6]	;
 	cmp	ax,'XX'
-	jne	EMS_not_find
+	jne	short .not_found
 	cmp	dx,'X0'
-	je	VCPI_check
+	je	short .skip
 
 	align	2
 	;/// エラー処理 /////////
-EMS_not_find:
-	PRINT86		err_01e		; 'VCPI not found'
+.not_found:
+	PRINT86		err_01e		; 'EMS not found'
 	Program_end	F386ERR		; 終了
-%else
-	jmp	short VCPI_check
-%endif
 
+.skip:
+	push	ds
+	pop	es
+%endif
 
 	;
 	;----- VCPI の存在確認 -----
 	;
-	align	4
-	;/// エラー処理 /////////
-VCPI_not_find:
-	PRINT86		err_01		; 'VCPI not find'
-	Program_end	F386ERR		; 終了
-
-	align	2
 VCPI_check:
 	mov	ax,0de00h	; AL=00 : VCPI check!
 	int	67h		; VCPI call
 	test	ah,ah		; 戻り値 check
-	jnz	VCPI_not_find	; VCPI 発見できず
+	jz	short .skip	; found VCPI
 
+	PRINT86		err_01		; 'VCPI not find'
+	Program_end	F386ERR		; 終了
+.skip:
+	
 ;------------------------------------------------------------------------------
 ;●ページディレクトリのメモリ確保
 ;------------------------------------------------------------------------------
@@ -273,7 +272,6 @@ VCPI_check:
 	mov	ax,offset end_adr	;プログラム最後尾オフセット
 	mov	bx,ds			;データセグメント
 	mov	dx,bx			;同じ
-	mov	es,bx			;es 代入れる (EMS確認時破壊するため)
 	add	ax,0fh			;端数切上げ
 	shr	ax,4			;byte単位 -> para単位
 	add	bx,ax			;終了リニア para アドレス
@@ -638,19 +636,20 @@ alloc_page_table:
 
 	; clear page table
 	push	cx
-	push	es
 	shl	cx, 12-4		; PAGE to para
 	mov	es, cx
 	xor	di, di
 	mov	cx, 1000h / 4		; 4KB/4
 	xor	eax, eax
 	rep	stosd
-	pop	es
 	pop	cx
 
 	inc	cx			; for loop
 	dec	bp
 	jnz	.loop
+
+	push	ds
+	pop	es
 .skip:
 
 ;------------------------------------------------------------------------------

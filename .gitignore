@@ -1,9 +1,10 @@
 #--------------------------------------
 # ignore default
 #--------------------------------------
+*.obj
+*.map
+
 non-free/
 tools/other/
-src/*.obj
-src/*.map
-src/*.exe
 src/*.com
+src/*.exe
