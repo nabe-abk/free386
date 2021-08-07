@@ -6,7 +6,7 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.63
+* Version: 0.64
 * Date: **2021/08/07**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
 * Machine: PC/AT
