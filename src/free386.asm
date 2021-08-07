@@ -378,43 +378,6 @@ alloc_call_buffer:
 	mov	[work_adr],di		;記録
 
 ;------------------------------------------------------------------------------
-;●DOS memory for exp
-;------------------------------------------------------------------------------
-alloc_real_mem_for_exp:
-	xor	eax, eax
-	xor	bh, bh
-	mov	bl, b [real_mem_pages]	;CALL Buffer size (page)
-	mov	cl, bl
-	inc	bl			;4KB境界調整用に1つ多く確保
-	shl	bx, 8			;Page to para(Byte/16)
-
-	mov	ah,48h
-	int	21h
-	jnc	.success
-
-	cmp	ax,08h
-	jnz	.fail
-
-	;原因はメモリ不足, bx=最大メモリ
-	and	bx, 0ff00h		;4KB単位に
-	mov	cx, bx
-	shr	cx, 8			;para to page
-	dec	cl
-
-	;再度割り当て実行
-	mov	ah,48h
-	int	21h
-	jc	.fail
-
-.success:
-	shl	eax, 4			; para to offset
-	add	eax, 0x00000fff
-	and	eax, 0xfffff000
-	mov	[DOS_mem_adr], eax	; 4KB page top
-	mov	[DOS_mem_pages], cl	
-.fail:
-
-;------------------------------------------------------------------------------
 ;●機種固有の初期化設定（メモリ設定済後）
 ;------------------------------------------------------------------------------
 
@@ -689,6 +652,43 @@ alloc_page_table:
 	dec	bp
 	jnz	.loop
 .skip:
+
+;------------------------------------------------------------------------------
+;●DOS memory for exp
+;------------------------------------------------------------------------------
+alloc_real_mem_for_exp:
+	xor	eax, eax
+	xor	bh, bh
+	mov	bl, b [real_mem_pages]	;CALL Buffer size (page)
+	mov	cl, bl
+	inc	bl			;4KB境界調整用に1つ多く確保
+	shl	bx, 8			;Page to para(Byte/16)
+
+	mov	ah,48h
+	int	21h
+	jnc	.success
+
+	cmp	ax,08h
+	jnz	.fail
+
+	;原因はメモリ不足, bx=最大メモリ
+	and	bx, 0ff00h		;4KB単位に
+	mov	cx, bx
+	shr	cx, 8			;para to page
+	dec	cl
+
+	;再度割り当て実行
+	mov	ah,48h
+	int	21h
+	jc	.fail
+
+.success:
+	shl	eax, 4			; para to offset
+	add	eax, 0x00000fff
+	and	eax, 0xfffff000
+	mov	[DOS_mem_adr], eax	; 4KB page top
+	mov	[DOS_mem_pages], cl	
+.fail:
 
 ;------------------------------------------------------------------------------
 ;●VCPI用セレクタの初期化
