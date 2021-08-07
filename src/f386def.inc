@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.63 2020/07/27'
+%define	VER_STRING	'Ver0.64 2021/08/07'
 Major_ver	equ		00h
-Minor_ver	equ		63h
-F386_Date	equ		20200723h	;Develop date
+Minor_ver	equ		64h
+F386_Date	equ		20210807h	;Develop date
 
 ;==============================================================================
 ; Operation setting
@@ -77,7 +77,7 @@ INT_BUF_size	equ	800h	;V86←→Protect間データ渡し配列サイズ（ネスト対応）
 INT_BUF_sizebits equ	10	;↑のビット数
 INT_RWBUF_size	equ	4000h	;ファイル入出力専用バッファサイズ
 
-work_size	equ	200h	;汎用ワークサイズ / min 200h
+WORK_SIZE	equ	200h	;汎用ワークサイズ / min 200h
 
 _POOL_mem_pages	equ	8	;ページングのために予約するメモリページ数
 _CALLBUF_sizeKB	equ	4	;CALLバッファとして使用するDOSメモリサイズ (KB)

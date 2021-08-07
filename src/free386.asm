@@ -307,7 +307,7 @@ VCPI_check:
 	;ページディレクトリ初期化
 	;///////////////////////////////////////////////////
 	add	cx,1			;4KB 先が最初のページtable
-	mov	ah,0deh			;物理アドレス取得 -> edi
+	mov	ax,0de06h		;VCPI 06h/物理アドレス取得
 	int	67h			;VCPI call
 	mov	dl,07h			;有効なtableエントリへ
 	mov	[bx],edx		;最初のページテーブルをエントリする
@@ -373,7 +373,7 @@ alloc_call_buffer:
 	;//////////////////////////////////////////////////
 	;汎用ワーク領域
 	;//////////////////////////////////////////////////
-	mov	ax,work_size		;汎用ワークサイズ
+	mov	ax,WORK_SIZE		;汎用ワークサイズ
 	call	heap_malloc		;上位メモリ割り当て
 	mov	[work_adr],di		;記録
 
@@ -634,9 +634,64 @@ lock_EMB:
 	mov	ecx,0x40000		;1GB max
 .jp2:	mov	[EMB_pages],ecx		;使用可能なページ数として記録
 
+;------------------------------------------------------------------------------
+;alloc DOS memory - for page table
+;------------------------------------------------------------------------------
+alloc_page_table:
+	mov	ebx, [EMB_physi_adr]	; free Phisical address
+	shr	ebx, 22			; to need page tables
+	jz	.skip
+
+	mov	bp, bx			; need tables save to bp
+
+	xor	eax, eax
+	inc	ebx			; for fragment
+	shl	ebx, 12 - 4 		; PAGE to para
+	mov	ah, 48h
+	int	21h
+	jnc	.alloc			; jump if success
+
+	call		free_EMB
+	PRINT86		err_12
+	Program_end	F386ERR
+
+.alloc:
+	shl	eax, 4
+	mov	[page_table_in_dos_memory_adr] ,eax	; liner address
+	shl	ebx, 4
+	mov	[page_table_in_dos_memory_size],ebx	; size
+
+	; prepare loop
+	add	eax, 0fffh		; for align 4KB
+	shr	eax, 12
+	mov	cx, ax
+	mov	bx, [page_dir]
+.loop:
+	mov	ax,0de06h		; get Phisical address
+	int	67h			; VCPI call
+	mov	dl,07h			; address to table entry
+	add	bx, 4
+	mov	[bx], edx		; entry to page directory
+
+	; clear page table
+	push	cx
+	push	es
+	shl	cx, 12-4		; PAGE to para
+	mov	es, cx
+	xor	di, di
+	mov	cx, 1000h / 4		; 4KB/4
+	xor	eax, eax
+	rep	stosd
+	pop	es
+	pop	cx
+
+	inc	cx			; for loop
+	dec	bp
+	jnz	.loop
+.skip:
 
 ;------------------------------------------------------------------------------
-;●ページテーブルとVCPI用セレクタの初期化
+;●VCPI用セレクタの初期化
 ;------------------------------------------------------------------------------
 	;///////////////////////////////////////////////////
 	;VCPI 呼び出し  01h

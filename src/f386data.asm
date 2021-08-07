@@ -95,6 +95,9 @@ vcpi_mem_pages	dd	0		;VCPI の管理するメモリページ数
 page_dir	dw	0,0	;F386ds	;ページディレクトリ オフセット
 page_table0	dw	0,0	;F386ds	;ページテーブル0 オフセット
 
+page_table_in_dos_memory_adr	dd	0	;リアルメモリに確保した追加のページテーブルアドレス
+page_table_in_dos_memory_size	dd	0	;リアルメモリに確保した追加のページテーブルサイズ
+
 ;--------------------------------------------------------------------
 ;----- データ領域 ---------------------------------------------------
 ;
@@ -155,20 +158,23 @@ EXE_err	db	'Do not execute free386.exe (Please run free386.com)',13,10,'$'
 end_mes	db	'Finish',13,10,'$'
 
 msg_01	db	'VCPI Found：VCPI Version $'
-msg_02	db	'[VCPI] Physical Memory size = '
+msg_02	db	'[VCPI] Physical Memory size  = '
 msg_02a	db	'###### KB',13,10
-	db	'[XMS]  Allocate Ext  Memory = '
+	db	'[XMS]  Allocate Ext  Memory  = '
 msg_02b	db	'###### KB ('
 msg_02c	db	'####_####h)',13,10
-	db	'[DOS]  Allocate Real Memory = '
+	db	'[DOS]  Allocate Real Memory  = '
 msg_02d	db	'###### KB ('
 msg_02e	db	'####_####h) + 4KB(fragment)',13,10
-	db	'[DOS]  Call Buffer Memory   = '
-msg_02f	db	'###### KB ('
-msg_02g	db	'####_####h)',13,10
-	db	'[DOS]  Free386.com Memory   = '
-msg_02h	db	'    64 KB ('
-msg_02i	db	'####_####h)',13,10
+	db	'[DOS]  Free386.com Memory    = '
+	db	'    64 KB ('
+msg_02f	db	'####_####h)',13,10
+	db	'[DOS]  Call Buffer Memory    = '
+msg_02g	db	'###### KB ('
+msg_02h	db	'####_####h)',13,10
+	db	'[DOS]  Additional Page Table = '
+msg_02i	db	'###### KB ('
+msg_02j	db	'####_####h)',13,10
 	db	'$'
 msg_05	db	'Load file name = $'
 msg_06	db	'Found XMS 2.0',13,10,'$'
@@ -200,6 +206,7 @@ err_10	db	'This free386 is incompatible (for ',MACHINE_STRING,' binary).',13,10
 	db	'If you do not want to check the machine, ',
 	db	'please execute with the -i option.',13,10,'$'
 err_11	db	'CALL buufer (Real memory) allocate failed',13,10,'$'
+err_12	db	'Page table memory (Real memory) allocate failed',13,10,'$'
 
 err_xxh	db	'F386: Unknown error',13,10,'$'
 err_21h	db	'F386: Protect memory is insufficient',13,10,'$'

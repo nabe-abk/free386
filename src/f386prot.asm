@@ -147,20 +147,32 @@ make_page_tables:
 	mov	cl,8
 	call	bin2hex_32
 
+	;/// Free386.com本体メモリ ///
+	mov	eax,[top_adr]		;容量は64KB固定なので、先頭アドレスのみ
+	mov	edi,offset msg_02f
+	mov	cl,8
+	call	bin2hex_32
+
 	;/// call buffer ///
 	movzx	eax,b [callbuf_sizeKB]
-	mov	edi,offset msg_02f	;数値記録用 文字列
+	mov	edi,offset msg_02g	;数値記録用 文字列
 	mov	cl,6			;変換桁数 = 6
 	call	bin2deg_32		;10進数に変換
 
 	mov	eax,[callbuf_adr32]	;先頭アドレス
-	mov	edi,offset msg_02g
+	mov	edi,offset msg_02h
 	mov	cl,8
 	call	bin2hex_32
 
-	;/// Free386.com本体メモリ ///
-	mov	eax,[top_adr]		;容量は64KB固定なので、先頭アドレスのみ
-	mov	edi,offset msg_02i
+	;/// Additional page table memory ///
+	mov	eax, [page_table_in_dos_memory_size]
+	shr	eax, 10
+	mov	edi, offset msg_02i
+	mov	cl, 6
+	call	bin2deg_32
+
+	mov	eax,[page_table_in_dos_memory_adr]
+	mov	edi,offset msg_02j
 	mov	cl,8
 	call	bin2hex_32
 
