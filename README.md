@@ -35,7 +35,7 @@ This is written in assembly language only.
 * tools/alink-p1.exp - ALINK-p1 Ver1.6 patch1 (executable by free386.com)
 * tools/alink-p1     - ALINK-p1 Ver1.6 patch1 (Linux ELF binary)
 * tools/exe2com.exe  - compatible to exe2bin
-* tools/imake        - "make" for MS-DOS
+* tools/imake.exe    - "make" for MS-DOS
 
 ## How To Command Line
 
