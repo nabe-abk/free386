@@ -38,9 +38,9 @@ int_21h_30h:
 	;
 	;Phar Lap バージョン情報
 	;	テスト値：EAX=44581406  EBX=4A613231  ECX=56435049  EDX=0
-	mov	ebx,'12aJ'	;Ver 1.2aj
-	mov	ecx,'IPCV'	;="VCPI" / 他' DOS','DPMI' があるが対応してない
-	xor	edx,edx		;edx = 0
+	mov	ebx, [cs:pharlap_version]	; 'Ja21' or ' d22'
+	mov	ecx, 'IPCV'			;="VCPI" / 他' DOS','DPMI' があるが対応してない
+	xor	edx, edx			;edx = 0
 	iret
 
 .fujitsu:

@@ -35,6 +35,7 @@ extern		DTA_off, DTA_seg
 extern		DOS_int21h_adr
 extern		top_adr
 extern		default_API
+extern		pharlap_version
 
 extern		callbuf_adr16
 extern		callbuf_seg16

@@ -379,6 +379,54 @@ int_21h_09h_output_file:
 .file	db	"dump.txt",0
 %endif
 
+;------------------------------------------------------------------------------
+; [Debug] Output to Tsugaru console  AH=09h
+;------------------------------------------------------------------------------
+%if PRINT_TSUGARU
+
+public int_21h_09h_output_tsugaru
+
+	align	4
+int_21h_09h_output_tsugaru:
+	pushad
+	push	ds
+	push	es
+
+	mov	eax, F386_ds
+	mov	ds, eax
+	mov	es,[esp+4]	; original ds
+
+	mov	esi, edx
+	mov	ebx, [int_buf_adr]
+	mov	edi, ebx
+	xor	ecx, ecx
+.loop:
+	mov	al, [es:esi]
+	mov	[edi], al
+	cmp	al, '$'
+	jz	short .loop_end
+	inc	esi
+	inc	edi
+	inc	ecx
+	cmp	ecx, INT_BUF_size
+	jnz	short .loop
+.loop_end:
+	mov	[edi], byte 0
+	cmp	w [edi-2], 1013h
+	mov	b [edi-2], byte 0
+
+	; output for Tsugaru API
+	mov	dx, 2f18h
+	mov	al, 09h
+	out	dx, al
+.exit:
+	pop	es
+	pop	ds
+	popad
+	iret
+
+.file	db	"dump.txt",0
+%endif
 
 ;------------------------------------------------------------------------------
 ;・バッファ付き標準1行入力  AH=0ah

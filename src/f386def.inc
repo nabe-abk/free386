@@ -26,6 +26,7 @@ INT_HOOK	equ	0	; interrupt hook and register dump
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
 INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
+PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 
 %else
 		; for RELEASE
@@ -34,6 +35,8 @@ INT_HOOK	equ	0
 INT_HOOK_F386	equ	0
 INT_REGDUMP	equ	0ffh
 PRINT_TO_FILE	equ	0
+PRINT_TSUGARU	equ	0
+
 %endif
 
 ;==============================================================================

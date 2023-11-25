@@ -487,7 +487,7 @@ Interrupt LIST などを参照してください。
 			 AH = MS-DOS マイナーVersion (2進数)
 
 		EBX = "PHAR" の場合（メモリ逆順 / 50484152h）
-			EBX = "Ja21" (4A613231h)   << Ver 1.2Ja の意味
+			EBX = "12aJ" (4A613231h)   << Ver 1.2Ja の意味
 			ECX = "DPMI" or "VCPI" or " DOS"
 				（Free386 では VCPI(56435049h) 固定）
 			EDX = 0

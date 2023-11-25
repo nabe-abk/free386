@@ -34,6 +34,8 @@ int_rwbuf_adr_org	dd	0	;
 ;--------------------------------------------------------------------
 ;----- 一般の内部変数 -----------------------------------------------
 ;
+pharlap_version	db	'12aJ'		;Ver 1.2aj
+
 err_level	db	0		;プログラムエラーレベル
 f386err		db	0		;F386 内部エラーレベル
 init_machine	db	0		;initalized machin local
@@ -179,17 +181,18 @@ msg_02j	db	'####_####h)',13,10
 msg_05	db	'Load file name = $'
 msg_06	db	'Found XMS 2.0',13,10,'$'
 msg_07	db	'Found XMS 3.0',13,10,'$'
-msg_10	db	'(RUN) free386 program.exp',13,10
+msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	13,10
-	db	'	-v      Verbose (memory information and other)',13,10
-	db	'	-p      Search .exp file from PATH (with default from PATH386)',13,10
-	db	'	-m      Use memory to the maximum with real memory',13,10
+	db	'	-v	Verbose (memory information and other)',13,10
+	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
+	db	'	-m	Use memory to the maximum with real memory',13,10
+	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
 %if MACHINE_CODE
 	db	'	-c?     Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
-	db	'	-i      Do not check machine',13,10
+	db	'	-i	Do not check machine',13,10
 %endif
 %if TOWNS
-	db	'	-n      Do not load NSD driver',13,10
+	db	'	-n	Do not load NSD driver',13,10
 %endif
 	db	'$'
 msg_hex4 db	'####h',13,10,'$'

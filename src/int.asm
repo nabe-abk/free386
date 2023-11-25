@@ -25,7 +25,7 @@ public		PM_int_dummy
 public		DOS_int_list
 public		intr_M0
 public		intr_S0
-
+public		int21h_table
 
 ;//////////////////////////////////////////////////////////////////////////////
 ;¡Š„‚è‚İˆ—ƒ‹[ƒ`ƒ“

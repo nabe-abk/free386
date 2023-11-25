@@ -51,6 +51,7 @@ public		DTA_off, DTA_seg
 public		DOS_int21h_adr
 public		top_adr
 public		default_API
+public		pharlap_version
 
 public		callbuf_adr16
 public		callbuf_seg16
@@ -105,7 +106,7 @@ parameter_check:
 	mov	bx,offset paras_p	;dx = argv / パラメータへのポインタ
 .loop:
 	dec	cx
-	jz	short .end_paras	;終わったら jmp
+	jz	.end_paras		;終わったら jmp
 
 	mov	si,[bx]			;si = argv[N] / パラメータへのポインタ
 	add	bx,byte 2		;argv++ / ポインタ加算
@@ -122,6 +123,8 @@ parameter_check:
 	je	.para_c
 	cmp	ah,'m'
 	je	.para_m
+	cmp	ah,'2'
+	je	.para_2
 %if TOWNS
 	cmp	ah,'n'
 	je	.para_n
@@ -163,6 +166,12 @@ parameter_check:
 	mov	b [real_mem_pages],250	;DOSメモリを最大まで使う, 255指定不可
 	jmp	short .loop
 
+	;///////////////////////////////
+	; PharLap version is set 2.2 (compatible EXE386)
+.para_2:
+	mov	d [pharlap_version], 20643232h	; ' d22'
+	jmp	short .loop
+
 %if TOWNS
 	;///////////////////////////////
 	;NSDDをロードしない
@@ -179,7 +188,7 @@ parameter_check:
 	mov	al,[si+2]		;-i? / al = ?
 	and	al,01			;bit 0 取り出し
 	mov	b [check_MACHINE],al	;機種判別フラグに設定
-	jmp	short .loop
+	jmp	.loop
 
 .end_paras:
 
@@ -1135,7 +1144,7 @@ END_program:
 	;各機種固有の終了処理
 	;///////////////////////////////
 %if TOWNS || PC_98 || PC_AT
-	mov	al,[init_machine],
+	mov	al,[init_machine]
 	test	al,al
 	jz	.skip_machin_recovery
 
