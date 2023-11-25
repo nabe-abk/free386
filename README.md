@@ -59,5 +59,4 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 X:\>free386.com
 ```
 
-Please refer to the displayed command line help.
-
+Please refer to the displayed command line help or [manual](MANUAL.md).
