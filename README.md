@@ -29,7 +29,7 @@ This is written in assembly language only.
 
 * [doc-ja/PC98.txt](doc-ja/PC98.txt)     - PC-98x1 Version's information
 * [doc-ja/FM-TOWNS.txt](doc-ja/FM-TOWNS.txt) - FM-TOWNS Version's information
-* [doc-ja/api.txt](doc-ja/api.txt)       - DOS-Extenter functions reference
+* [doc-ja/ext_api.txt](doc-ja/ext_api.txt)       - DOS-Extenter functions reference
 
 Other Japanese documents in [doc-ja/](doc-ja/).
 
