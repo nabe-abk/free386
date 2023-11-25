@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.64 2021/08/07'
+%define	VER_STRING	'Ver0.65 2023/11/25'
 Major_ver	equ		00h
-Minor_ver	equ		64h
-F386_Date	equ		20210807h	;Develop date
+Minor_ver	equ		65h
+F386_Date	equ		20231125h	;Develop date
 
 ;==============================================================================
 ; Operation setting

@@ -6,8 +6,8 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.64
-* Date: **2021/08/07**
+* Version: 0.65
+* Date: **2023/11/25**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
 * Machine: PC/AT
 * Machine in Japanese: FM-TOWNS, PC-9801/PC-9821
@@ -25,8 +25,7 @@ This is written in assembly language only.
 
 * [doc-ja/README.txt](doc-ja/README.txt) - Free386 User's Manual
 * [doc-ja/api.txt](doc-ja/api.txt)       - Free386 API Reference
-* [doc-ja/AT.txt](doc-ja/AT.txt)         - PC-AT    Version's information
-* [doc-ja/PC98.txt](doc-ja/PC98.txt)     - PC-98x1  Version's information
+* [doc-ja/PC98.txt](doc-ja/PC98.txt)     - PC-98x1 Version's information
 * [doc-ja/FM-TOWNS.txt](doc-ja/FM-TOWNS.txt) - FM-TOWNS Version's information
 
 ## Tool Files (redistributed)
