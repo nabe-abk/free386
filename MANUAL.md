@@ -53,7 +53,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -i1 (default)
 	* -i1 Auto detect machines type for prevents execution of Free386 binaries on different machines.
 * -n (only FM-TOWNS)
-	* CoCo/NSD ドライバの初期化を行わず、CoCoが不要なEXPファイルにおいて動作速度を向上させます。
+	* Do not initialize CoCo/NSD driver. Improved execution speed for EXP files that do not require CoCo.
 
 ## Options (in Japanese)
 
