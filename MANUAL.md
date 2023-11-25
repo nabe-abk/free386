@@ -107,7 +107,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0fh	| 00h	| (Reserved) |
 
 In addition, if you want to rewrite the default value of PharLap's DOS-Extender Version information,
-search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d" (32 32 64 20) or other.
+search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20) or other.
 
 その他、PharLapのDOS-Extender Version情報のデフォルト値を書き換えたいときは、
 "12aJ"(31 32 61 4A)の文字列検索し、"22d "(32 32 64 20)等に書き換えてください。
