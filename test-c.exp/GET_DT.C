@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "mtask.h"
+#include "lib/mtask.h"
 
 
 #define	ldt_size	0x10000

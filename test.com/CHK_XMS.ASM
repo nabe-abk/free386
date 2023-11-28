@@ -3,7 +3,7 @@
 ;	This is PDS. use NASM.
 ;	2001/02/10
 ;
-;nasm -f bin chk_xms.asm -o chk_xms.com
+; nasm -f bin chk_xms.asm -o chk_xms.com
 ;
 ;----------------------------------------------------------------------------
 ;segment	.text align=16 class=CODE use16

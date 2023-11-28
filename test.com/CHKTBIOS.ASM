@@ -3,55 +3,104 @@
 ;
 ;	Thanks to Mamiya (san).
 ;
+; nasm -f bin chktbios.asm -o chktbios.com
 ;
-.386
-;======================================
-code	segment use16
-;====================================== ;割り込みコード
-	assume	cs:code,ds:code
+;------------------------------------------------------------------------------
+%imacro	PRINT	1
+	mov	edx,%1
+	mov	ah,09h
+	int	21h
+%endmacro
 
+;------------------------------------------------------------------------------
 	org	100h
-
 start:
 	mov	dx,3b90h
-	call	CMOS_READ
-	mov	esi,ebx
+	call	TOWNS_CMOS_READ
+	mov	eax, ebx
+	call	eax2hex
+
+	PRINT	msg_address
+	PRINT	msg_hex
+
 
 	mov	dx,3b98h
-	call	CMOS_READ
-	mov	edi,ebx
+	call	TOWNS_CMOS_READ
+	mov	eax, ebx
+	call	eax2hex
 
-	mov	dx,3ad0h
-	call	CMOS_READ
+	PRINT	msg_limit
+	PRINT	msg_hex
 
-	mov	ah,4ch			;常駐終了
+
+	mov	ah,4ch
+	xor	al,al
 	int	21h
 
-
-	align	2
-CMOS_READ:
-	add	dx,6
-	in	al,dx
+;==============================================================================
+;read CMOS
+;==============================================================================
+	align	4
+TOWNS_CMOS_READ:
+	add	edx,byte 6	;+3 byte の位置
+	in	al,dx		;(C-MOS は偶数番地に張りつけてある)
 	mov	bh,al
-	sub	dx,2
+	sub	edx,byte 2
 
-	in	al,dx
+	in	al,dx		;+2 byte の位置
 	mov	bl,al
-	sub	dx,2
+	sub	edx,byte 2
 
 	shl	ebx,16
 
-	in	al,dx
+	in	al,dx		;+1 byte の位置
 	mov	bh,al
-	sub	dx,2
+	sub	edx,byte 2
 
-	in	al,dx
+	in	al,dx		;+0 byte / 指定番地
 	mov	bl,al
 	ret
 
-code	ends
 
+;==============================================================================
+;eax to hex
+;==============================================================================
+	align	4
+eax2hex:
+	push	bx
+	push	cx
+	push	di
 
+	mov	di, msg_hex
+	mov	cx, 8
+.loop:
+	rol	eax, 4
+	mov	bl, al
+	and	bx, 000fh
+	mov	dl, [hex_table+bx]
 
+	cmp	byte [di], '_'
+	jne	.skip
+	inc	di
+.skip
+	mov	[di], dl
+	inc	di
 
-	end	start
+	dec	cx
+	jnz	.loop
+
+	rol	eax, 4
+	pop	di
+	pop	cx
+	pop	bx
+	ret
+
+;==============================================================================
+
+msg_hex		db	'0000_0000',13,10,'$'
+msg_address	db	'TBIOS OFFSET = ','$'
+msg_limit	db	'TBIOS SIZE   = ','$'
+
+	align 4
+hex_table	db	'0123456789ABCEDF'
+

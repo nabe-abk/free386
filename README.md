@@ -40,7 +40,8 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 - [bin/*](bin/)
 - [src/*](src/)
 - [test.com/*](test.com/)
-- [test.exp/*](test.exp/)
+- [test-asm.exp/*](test-asm.exp/)
+- [test-c.exp/*](test-c.exp/)
 - [doc-ja/dosext/*](doc-ja/dosext/)
 - [f386api/*](f386api/) - Free386 original API test build.
 

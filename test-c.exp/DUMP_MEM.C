@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mtask.h"
+#include "lib/mtask.h"
 
 
 void main()
@@ -12,9 +12,10 @@ void main()
 	int		i,j;
 	descriptor	des;
 
+/*
 	i = mma_allocSeg("FONT");
 	printf("mma_AllocSeg(FONT) : %xh\n", i);
-
+*/
 
 	printf("GDT Segment List:\n");
 	for(i=8; i<0x200; i+=8) {

@@ -1,7 +1,7 @@
 ;
-;VSYNC NOP for FM-TOWNS
+;VSYNC NOP for PC-98
 ;
-; nasm -f bin vsynopfm.asm -o vsynopfm.com
+; nasm -f bin vsynop98.asm -o vsynop98.com
 ;
 ;[TAB=8]
 ;------------------------------------------------------------------------------
@@ -18,31 +18,21 @@ start:
 
 	align	4
 handler:
-	push	dx
 	push	ax
 
-	mov	dx,5cah		;VSYNC-割り込み要因クリアレジスタ
-	out	dx,al		;クリアレジスタに適当な値を出力
-
-	mov	al,20h		;bit-5 = 1(EOI bit)
-	out	10h,al		;スレーブ側へ
-
-	out	6ch,al		;PIC ｱｸｾｽ、1μ秒ウェイトレジスタへ書き込み
-	cmc			; ウエイトレジスタがない場合
-	cmc			; この３命令でウエイトとする
-
-	;マスタ側
+	out	64h,al		;クリアレジスタに適当な値を出力
+	mov	al,20h
 	out	00h,al		;bit-5 = 1(EOI bit)
 
 	pop	ax
-	pop	dx
 	iret
+
 
 
 start2:
 	mov	dx, handler
 	mov	ah, 25h
-	mov	al, 4bh			; Interrupt number
+	mov	al, 0Ah			; Interrupt number
 	int	21h			; Set vector
 
 	mov	bx,[02ch]		; PSP's ENV segment addres
