@@ -16,7 +16,7 @@ BITS	32
 PM_int_20h:
 	call_RegisterDumpInt	20h
 	mov	ax,4c00h		;プログラム終了 (ret=00)
-	jmp	PM_int_21h		;チェイン
+	jmp	PM_int_21h
 
 ;------------------------------------------------------------------------------
 ;・int 22h / 終了アドレス
@@ -28,7 +28,7 @@ PM_int_20h:
 PM_int_22h:
 	call_RegisterDumpInt	22h
 	mov	ax,4c00h		;プログラム終了 (ret=00)
-	jmp	PM_int_21h		;チェイン
+	jmp	PM_int_21h
 
 ;------------------------------------------------------------------------------
 ;・int 23h / CTRL-C 脱出アドレス
@@ -37,7 +37,7 @@ PM_int_22h:
 PM_int_23h:
 	call_RegisterDumpInt	23h
 	mov	ax,4c00h		;プログラム終了 (ret=00)
-	jmp	PM_int_21h		;チェイン
+	jmp	PM_int_21h
 
 ;------------------------------------------------------------------------------
 ;・int 24h / 致命的エラー中断アドレス
@@ -46,7 +46,7 @@ PM_int_23h:
 PM_int_24h:
 	call_RegisterDumpInt	24h
 	mov	ax,4c00h		;プログラム終了 (ret=00)
-	jmp	PM_int_21h		;チェイン
+	jmp	PM_int_21h
 
 ;------------------------------------------------------------------------------
 ;・int 25h / 物理セクタ読み込み
@@ -71,7 +71,7 @@ PM_int_26h:
 PM_int_27h:
 	call_RegisterDumpInt	27h
 	mov	ax,4c00h		;プログラム終了 (ret=00)
-	jmp	PM_int_21h		;チェイン
+	jmp	PM_int_21h
 
 ;------------------------------------------------------------------------------
 ;・int 28h / コンソール入力時に呼ばれるアイドルルーチン
@@ -88,7 +88,6 @@ PM_int_28h:
 	align	4
 PM_int_29h:
 	call_RegisterDumpInt	29h
-	sub	esp,byte 4		;ユーザ領域（未使用）
 	push	d (29h * 4)		;ベクタ番号*4 を push
 	jmp	call_V86_int		;V86 割り込みルーチン呼び出し
 
@@ -119,7 +118,6 @@ PM_int_2eh:
 	align	4
 PM_int_2fh:
 	call_RegisterDumpInt	2fh
-	sub	esp,byte 4		;ユーザ領域（未使用）
 	push	d (2fh * 4)		;ベクタ番号*4 を push
 	jmp	call_V86_int		;V86 割り込みルーチン呼び出し
 
