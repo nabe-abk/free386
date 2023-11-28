@@ -6,8 +6,8 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.65
-* Date: **2023/11/25**
+* Version: 0.66
+* Date: **2023/11/28**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
 * Machine: PC/AT
 * Machine in Japanese: FM-TOWNS, PC-9801/PC-9821
@@ -35,12 +35,13 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 
 ## PDS files
 
-- README.md		- this file
+- README.md
 - [CHANGES.txt](CHANGES.txt)
 - [bin/*](bin/)
 - [src/*](src/)
 - [test.com/*](test.com/)
 - [test.exp/*](test.exp/)
+- [doc-ja/dosext/*](doc-ja/dosext/)
 - [f386api/*](f386api/) - Free386 original API test build.
 
 **Other files will have different licenses.**
@@ -53,10 +54,24 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 * tools/exe2com.exe  - compatible to exe2bin
 * tools/imake.exe    - "make" for MS-DOS
 
-## How To Command Line
+## How to Command Line
 
 ```
 X:\>free386.com
 ```
 
-Please refer to the displayed command line help or [manual](MANUAL.md).
+Please refer to the displayed command line help or [User's Manual](MANUAL.md).
+
+## How to Build (on DOS)
+
+1. Copy all files to your disk.
+2. Edit [f386def.inc](src/f386def.inc) to select the build target.
+3. Run "make.bat".
+
+## How to Build (on Linux)
+
+1. "git clone" or copy all files to your disk.
+2. Install "nasm" and "make" package. ("apt install make nasm" on Debian/Ubuntu)
+3. Edit [f386def.inc] to select the build target.
+4. Run "make.sh".
+

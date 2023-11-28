@@ -268,7 +268,7 @@ DOS_Extender_fn:
 	push	eax			;
 
 	cmp	al,DOS_Ext_MAXF		;テーブル最大値
-	jae	.chk_02			;それ以上なら jmp
+	ja	.chk_02			;それ以上なら jmp
 
 	movzx	eax,al				;機能番号
 	mov	eax,[cs:DOSExt_fn_table +eax*4]	;ジャンプテーブル参照
@@ -280,8 +280,8 @@ DOS_Extender_fn:
 	align	4
 .chk_02:
 	sub	al,0c0h			;C0h-C3h
-	cmp	al,004h			;chk ?
-	jae	.no_func		;それ以上なら jmp
+	cmp	al,003h			;chk ?
+	ja	.no_func		;それ以上なら jmp
 
 	movzx	eax,al				;機能番号 (al)
 	mov	eax,[cs:DOSExt_fn_table2+eax*4]	;ジャンプテーブル参照
@@ -926,6 +926,22 @@ DOS_Ext_fn_2511h:
 	push	edx		;値保存用スタック領域確保
 	push	edx		;スタック参照に注意！！
 
+%if INT_HOOK && PRINT_TSUGARU
+	push	ebx
+	push	ecx
+	push	edx
+
+	mov	ebx, edx
+	mov	ecx, 12h
+	mov	dx, 2F18h
+	mov	al, 0ah
+	out	dx, al
+
+	pop	edx
+	pop	ecx
+	pop	ebx
+%endif
+
 	xor	eax,eax			;上位クリア
 	movzx	eax,w [edx + 8]
 	push	eax			;gs
@@ -941,19 +957,9 @@ DOS_Ext_fn_2511h:
 	movzx	eax,b [edx]		;ds:edx から割り込み番号読み出し
 	push	d [es:eax*4]		;ベクタアドレス取得 = 呼び出しアドレス
 
-%if INT_HOOK
-	push	ds
-	push	d F386_ds
-	pop	ds
-	mov	[dump_err_code], eax	;err = int number
-	pop	ds
-%endif
-
 	mov	eax,[edx + 0ah]		;パラメタブロックからロード
 	mov	edx,[edx + 0eh]		;
-%if 1 < INT_HOOK
-	call	register_dump	;safe
-%endif
+
 	call	call_V86		;目的ルーチンの call
 	;*** フラグは設定されている ***
 

@@ -116,6 +116,7 @@ init_CoCo:
 .end:
 	xor	eax, eax
 	mov	[es:si], eax	; end mark
+	call	init2_CoCo
 .exit:
 	mov	ax, ds
 	mov	es, ax
@@ -170,6 +171,18 @@ segdata_to_seglist:
 	mov	[es:si+12],eax
 	add	si, 10h
 .skip:
+	ret
+
+
+	align	4
+init2_CoCo:
+	;
+	; [Regist] real mode to 32bit mode far call routine
+	;
+	mov	dx, cs
+	mov	bx, offset callf32_from_v86
+	mov	ax, 0c207h
+	int	8eh
 	ret
 
 
@@ -412,7 +425,7 @@ end_TOWNS:
 	jne	.res_c			; Ç≈Ç»ÇØÇÍÇŒ jmp
 
 	;*** VRAMÇ™èëÇ´ä∑ÇÌÇ¡ÇƒÇ¢ÇÈÅH ***
-	; Emulator not set segment access bit
+	; Emulator is not set segment access bit
 	push	es
 	mov	ebx, 128h
 	mov	es, bx
@@ -472,6 +485,23 @@ end_TOWNS:
 %endif
 
 	ret
+
+;==============================================================================
+;end of TOWNS, on 16bit mode
+;==============================================================================
+	align	4
+end_TOWNS16:
+	cmp	b [nsdd_load], 0
+	jz	short .no_nsdd
+	;
+	; [clear] real mode to 32bit mode far call routine
+	;
+	xor	bx, bx
+	xor	dx, dx
+	mov	ax, 0c207h
+	int	8eh
+.no_nsdd:
+	ret;
 
 ;------------------------------------------------------------------------------
 ;ÅöCRTC èâä˙âª

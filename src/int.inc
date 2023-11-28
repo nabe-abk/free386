@@ -10,4 +10,7 @@ extern		intr_S0
 extern		int21h_table
 
 extern		setup_F386_int
+
+%if PRINT_TSUGARU
 extern		int_21h_09h_output_tsugaru
+%endif

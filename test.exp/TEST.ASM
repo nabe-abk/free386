@@ -8,10 +8,6 @@
 shell	segment dword public 'CODE' use32
 	assume	cs:shell,ds:shell
 
-extrn	string_print:near
-extrn	bin2deg_32:near
-extrn	bin2hex_32:near
-
 ;------------------------------------------------------------------------------
 ENTRY:
 	mov	edx,offset dir
@@ -19,7 +15,6 @@ ENTRY:
 	int	21h
 
 	int	0ffh
-
 
 
 	;push any key MSG
@@ -45,9 +40,6 @@ MSG	db	'This is test program',13,10
 work	db	80h	dup(?)
 
 dir	db	'd:\',0
-
-
-xxx:
 
 ;------------------------------------------------------------------------------
 shell	ends

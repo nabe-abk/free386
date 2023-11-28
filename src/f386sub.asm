@@ -80,11 +80,18 @@ register_dump_from_int:		;safe
 	push	d F386_ds
 	pop	ds
 	;
+	; exclude CS
+	;
+%if INT_HOOK_EX_CS
+	cmp	d [esp+14h], INT_HOOK_EX_CS
+	je	short .no_dump
+%endif
+	;
 	; Free386 internal call ignore
 	;
 %if !INT_HOOK_F386
 	cmp	d [esp+14h], F386_cs
-	jz	short .no_dump
+	je	short .no_dump
 %endif
 	;
 	; int 21h, ah=09h ‚Í–³Ž‹

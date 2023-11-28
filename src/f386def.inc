@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.65 2023/11/25'
+%define	VER_STRING	'Ver0.66 2023/11/28'
 Major_ver	equ		00h
-Minor_ver	equ		65h
-F386_Date	equ		20231125h	;Develop date
+Minor_ver	equ		66h
+F386_Date	equ		20231128h	;Develop date
 
 ;==============================================================================
 ; Operation setting
@@ -22,7 +22,8 @@ PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
 MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
-INT_HOOK	equ	0	; interrupt hook and register dump
+INT_HOOK	equ	0	; Interrupt hook and register dump
+INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS is 0ch
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
 INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 PRINT_TO_FILE	equ	0	; int 21/ah=09h, Force output to "dump.txt" file
@@ -32,6 +33,7 @@ PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 		; for RELEASE
 MEMORY_INFO	equ	0
 INT_HOOK	equ	0
+INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
 INT_REGDUMP	equ	0ffh
 PRINT_TO_FILE	equ	0
@@ -89,8 +91,8 @@ _REAL_mem_pages	equ	4	;プログラム実行用リアルメモリ (page)
 Unit_of_MEM	equ	400000h	;メモリアドレスの割り当て単位(byte)
 MIN_heap_mem	equ	200000h	;最小ヒープリニアアドレス
 
-int_21h_MAXF	equ	80h	;int 21h のファンクション番号の最大値 +1
-DOS_Ext_MAXF	equ	18h	;DOS-Extender拡張ファンクションの最大func番号+1
+int_21h_MAXF	equ	7fh	;int 21h function's maximum AH
+DOS_Ext_MAXF	equ	17h	;DOS-Extender function's maximum AL
 
 V86_flags	equ	0000h	;V86 モード時のフラグ初期値
 

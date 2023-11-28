@@ -41,7 +41,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -2
 	* Set PharLap's DOS-Extender Version information to "2.2". Usually "1.2".
 * -c0
-* -c1
+* -c1, -c
 * -c2
 * -c3 (default)
 	* Set automatic reset of CRTC and VRAM. This function is only implemented in FM-TOWNS and PC-98.
@@ -49,7 +49,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 	* -c1 Always initialize.
 	* -c2 Initialize only the screen mode.
 	* -c3 Automatically detect and initialize if necessary.
-* -i, -i0
+* -i0, -i
 * -i1 (default)
 	* -i1 Auto detect machines type for prevents execution of Free386 binaries on different machines.
 * -n (only FM-TOWNS)

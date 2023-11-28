@@ -16,3 +16,4 @@ extern	call_v86_ds
 extern	call_v86_es
 extern	ISTK_nest
 
+extern	callf32_from_v86	; use by towns.asm

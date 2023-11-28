@@ -150,23 +150,13 @@ PM_int_21h:
 %if INT_HOOK
 	cmp	ah, 09h
 	je	.skip
-
-	push	eax
-	mov	eax,[esp+8]	; CS
-	cmp	al, 20h
-	pop	eax
-	ja	.skip
-
-	;cmp	ah, 25h
-	;je	.skip
-.do:
 	call_RegisterDumpInt	21h
 .skip:
 %endif
 
 %if (int_21h_MAXF < 0ffh)
 	cmp	ah,int_21h_MAXF		;テーブル最大値
-	jae	int_21h_unknown		;それ以上なら jmp
+	ja	int_21h_unknown		;それ以上なら jmp
 %endif
 	cld				;方向フラグクリア
 	push	eax			;
@@ -181,9 +171,7 @@ PM_int_21h:
 	;
 	; この時点で original eax が積まれている
 	;
-	cmp	b [esp + 01h], 09h	;呼び出し時 AH
-	jz	short .normal_call
-	cmp	b [esp + 01h], 25h	;呼び出し時 AH
+	cmp	b [esp + 01h], 09h	;AH=09 print string
 	jz	short .normal_call
 %if !INT_HOOK_F386
 	cmp	d [esp + 08h], F386_cs	;呼び出し側 CS

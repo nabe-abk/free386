@@ -177,7 +177,7 @@ int21h_table:
 	dd	offset int_21h_unknown	;unknown
 	dd	offset call_V86_int21	;オープン可能な最大ハンドル数の設定
 
-%rep	(int_21h_MAXF - 68h)
+%rep	(int_21h_MAXF - 67h)
 	dd	offset int_21h_unknown	;unknown
 %endrep
 

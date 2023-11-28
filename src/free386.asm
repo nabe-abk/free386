@@ -98,6 +98,20 @@ start:
 ;●パラメタ確認 (free386 への動作指定)
 ;------------------------------------------------------------------------------
 parameter_check:
+	jmp	short .check_start
+
+	;///////////////////////////////
+	; Use memory of real maximum
+	;///////////////////////////////
+.para_m:
+	mov	b [POOL_mem_pages],0	;プールメモリ量 = 0
+	mov	b [callbuf_sizeKB],1	;CALL buffer size = 1KB
+	mov	b [real_mem_pages],250	;DOSメモリを最大まで使う, 255指定不可
+	jmp	.loop
+	;/// Move some parameters to this location. Because does not fit in jmp short.
+	;/// jmp short に収まらないので一部解析をここに記述
+
+.check_start:
 	mov	cx,[paras]		;パラメータ数
 	test	cx,cx			;値確認
 	jz	.end_paras		;0 ならば jmp
@@ -159,14 +173,6 @@ parameter_check:
 	jmp	short .loop
 
 	;///////////////////////////////
-	;メモリを限界まで使う
-.para_m:
-	mov	b [POOL_mem_pages],0	;プールメモリ量 = 0
-	mov	b [callbuf_sizeKB],1	;CALL buffer size = 1KB
-	mov	b [real_mem_pages],250	;DOSメモリを最大まで使う, 255指定不可
-	jmp	short .loop
-
-	;///////////////////////////////
 	; PharLap version is set 2.2 (compatible EXE386)
 .para_2:
 	mov	d [pharlap_version], 20643232h	; ' d22'
@@ -188,7 +194,7 @@ parameter_check:
 	mov	al,[si+2]		;-i? / al = ?
 	and	al,01			;bit 0 取り出し
 	mov	b [check_MACHINE],al	;機種判別フラグに設定
-	jmp	.loop
+	jmp	short .loop
 
 .end_paras:
 
@@ -1087,16 +1093,16 @@ END_program16:
 	out	I8259A_IMR_S, al	;スレーブ側
 %endif
 
+%if TOWNS
+	call	end_TOWNS16
+%endif
+
 	sti
 	call	free_EMB		;確保したメモリの開放
 
 	mov	ax,[err_level]		;AH = Free386 ERR / AL = Program ERR
 	test	ah,ah			;check
 	jnz	program_err_end		;non 0 ならエラー終了
-
-	;mov	bl,al			;save al
-	;PRINT86 end_mes		;「正常終了」
-	;mov	al,bl			;load al
 
 	mov	ah,4ch
 	int	21h			;正常終了

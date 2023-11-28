@@ -205,7 +205,7 @@ err_04	db	'XMS: driver not found',13,10,'$'
 err_05	db	'XMS: XMS memory allocation failed',13,10,'$'
 err_06	db	'XMS: XMS memory release failed',13,10,'$'
 err_07	db	'XMS: XMS memory lock failed',13,10,'$'
-err_10	db	'This free386 is incompatible (for ',MACHINE_STRING,' binary).',13,10
+err_10	db	'Incompatible binary! This binary is for ',MACHINE_STRING,'.',13,10
 	db	'If you do not want to check the machine, ',
 	db	'please execute with the -i option.',13,10,'$'
 err_11	db	'CALL buufer (Real memory) allocate failed',13,10,'$'

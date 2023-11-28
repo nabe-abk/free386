@@ -3,10 +3,6 @@
 ;******************************************************************************
 ;[TAB=8]
 ;
-; 2001/02/15　Free386.asm から分離
-;
-;
-;
 %include	"nasm_abk.h"		;NASM 用ヘッダファイル
 %include	"macro.asm"		;マクロ部の挿入
 %include	"f386def.inc"		;定数部の挿入
@@ -31,6 +27,8 @@ public	rint_labels_adr		;リアルモード割り込みフックルーチン先頭アドレス
 public	call_v86_ds
 public	call_v86_es
 public	ISTK_nest
+
+public	callf32_from_v86	; use by towns.asm
 
 segment	text align=4 class=CODE use16
 ;******************************************************************************
@@ -167,7 +165,7 @@ call_V86_int:
 
 	align	4
 call_V86_HARD_int:
-	xchg	[esp], esi		;eax = int番号*4
+	xchg	[esp], esi		;esi = int番号*4
 	push	eax
 	push	es
 
@@ -256,7 +254,7 @@ BITS	16
 	push	d [cs:save_esp]		;
 
 	mov	eax,[cs:save_eax]	;eax の値復元
-	mov	esi,[cs:save_esi]	;eax の値復元
+	mov	esi,[cs:save_esi]	;esi の値復元
 
 	push	w (-1)			;mark / iret,retf両対応のため
 	pushf				;flag save for INT
@@ -282,7 +280,7 @@ BITS	16
 	pop	d [save_esp]		;Protect mode esp
 	pop	d [save_ss]		;Protect mode ss
 
-	mov	w [to_PM_EIP],offset .retPM	;戻りラベル
+	mov	d [to_PM_EIP],offset .retPM	;戻りラベル
 
 	mov	esi,[to_PM_data_ladr]	;モード切替え用構造体アドレス
 	mov	ax,0de0ch		;to プロテクトモード
@@ -355,7 +353,7 @@ int_V86:
 	shr	ax,2			;4 で割る         int.asm 参照)
 	mov	[.int_no], al		;プロテクト時の呼び出し番号として記録
 
-	mov   w [to_PM_EIP],offset .32	;呼び出しラベル
+	mov   d [to_PM_EIP],offset .32	;呼び出しラベル
 
 	mov	esi,[to_PM_data_ladr]	;モード切替え構造体
 	mov	ax,0de0ch		;to プロテクトモード
@@ -428,8 +426,99 @@ BITS	32
 
 
 ;******************************************************************************
+; far call protect mode routeine from V86
+;******************************************************************************
+BITS	16
+	align	4
+callf32_from_v86:
+	; retf address	;     = 4
+	push	ds	; 2*4 = 8
+	push	es
+	push	fs
+	push	gs
+	push	eax	; 4*2 = 8
+	push	esi
+
+	push	cs
+	pop	ds
+
+	push	bp	; = 2
+	mov	bp, sp
+	mov	eax, [bp + 16h]
+	mov	[cs:cf32_target_eip], eax
+	mov	eax, [bp + 1ah]
+	mov	[cs:cf32_target_cs],  eax
+	pop	bp
+
+	xor	eax, eax
+	mov	ax, ss
+	mov	[cf32_ss16],  eax	;save SS
+	shl	eax, 4
+	add	eax, esp
+	mov	[cf32_esp32], eax	;linear adddress of ss:esp
+
+	cli
+	mov   d [to_PM_EIP],offset .32	;呼び出しラベル
+	mov	esi, [to_PM_data_ladr]	;モード切替え構造体
+	mov	ax,0de0ch		;to プロテクトモード
+	int	67h			;VCPI call
+
+
+	align 4
+BITS	32
+.32:
+	mov	eax,F386_ds		;
+	mov	 ds,eax			;ds ロード
+	mov	 es,eax			;
+	mov	 fs,eax			;
+	mov	 gs,eax			;
+	lss	esp, [cf32_esp32]	;ss:esp を設定
+
+	pop	esi
+	pop	eax
+	call	far [cf32_target_eip]
+	push	eax
+	push	esi
+	mov	esi, esp
+
+	mov	eax,[v86_cs]		;V86時 cs,ds
+	push	eax			;** V86 gs
+	push	eax			;** V86 fs
+	push	eax			;** V86 ds
+	push	eax			;** V86 es
+
+	push	d [cf32_ss16]		;** V86 ss
+	push	eax			;** V86 sp // dummy
+	pushfd				;eflags
+	push	eax			;** V86 CS
+	push	d (offset .ret_PM)	;** V86 IP
+
+	mov	eax, [cf32_ss16]
+	shl	eax, 4
+	sub	esi, eax
+	mov	[esp + 0ch], esi	; Fix V86 sp
+
+	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
+	call 	far [VCPI_entry]	;VCPI far call
+
+
+	align	4
+BITS	16
+.ret_PM:
+	pop	esi
+	pop	eax
+
+	pop	gs
+	pop	fs
+	pop	es
+	pop	ds
+	retf
+
+
+;******************************************************************************
 ;■ISTKサブルーチン 32bit
 ;******************************************************************************
+BITS	32
 ;==============================================================================
 ;■ISTK領域からスタックメモリを確保
 ;==============================================================================
@@ -509,27 +598,9 @@ free_ISTK_32:
 	call	clear_mode_data
 	push	d 0
 	push	d 3F0h
-	call	debug_write
 
 	F386_end	27h		; ISTK Underflow
 
-;******************************************************************************
-; debug
-;******************************************************************************
-debug_write:
-	ret
-	push	es
-	push	eax
-	push	ebx
-	mov	eax, ALLMEM_sel
-	mov	 es, eax
-	mov	ebx, [esp+0ch]
-	mov	eax, [esp+10h]
-	mov	d [es:ebx], eax
-	pop	ebx
-	pop	eax
-	pop	es
-	ret
 
 BITS	32
 ;******************************************************************************
@@ -559,6 +630,12 @@ ISTK_nest	dd	0
 rint_labels_top	dd	0		;↓+3/ 戻りオフセットから int番号算出用
 rint_labels_adr	dd	0		;リアルモード割り込みフックルーチン
 					;　作成領域へのポインタ
+
+cf32_ss16	dd	0		;
+cf32_esp32	dd	0		;in 32bit linear address
+		dd	DOSMEM_sel	;for lss
+cf32_target_eip	dd	0		;call target entry
+cf32_target_cs	dd	0		;
 
 ;******************************************************************************
 ;******************************************************************************
