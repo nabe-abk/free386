@@ -688,7 +688,7 @@ load_exp:
 	add	eax,[esi+56h]	;ファイルの後ろに割り当てるメモリの最小量
 	add	eax,     0fffh	;4KB 単位でメモリを扱うので端数繰り上げ
 	and	eax,0fffff000h	;4KB 単位へ
-	mov	[5ch],eax	;PSP に記録 /最低限必要なセグメントサイズ[byte]
+	mov	[5ch],eax	;PSP に記録 /最低限必要なメモリサイズ[byte]
 
 	add	ecx,[esi+5ah]	;ファイルの後ろに割り当てるメモリの最大量
 	jnc	.step		;値オーバーしてなければ jmp
@@ -712,7 +712,6 @@ check_memory:
 	jb	NEAR not_enough_memory	;負数ならメモリ不足
 
 	sub	ebx,[esi+74h]		;ロードイメージの大きさを引く
-	sub	ebx,[esi+5eh]		;ベースオフセットサイズを引く
 	mov	[64h],ebx		;ヒープメモリ総量を PSPに記録
 
 	;
@@ -1130,7 +1129,7 @@ make_cs_ds:
 	mov	ebp,[free_RAM_pages]	;空きメモリと比較
 	add	ebp,[DOS_mem_pages]	;DOSメモリ
 
-	mov	[60h], esi
+	mov	[60h],esi		;save base offset
 	mov	edx,esi			;読み込みベース
 	shr	edx,12			;page単位のずれ / 下まで破壊しないこと
 
@@ -1157,9 +1156,11 @@ make_cs_ds:
 	jb	.no_memory		;マイナスならエラー
 .do_alloc:
 	mov	ebp, [free_LINER_ADR]	;貼り付け先アドレスを保存
+	push	esi
 	and	esi, 0xfffff000		;ずらし量
 	add	esi, ebp		;空きリニアアドレスに加算
 	mov	[free_LINER_ADR], esi	;ずらす
+	pop	esi
 
 	push	ecx
 	call	alloc_DOS_mem		;DOSメモリを先頭に割り当て
@@ -1169,7 +1170,7 @@ make_cs_ds:
 	push	ecx
 	sub	ecx, eax		;割り当て済ページ数を引く
 	call	alloc_RAM		;メモリ割り当て
-	pop	ecx	; ecxはまだ使う
+	pop	ecx		; ecxはまだ使う
 	jc	.no_memory		;エラーjmp
 
 	;セレクタ作成
@@ -1184,9 +1185,12 @@ make_cs_ds:
 	mov	[edi+4],ecx		;limit
 	mov	d [edi+8],0a00h		;R/X タイプ / 特権レベル=0
 
+	mov	esi, [60h]		;load base offset
 	inc	ecx			;ecx = サイズ (page)
+
 	shl	ecx, 12			;ecx = サイズ (byte)
-	add	[60h],ecx		;PSP 領域に記録
+	sub	ecx, esi		;ベースオフセットを引く
+	mov	[60h],ecx		;PSP 領域に記録
 	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;ds 作成

@@ -10,6 +10,7 @@
 	int	21h
 %endmacro
 ;------------------------------------------------------------------------------
+..start:
 start:
 	PRINT	msg
 
@@ -25,3 +26,5 @@ start:
 
 msg	db	'This is test program',13,10
 	db	'<<push any to exit>>',13,10,'$'
+
+
