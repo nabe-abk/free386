@@ -71,7 +71,7 @@ CPU_Fault	equ	0fdh	;CPU fault
 Memory_page_max	equ	40000h	;1GB max
 
 V86_stack_size	equ	 200h	;=byte / V86 モードスタックサイズ 
-PM_stack_size	equ	 400h	;=byte / プロテクトモードスタックサイズ
+PM_stack_size	equ	 380h	;=byte / プロテクトモードスタックサイズ
 VCPI_stack_size	equ	  80h	;VCPI call(to V86)時のみ使用するスタックサイズ
 
 ISTK_nest_max	equ	4	;CPUモード切り替えネスト数

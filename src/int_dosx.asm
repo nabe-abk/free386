@@ -722,7 +722,7 @@ DOS_Ext_fn_250ch:
 ;・リアルモードリンク情報の取得　AX=250dh
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_250dh:		; eax未対応（仮対応！）
+DOS_Ext_fn_250dh:
 	xor	ecx,ecx
 	mov	ebx, d [cs:callbuf_adr16]
 	mov	 cl, b [cs:callbuf_sizeKB]
@@ -732,7 +732,10 @@ DOS_Ext_fn_250dh:		; eax未対応（仮対応！）
 	mov	eax, DOSMEM_Lsel
 	mov	 es, eax
 
-	xor	eax, eax
+	mov	 ax, [v86_cs]
+	shl	eax, 16
+	mov	 ax, offset callf32_from_v86
+
 	clear_cy
 	iret
 

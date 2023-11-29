@@ -4,6 +4,8 @@ Ver 0.66 - 2023-11-29
 
 - Update functionality of "-m" option.
 - Add: "-vv" option.
+- Add: "-q" option.
+- Add: int 21h, ax=250Dh, eax value set.
 - Fix: Do not work int 29h and int 2fh.
 - [Towns] Support int 8eh, ax=C207h.
 

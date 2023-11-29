@@ -95,6 +95,47 @@ internal_mem_dump:
 	sub	eax, ebx
 	call	rewrite_next_hash_to_deg
 
+
+	; GDT/LDT/IDT/TSS
+	mov	eax, [GDT_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax, GDTsize -1
+	call	rewrite_next_hash_to_hex
+
+	mov	eax, [LDT_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax, LDTsize -1
+	call	rewrite_next_hash_to_hex
+
+	mov	eax, [IDT_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax, IDTsize -1
+	call	rewrite_next_hash_to_hex
+
+	mov	eax, [TSS_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax, TSSsize -1
+	call	rewrite_next_hash_to_hex
+
+	; work memory
+	mov	eax, [work_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax,  WORK_SIZE -1
+	call	rewrite_next_hash_to_hex
+
+	; stack info
+	mov	eax, [VCPI_stack_adr]
+	sub	eax,  VCPI_stack_size
+	call	rewrite_next_hash_to_hex
+
+	mov	eax, [PM_stack_adr]
+	sub	eax,  PM_stack_size
+	call	rewrite_next_hash_to_hex
+
+	movzx	eax, w [v86_sp]
+	sub	eax, V86_stack_size
+	call	rewrite_next_hash_to_hex
+
 	PRINT	internal_mem_msg
 .skip:
 

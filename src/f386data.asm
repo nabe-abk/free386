@@ -173,6 +173,7 @@ msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	13,10
 	db	'	-v	Verbose (memory information and other)',13,10
 	db	'	-vv	More verbose (internal memory information)',13,10
+	db	"	-q	Do not output Free386's title",13,10
 	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
 	db	'	-m	Use memory to the maximum with real memory',13,10
 	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
@@ -187,11 +188,19 @@ msg_10	db	'Usage: free386 <target.exp>',13,10
 
 internal_mem_msg:
 	db	"*** Free386 internal memroy information ***",13,10
-	db	'	program code: 0100 - #### / cs=ds=####',13,10
-	db	'	frag memory : #### - #### / ##### byte free',13,10
-	db	'	page table  : #### - #### /     8 KB',13,10
-	db	'	heap memory : #### - ffff / ##### byte',13,10
-	db	'	free memory : #### - #### / ##### byte',13,10
+	db	'	program code	: 0100 - #### / cs=ds=####',13,10
+	db	'	frag memory	: #### - #### / ##### byte free',13,10
+	db	'	page table 	: #### - #### /  8192 byte',13,10
+	db	'	heap memory	: #### - ffff / ##### byte',13,10
+	db	'	free heap memory: #### - #### / ##### byte',13,10
+	db	'	GDT		: #### - ####',13,10
+	db	'	LDT		: #### - ####',13,10
+	db	'	IDT		: #### - ####',13,10
+	db	'	TSS		: #### - ####',13,10
+	db	'	general work mem: #### - ####',13,10
+	db	'	VCPI  call stack: #### -',13,10
+	db	'	32bit mode stack: #### -',13,10
+	db	'	16bit mode stack: #### - ffff',13,10
 	db	'$'
 
 err_01e	db	'EMS Device Header is not found',13,10,'$'

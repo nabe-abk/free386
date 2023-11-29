@@ -111,7 +111,7 @@ init_CoCo:
 	inc	bp
 	cmp	bp, cx
 	jae	.end
-	cmp	bp, NSDD_max	;Å’á 1KB ‚È‚Ì‚ÅÅ‘å 64 ƒGƒ“ƒgƒŠ‚Ü‚Å
+	cmp	bp, NSDD_max
 	jb	.loop
 .end:
 	xor	eax, eax

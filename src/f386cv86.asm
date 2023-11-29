@@ -28,7 +28,7 @@ public	call_v86_ds
 public	call_v86_es
 public	ISTK_nest
 
-public	callf32_from_v86	; use by towns.asm
+public	callf32_from_v86	; use by towns.asm, int 21h ax=250dh
 
 segment	text align=4 class=CODE use16
 ;******************************************************************************

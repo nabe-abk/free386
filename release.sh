@@ -1,4 +1,5 @@
 #!/bin/sh
+cd src
 
 mv f386def.inc f386def.org
 
