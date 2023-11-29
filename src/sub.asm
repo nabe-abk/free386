@@ -404,7 +404,7 @@ bin2hex_32:
 	public	rewrite_next_hash_to_hex
 rewrite_next_hash_to_hex:
 	push	ecx
-.loop
+.loop:
 	inc	edi
 	cmp	b [edi], '#'
 	jne	.loop
@@ -418,7 +418,7 @@ rewrite_next_hash_to_hex:
 	public	rewrite_next_hash_to_deg
 rewrite_next_hash_to_deg:
 	push	ecx
-.loop
+.loop:
 	inc	edi
 	cmp	b [edi], '#'
 	jne	.loop

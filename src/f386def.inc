@@ -58,7 +58,7 @@ _reset_CRTC	equ	3	; [TOWNS] 終了時 CRTC/VRAM の初期化設定
 _check_MACHINE	equ	1	; 簡易機種判別を行う
 
 SAVE_8259A	equ	1	; ハードウェア割り込みマスクを終了時に復元する
-Rec_Real_Vec	equ	1	; リアルモード割り込みベクタの復元
+RestoreRealVec	equ	1	; リアルモード割り込みベクタの復元
 
 ;==============================================================================
 ; General define

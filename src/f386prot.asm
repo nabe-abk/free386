@@ -95,6 +95,11 @@ internal_mem_dump:
 	sub	eax, ebx
 	call	rewrite_next_hash_to_deg
 
+	; Real mode vectors backup
+	mov	eax, [RVects_save_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax,  Real_Vectors *4 -1
+	call	rewrite_next_hash_to_hex
 
 	; GDT/LDT/IDT/TSS
 	mov	eax, [GDT_adr]
@@ -347,7 +352,11 @@ para_analyze_loop:
 
 	align	4
 no_file:
+	mov	al, [title_disp]
+	test	al, al
+	jz	.skip
 	PRINT		msg_10		;使い方表示
+.skip:
 	Program_END	00		;プログラム終了処理
 
 

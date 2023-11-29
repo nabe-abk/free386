@@ -173,7 +173,7 @@ msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	13,10
 	db	'	-v	Verbose (memory information and other)',13,10
 	db	'	-vv	More verbose (internal memory information)',13,10
-	db	"	-q	Do not output Free386's title",13,10
+	db	"	-q	Do not output Free386's title and this help",13,10
 	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
 	db	'	-m	Use memory to the maximum with real memory',13,10
 	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
@@ -193,6 +193,7 @@ internal_mem_msg:
 	db	'	page table 	: #### - #### /  8192 byte',13,10
 	db	'	heap memory	: #### - ffff / ##### byte',13,10
 	db	'	free heap memory: #### - #### / ##### byte',13,10
+	db	'	real vecs backup: #### - ####',13,10
 	db	'	GDT		: #### - ####',13,10
 	db	'	LDT		: #### - ####',13,10
 	db	'	IDT		: #### - ####',13,10

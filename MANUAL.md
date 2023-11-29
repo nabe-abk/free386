@@ -35,7 +35,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -vv
 	* More verbose. View Free386 internal memory information.
 * -q
-	* Do not output Free386's title.
+	* Do not output Free386's title and help.
 * -p0 (default)
 * -p1
 	* -p1 After the environment variable PATH386, the environment variable PATH to find the EXP executable file.
@@ -68,7 +68,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -vv
 	* より冗長な表示、Free386の内部メモリ情報を表示します。
 * -q
-	* Free386のタイトルを表示しない。
+	* Free386のタイトルとヘルプを表示しない。
 * -p0 (default)
 * -p1
 	* -p1 環境変数PATH386の次に、環境変数PATHを参照して EXP実行ファイルを検索します。

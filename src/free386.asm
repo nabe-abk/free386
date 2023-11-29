@@ -1182,8 +1182,8 @@ END_program:
 	;///////////////////////////////
 	;リアルモードベクタの復元
 	;///////////////////////////////
-%if Rec_Real_Vec
-Rec_vector:
+%if RestoreRealVec
+RestoreRealVectors:
 	push	d (DOSMEM_sel)			;DOS メモリアクセスレジスタ
 	pop	fs				;load
 	mov	ecx,Real_Vectors		;ベクタ数
