@@ -1,5 +1,5 @@
 ;******************************************************************************
-;　Free386 (RUN386 lower compatible DOS-Extender)   Ver 0.60
+;　Free386 (compatible to RUN386 DOS-Extender)
 ;		'ABK project' all right reserved. Copyright (C)nabe@abk
 ;******************************************************************************
 ;[TAB=8]
@@ -16,7 +16,7 @@
 %include	"int.inc"		;割り込みルーチンのヘッダファイル
 
 ;******************************************************************************
-;■グローバルシンボル宣言
+; global symbols
 ;******************************************************************************
 
 	;--- for f386seg.asm ------------------------------
@@ -60,7 +60,6 @@ public		callbuf_adr32
 ;******************************************************************************
 ;■コード(16 bit)
 ;******************************************************************************
-
 segment	text public align=16 class=CODE use16
 ;------------------------------------------------------------------------------
 ;●初期処理
@@ -101,12 +100,12 @@ parameter_check:
 	jmp	short .check_start
 
 	;///////////////////////////////
-	; Use memory of real maximum
+	; -m : Use memory maximum
 	;///////////////////////////////
 .para_m:
-	mov	b [POOL_mem_pages],0	;プールメモリ量 = 0
-	mov	b [callbuf_sizeKB],1	;CALL buffer size = 1KB
-	mov	b [real_mem_pages],250	;DOSメモリを最大まで使う, 255指定不可
+	mov	b [pool_for_paging],1	;ページング用プールメモリ
+	mov	b [real_mem_pages] ,250	;DOSメモリを最大まで使う, 255指定不可
+	mov	b [maximum_heap]   ,1	;ヘッダを無視して最大ヒープメモリを割り当て
 	jmp	.loop
 	;/// Move some parameters to this location. Because does not fit in jmp short.
 	;/// jmp short に収まらないので一部解析をここに記述
@@ -120,7 +119,7 @@ parameter_check:
 	mov	bx,offset paras_p	;dx = argv / パラメータへのポインタ
 .loop:
 	dec	cx
-	jz	.end_paras		;終わったら jmp
+	jz	.end_paras
 
 	mov	si,[bx]			;si = argv[N] / パラメータへのポインタ
 	add	bx,byte 2		;argv++ / ポインタ加算
@@ -128,9 +127,10 @@ parameter_check:
 	cmp	al,'-'			;'-' で始まるパラメタ?
 	jne	.end_paras		;違ったらjmp (ロードファイル名と見なす)
 
-	call	large_to_small		;大文字→小文字変換
-	cmp	ah,'v'			;v?
-	je	.para_v			;等しければ jmp
+	mov	al,[si+2]		;ah's next char
+
+	cmp	ah,'v'
+	je	.para_v
 	cmp	ah,'p'
 	je	.para_p
 	cmp	ah,'c'
@@ -145,55 +145,61 @@ parameter_check:
 %endif
 	cmp	ah,'i'
 	je	.para_i
-	jmp	short .loop		;パラメタの数だけループ
+	jmp	short .loop
 
 	;///////////////////////////////
-	;パラメタ -v の処理
+	; -v
+	;///////////////////////////////
 .para_v:
-	mov	[verbose],al		;冗長表示フラグを 0 以外の値に
+	cmp	al,'v'			; -vv?
+	je	.v0
+	mov	al,01
+.v0:
+	mov	b [verbose],al
 	jmp	short .loop
 
 	;///////////////////////////////
-	;パラメタ -p? の処理
+	; -p?
+	;///////////////////////////////
 .para_p:
-	mov	al,[si+2]		;-p? / al = ?
-	and	al,01			;bit 0 取り出し
-	mov	[see_PATH],al		;PATH 検索フラグに記録
+	and	al,01			;-p? / al = ?
+	mov	[see_PATH],al		;search PATH flag
 	jmp	short .loop
 
 	;///////////////////////////////
-	;パラメタ -c? の処理
+	; -c?
+	;///////////////////////////////
 .para_c:
-	mov	al,[si+2]		;-c? / al = ?
-	test	al,al			;0?
+	test	al,al			;-c? / al = ?
 	jnz	.c0			
 	mov	al,01			;指定なしなら -c1 と解釈
 .c0:	and	al,03			;bit 1,0 取り出し
-	mov	[reset_CRTC],al		;CRTC リセット設定
+	mov	[reset_CRTC],al
 	jmp	short .loop
 
 	;///////////////////////////////
-	; PharLap version is set 2.2 (compatible EXE386)
+	; set PharLap version to 2.2 (compatible EXE386)
+	;///////////////////////////////
 .para_2:
 	mov	d [pharlap_version], 20643232h	; ' d22'
 	jmp	short .loop
 
 %if TOWNS
 	;///////////////////////////////
-	;NSDDをロードしない
+	; -n, do not load CoCo/NSD
+	;///////////////////////////////
 .para_n:
-	mov	al,[si+2]		;-n?
-	and	al,01h
+	and	al,01h			;al = -n?
 	mov	b [nsdd_load],al
 	jmp	short .loop
 %endif
 
 	;///////////////////////////////
-	;パラメタ -i? の処理 : 機種判別を行わない
+	; -i?
+	;///////////////////////////////
 .para_i:
-	mov	al,[si+2]		;-i? / al = ?
-	and	al,01			;bit 0 取り出し
-	mov	b [check_MACHINE],al	;機種判別フラグに設定
+	and	al,01			;-i? / al = ?
+	mov	b [check_MACHINE],al
 	jmp	short .loop
 
 .end_paras:

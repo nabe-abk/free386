@@ -31,11 +31,15 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 ## Options
 
 * -v
-	* Performs verbose display. Mainly displays information about memory.
+	* Verbose. Mainly displays information about memory.
+* -vv
+	* More verbose. View Free386 internal memory information.
 * -p0 (default)
 * -p1
 	* -p1 After the environment variable PATH386, the environment variable PATH to find the EXP executable file.
 * -m
+	* Allocates maximum memory for heap, and ignoring the maximum memory request of the exp header.
+	  Some programs require this option.
 	* Allocates a large amount of real memory for EXP file execution.
 	  If this option is not specified, only 16KB of real memory will be allocated.
 * -2
@@ -59,10 +63,13 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 
 * -v
 	* 冗長表示を行います。主にメモリに関する情報を表示します。
+* -vv
+	* より冗長な表示、Free386の内部メモリ情報を表示します。
 * -p0 (default)
 * -p1
 	* -p1 環境変数PATH386の次に、環境変数PATHを参照して EXP実行ファイルを検索します。
 * -m
+    * 可能な限りのメモリをヒープ領域に割り当てます。
 	* EXPファイル実行用にリアルメモリを多く確保します。
 	  このオプションを指定しない場合、リアルメモリは16KBしか確保しません。
 * -2
@@ -102,7 +109,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0ah	| 00h	| (Reserved) |
 | +0bh	| 00h	| (Reserved) |
 | +0ch	| 08h	| Reserved memory pages for paging. |
-| +0dh	| 04h	| Call buffer size (KB). This is used DOS function call. |
+| +0dh	| 08h	| Call buffer size (KB). This is used DOS function call. |
 | +0eh	| 04h	| Maximum number of real memory pages to allocate for EXP file execution. (See -m option) |
 | +0fh	| 00h	| (Reserved) |
 

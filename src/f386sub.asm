@@ -324,7 +324,6 @@ eax2hex:
 .end:
 	ret
 
-
 ;##############################################################################
 ;findpath  -  search PATH
 ;	This is PDS.
@@ -683,15 +682,15 @@ load_exp:
 	;
 	;必要なメモリ算出
 	;
-	mov	eax,[esi+74h]	;ロードイメージの大きさ（プログラムのサイズ）
+	mov	ecx,[esi+74h]	;ロードイメージの大きさ（プログラムのサイズ）
+
+	mov	eax,ecx
 	add	eax,[esi+56h]	;ファイルの後ろに割り当てるメモリの最小量
-	add	eax,[esi+5eh]	;ベースメモリアドレス加算
 	add	eax,     0fffh	;4KB 単位でメモリを扱うので端数繰り上げ
 	and	eax,0fffff000h	;4KB 単位へ
 	mov	[5ch],eax	;PSP に記録 /最低限必要なセグメントサイズ[byte]
 
-	mov	ecx,[esi+5ah]	;ファイルの後ろに割り当てるメモリの最大量
-	add	ecx,[esi+74h]	;ロードイメージの大きさ（プログラムのサイズ）
+	add	ecx,[esi+5ah]	;ファイルの後ろに割り当てるメモリの最大量
 	jnc	.step		;値オーバーしてなければ jmp
 	mov	ecx,0fffff000h	;最大値
 .step:	add	ecx,     0fffh	;4KB 単位でメモリを扱うので端数繰り上げ
@@ -703,6 +702,7 @@ load_exp:
 	pop	esi
 	jc	NEAR not_enough_memory	;エラーならメモリ不足
 
+check_memory:
 	;
 	;メモリ量チェック
 	;
@@ -1113,6 +1113,7 @@ strl_lp_offsetc:	;ebx の 0 にループさせる
 ;	Cy=1 失敗
 ;
 	align	4
+	global	make_cs_ds
 make_cs_ds:
 	push	eax
 	push	ecx
@@ -1120,14 +1121,19 @@ make_cs_ds:
 	push	esi
 	push	ebp
 
+	mov	al, [maximum_heap]
+	test	al,al
+	jz	.skip
+	mov	ecx, 0fffffh		;最大メモリ割り当て
+.skip:
+
 	mov	ebp,[free_RAM_pages]	;空きメモリと比較
 	add	ebp,[DOS_mem_pages]	;DOSメモリ
 
+	mov	[60h], esi
 	mov	edx,esi			;読み込みベース
 	shr	edx,12			;page単位のずれ / 下まで破壊しないこと
 
-	cmp	ecx,0f0000000h		;チェック値
-	ja	.alloc_all		;全空きメモリ割り当て
 	mov	eax,ecx			;割り当て要求量
 	add	eax,edx			;eax = 必要アドレス量
 	add	eax,3ffh		;端数切捨て
@@ -1138,7 +1144,7 @@ make_cs_ds:
 
 .alloc_all:	;全空きメモリ割り当て
 	mov	ecx,ebp ;=free_pages	;空きメモリをロード
-	movzx	eax,b [POOL_mem_pages]	;プールメモリ数
+	movzx	eax,b [pool_for_paging]	;プールメモリ数
 	sub	ecx,eax			;予約メモリページ数を引く
 	ja	.mem_pool		;0 以上なら jmp
 	add	ecx,eax			;値を元に戻す(プールしない)
@@ -1179,8 +1185,8 @@ make_cs_ds:
 	mov	d [edi+8],0a00h		;R/X タイプ / 特権レベル=0
 
 	inc	ecx			;ecx = サイズ (page)
-	shl	ecx,12			;ecx = サイズ (byte)
-	mov	[60h],ecx		;PSP 領域に記録
+	shl	ecx, 12			;ecx = サイズ (byte)
+	add	[60h],ecx		;PSP 領域に記録
 	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;ds 作成
@@ -1227,7 +1233,7 @@ run_exp:
 	mov	ds,eax			;
 	mov	es,eax			;セレクタ初期設定
 	mov	fs,eax			;
-	;mov	gs,eax	; 設定済
+	mov	gs,eax	; 設定済
 
 	;
 	;全ての汎用レジスタクリア（起動時の初期値）

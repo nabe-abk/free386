@@ -90,147 +90,6 @@ get_parameter:
 	pop	ax
 	ret
 
-
-;------------------------------------------------------------------------------
-;○英小文字→英大文字
-;------------------------------------------------------------------------------
-;
-;	in	ds:bx	…変換する文字列（null で終わる）
-;
-;
-	public	small_to_large
-
-	align	2
-small_to_large:
-	push	ax
-	push	bx
-	push	cx
-
-	mov	ch,11000011b		;２バイト文字判別用テーブル
-	dec	bx
-
-	align	2
-small_to_large_loop:
-	inc	bx
-	mov	al,[bx]		;一文字ロード
-
-	cmp	al,0		;null と比較
-	je	s2l_end		;ルーチン終了
-
-
-	;
-	;小文字の範囲か確認
-	;
-	cmp	al,'a'			;コード61h と比較
-	jb	small_to_large_loop	;それより小さければジャンプ
-	cmp	al,'z'			;コード7ah と比較
-	ja	s2l_2byte_code_check	;それより大きければジャンプ
-
-	;
-	;小文字→大文字変換
-	;
-	sub	al,'a' - 'A'		;コード上での差 20hを引く
-	mov	[bx],al			;変換コードを記録
-
-	jmp	small_to_large_loop	;ループ
-
-
-	;
-	;２バイト文字か確認
-	;
-	align	2
-s2l_2byte_code_check:
-	shr	al,4		;４ビット右シフト（÷16）
-
-	;al ビットのテーブルを調べる
-
-	mov	cl,al			;シフトの為に cl に
-	mov	ax,1			;ax に 1 を
-	shl	ax,cl			;指定ビットまでシフトする
-	test	cx,ax			;ビットテーブル内のテスト
-	jz	small_to_large_loop	;フラグが立ってなければループ
-
-	;２バイトコードである
-
-	inc	bx			;次のコードを無視する
-	jmp	small_to_large_loop	;ループ
-
-
-	align	2
-s2l_end:
-	pop	cx
-	pop	bx
-	pop	ax
-	ret
-
-
-
-;------------------------------------------------------------------------------
-;○英大文字→英小文字
-;------------------------------------------------------------------------------
-;
-;	in	ds:bx	…変換する文字列（null で終わる）
-;
-;
-	public 	large_to_small
-
-	align	2
-large_to_small:
-	push	ax
-	push	bx
-	push	cx
-
-	mov	ch,11000011b		;２バイト文字判別用テーブル
-	dec	bx
-
-	align	2
-large_to_small_loop:
-	inc	bx
-	mov	al,[bx]		;一文字ロード
-
-	cmp	al,0		;null と比較
-	je	s2l_end		;ルーチン終了（小文字→大文字と一緒）
-
-
-	;
-	;小文字の範囲か確認
-	;
-	cmp	al,'A'			;コード61h と比較
-	jb	large_to_small_loop	;それより小さければジャンプ
-	cmp	al,'Z'			;コード7ah と比較
-	ja	l2s_2byte_code_check	;それより大きければジャンプ
-
-	;
-	;小文字→大文字変換
-	;
-	add	al,'a' - 'A'		;コード上での差 20hを足す
-	mov	[bx],al			;変換コードを記録
-
-	jmp	large_to_small_loop	;ループ
-
-
-	;
-	;２バイト文字か確認
-	;
-	align	2
-l2s_2byte_code_check:
-	shr	al,4		;４ビット右シフト（÷16）
-
-	;al ビットのテーブルを調べる
-
-	mov	cl,al			;シフトの為に cl に
-	mov	ax,1			;ax に 1 を
-	shl	ax,cl			;指定ビットまでシフトする
-	test	cx,ax			;ビットテーブル内のテスト
-	jz	large_to_small_loop	;フラグが立ってなければループ
-
-	;２バイトコードである
-
-	inc	bx			;次のコードを無視する
-	jmp	large_to_small_loop	;ループ
-
-
-
 ;------------------------------------------------------------------------------
 ;○Ｈｅｘから二進数への変換
 ;------------------------------------------------------------------------------
@@ -405,10 +264,10 @@ string_print:
 	dec	ebx		;-1 する
 
 	align	4
-SP_search_null:
+.loop:
 	inc	ebx		;ポインタ更新
 	cmp	byte [ebx],0	;NULL 文字と比較
-	jne	SP_search_null
+	jne	short .loop
 
 	mov	byte [ebx],'$'	;文字列終端を一時的に置き換える
 	mov	ah,09h		;display string
@@ -453,23 +312,24 @@ bin2deg_32:
 	and	ecx,ebp			;危険防止のためのマスク
 
 	align	4
-b2d32_loop:	;----------------loop---
+.loop:
+	;----------------loop---
 	xor	edx,edx			;edx = 0
-	div	d [ebx + ecx*4]		;最上位のケタから割っていく
+	div	dword [ebx + ecx*4]	;最上位のケタから割っていく
 					;edx.eax / 10^ecx = eax (余り=edx)
 	and	eax,ebp			;危険防止のため（for 最上位桁）
 
 	test	eax,eax			;値チェック
-	jz	b2d32_1			;0 だったら jmp
-	mov	b [esi],'0'		;0 の位置に '0' を入れる
-b2d32_1:
+	jz	short .skip		;0 だったら jmp
+	mov	byte [esi],'0'		;0 の位置に '0' を入れる
+.skip:
 
 	mov	al,[esi + eax]		;該当文字コード (0～9)
 	mov	[edi],al		;記録
 	mov	eax,edx			;eax = 余り
 	inc	edi			;次の文字格納位置ヘ
 
-	loop	b2d32_loop		;ecx = 0 になるまで繰り返す
+	loop	.loop			;ecx = 0 になるまで繰り返す
 	;--------------------loop end---
 
 	mov	b [esi],'0'		;0 の位置に '0' を入れる
@@ -486,14 +346,13 @@ b2d32_1:
 	ret
 
 
-
 	align	4
 ;------------------------------------------------------------------------------
 ;○数値→１６進数変換（ｎケタ）
 ;------------------------------------------------------------------------------
 ;
-;	eax を 16進数 で、[edi] に記録する。
-;	変換するケタ数は cl 桁 = 1-8
+;	eax = value
+;	ecx = number of digits
 ;
 ;ret	edi = 最後の文字の次の byte
 ;
@@ -504,8 +363,27 @@ bin2hex_32:
 	push	ecx
 	push	edx
 
-	mov	edx, edi
-	call	eax2hex
+	push	ecx
+	mov	edx,ecx
+	shl	edx,2		; *4
+	mov	cl, 32
+	sub	cl, dl
+	shl	eax,cl
+	pop	ecx
+
+.loop:
+	rol	eax, 4
+	movzx	ebx, al
+	and	bl, 0fh
+	mov	dl, [.hex + ebx]
+
+	cmp	b [edi], '_'
+	jne	.skip
+	inc	edi
+.skip:
+	mov	[edi], dl
+	inc	edi
+	loop	.loop
 
 	pop	edx
 	pop	ecx
@@ -513,6 +391,59 @@ bin2hex_32:
 	pop	eax
 	ret
 
+	align	4
+.hex	db	"0123456789abcdef"
+
+;------------------------------------------------------------------------------
+;○次の # を書き換える
+;------------------------------------------------------------------------------
+;	eax	value
+;	edi	target
+;
+	align	4
+	public	rewrite_next_hash_to_hex
+rewrite_next_hash_to_hex:
+	push	ecx
+.loop
+	inc	edi
+	cmp	b [edi], '#'
+	jne	.loop
+	call	count_num_of_hash
+	call	bin2hex_32
+	pop	ecx
+	ret
+
+
+	align	4
+	public	rewrite_next_hash_to_deg
+rewrite_next_hash_to_deg:
+	push	ecx
+.loop
+	inc	edi
+	cmp	b [edi], '#'
+	jne	.loop
+	call	count_num_of_hash
+	call	bin2deg_32
+	pop	ecx
+	ret
+
+	align	4
+count_num_of_hash:
+	push	edi
+	xor	ecx, ecx
+	jmp	.loop
+.skip:
+	inc	edi
+.loop:
+	cmp	b [edi+ecx], '_'
+	je	.skip
+	cmp	b [edi+ecx], '#'
+	jne	.exit
+	inc	ecx
+	jmp	.loop
+.exit:
+	pop	edi
+	ret
 
 ;------------------------------------------------------------------------------
 ;------------------------------------------------------------------------------

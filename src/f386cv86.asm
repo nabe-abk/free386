@@ -258,7 +258,13 @@ BITS	16
 
 	push	w (-1)			;mark / iret,retf両対応のため
 	pushf				;flag save for INT
-	call	far [cs:call_v86_adr]	;目的ルーチンのコール
+	push	cs			;
+	push	w .call_ret		;戻りラベル
+	push	d [cs:call_v86_adr]	;目的ルーチン
+	sti
+	retf				;far call
+.call_ret:
+	;;call	far [cs:call_v86_adr]	;目的ルーチンのコール
 
 	cli
 	mov	[cs:call_v86_ds],ds	;ds セーブ

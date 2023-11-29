@@ -39,18 +39,6 @@
 	int	21h	;終了
 %endmacro
 
-%imacro getvecter	0	;ベクタアドレス取得 > ES:BX
-	mov	ah,35h
-	mov	al,Interrupt_No	;定義済 Int 番号
-	int	21h
-%endmacro
-
-%imacro	setvecter	0	;ベクタアドレス設定 < DS:DX
-	mov	ah,25h
-	mov	al,Interrupt_No	;定義済 Int 番号
-	int	21h
-%endmacro
-
 ;******************************************************************************
 ;★F386 専用マクロ
 ;******************************************************************************
@@ -153,44 +141,4 @@ cy_clear:	;
 	pop	eax
 %endif
 %endmacro
-
-;******************************************************************************
-;ディバグ用マクロ
-;******************************************************************************
-
-%imacro	SPEED_N		0	;ディバグ用 > 互換モード切替え
-	push	dx
-	push	ax
-	mov	dx,5ech
-	xor	al,al
-	out	dx,al
-	pop	ax
-	pop	dx
-%endmacro
-
-%imacro	PAD_WAIT	0	;ディバグ用 > 互換モード切替え
-	push	eax
-	push	edx
-	push	ebp
-
-	mov	dx,4d0h
-._off	in	al,dx
-	test	al,10h
-	jz	._off
-
-._on	in	al,dx
-	dec	ebp
-	test	al,10h
-	jnz	._on
-
-	pop	ebp
-	pop	edx
-	pop	eax
-%endmacro
-
-
-%macro	FAULT	0	;ディバグ用 / メモリ保護エラー
-	mov	[offset -1],eax
-%endmacro
-
 

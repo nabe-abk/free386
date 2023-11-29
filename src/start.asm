@@ -10,9 +10,10 @@ extern	start
 global	title_disp, verbose
 global	see_PATH386, see_PATH
 global	reset_CRTC, check_MACHINE
-global	POOL_mem_pages
+global	pool_for_paging
 global	callbuf_sizeKB
 global	real_mem_pages
+global	maximum_heap
 
 ;----------------------------------------------------------------------------
 segment	text align=16 class=CODE use16
@@ -38,10 +39,10 @@ check_MACHINE	db	_check_MACHINE	;簡易機種判別
 		db	0
 		db	0
 	;[+12 byte]
-POOL_mem_pages	db	_POOL_mem_pages	;ページング用の予約メモリ
+pool_for_paging	db	_POOL_for_paging;ページング用の予約メモリ
 callbuf_sizeKB	db	_CALLBUF_sizeKB	;CALL buffer size (KB)
 real_mem_pages	db	_REAL_mem_pages	;プログラム実行用リアルメモリ
-		db	0
+maximum_heap	db	0		;ヘッダを無視して最大ヒープメモリを割り当て
 
 	;--------------------------------------------------
 

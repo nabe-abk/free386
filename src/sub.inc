@@ -2,8 +2,6 @@
 ;16 bit ルーチン
 ;
 extern	get_parameter
-extern	small_to_large
-extern	large_to_small
 extern	HEX_conv4
 extern	HEX_conv2
 
@@ -13,6 +11,8 @@ extern	HEX_conv2
 extern	string_print
 extern	bin2deg_32
 extern	bin2hex_32
+extern	rewrite_next_hash_to_hex
+extern	rewrite_next_hash_to_deg
 
 ;
 ;データ部

@@ -45,136 +45,99 @@ start32:
 %endif
 
 ;------------------------------------------------------------------------------
-;●for DEBUG
+; Memory detail infomation
 ;------------------------------------------------------------------------------
-%if (MEMORY_INFO)
-	mov	al,[verbose]			;冗長表示?
-	test	al,al
-	jz	near internal_mem_dump_end
-	jmp	data_jmp
+internal_mem_dump:
+	mov	al, [verbose]
+	cmp	al, 2
+	jb	.skip
 
-tomem	db	"*** free386's internal memroy infomation ***",13,10
-	db	'  top  mem offset  = $'
-domem	db	'  down mem offset  = $'
-frmem	db	'  frag mem offset  = $'
-freemem	db	'  free memory size = $'
-fragmem	db	'  frag memory size = $'
+	mov	edi, internal_mem_msg
 
-data_jmp:
-	mov	edi,[work_adr]
-	PRINT_	tomem
-	mov	edx,msg_hex4
-	mov	eax,[top_mem_offset]
-	mov	edi,edx
-	mov	cl,4
-	call	bin2hex_32
-	mov	ah,09h
-	int	21h
+	mov	eax, end_adr
+	dec	eax
+	call	rewrite_next_hash_to_hex
 
-	PRINT_	domem
-	mov	eax,[down_mem_offset]
-	mov	edi,edx
-	call	bin2hex_32
-	mov	ah,09h
-	int	21h
+	mov	eax, [v86_cs]
+	call	rewrite_next_hash_to_hex
 
-	PRINT_	frmem
-	mov	eax,[frag_mem_offset]
-	mov	edi,edx
-	call	bin2hex_32
-	mov	ah,09h
-	int	21h
+	mov	eax, end_adr
+	call	rewrite_next_hash_to_hex
 
-	PRINT_	freemem
-	mov	eax,[down_mem_offset]
-	sub	eax,[top_mem_offset]
-	mov	edi,edx
-	mov	cl,5
-	call	bin2deg_32
-	mov	d [edi  ],' byt'
-	mov	d [edi+4],240a0d65h		; 'e' CR/LF '$'
-	mov	ah,09h
-	int	21h
+	mov	eax, [page_dir]
+	dec	eax
+	call	rewrite_next_hash_to_hex
 
-	PRINT_	fragmem
-	mov	eax,[frag_mem_size]
-	mov	edi,edx
-	call	bin2deg_32
-	mov	ah,09h
-	int	21h
-internal_mem_dump_end:
-%endif
+	mov	eax, [frag_mem_size]
+	call	rewrite_next_hash_to_deg
+
+	mov	eax, [page_dir]
+	call	rewrite_next_hash_to_hex
+	add	eax, 1fffh
+	call	rewrite_next_hash_to_hex
+	inc	eax
+	call	rewrite_next_hash_to_hex
+
+	mov	ebx, [top_mem_offset]
+	mov	edx, [down_mem_offset]
+
+	mov	eax, 10000h
+	sub	eax, [page_dir]
+	call	rewrite_next_hash_to_deg
+
+	mov	eax, ebx
+	call	rewrite_next_hash_to_hex
+	mov	eax, edx
+	dec	eax
+	call	rewrite_next_hash_to_hex
+
+	mov	eax, edx
+	sub	eax, ebx
+	call	rewrite_next_hash_to_deg
+
+	PRINT	internal_mem_msg
+.skip:
 
 ;------------------------------------------------------------------------------
 ;●メモリ管理の設定
 ;------------------------------------------------------------------------------
 make_page_tables:
-	;--------------------------------------------------
-	;メモリに関するメッセージ表示
-	;--------------------------------------------------
-	mov	al,[verbose]		;冗長表示フラグ
-	test	al,al			;0?
-	jz	near .no_verbose	;0 なら jmp
-					;EDX = フリーな 4K ページ
+	mov	al,[verbose]
+	test	al,al
+	jz	near .no_verbose
+
+	mov	edi, msg_02
 
 	;/// 総物理メモリ量 ///
 	mov	eax,[all_mem_pages]	;メモリドライハによって実際とは違う値が返る
 	shl	eax,2			;4倍して eax = XXX KB
-	mov	edi,offset msg_02a	;数値記録用 文字列
-	mov	ecx,6			;変換桁数 = 6
-	call	bin2deg_32		;10進数に変換
+	call	rewrite_next_hash_to_deg
 
 	;/// 確保した拡張メモリ ///
-	mov	eax,[max_EMB_free]	;
-	mov	edi,offset msg_02b	;数値記録用 文字列
-	mov	cl,6			;変換桁数 = 6
-	call	bin2deg_32		;10進数に変換 (value edi,eax,ecx)
-
-	mov	eax,[EMB_physi_adr]	;アドレス先頭
-	mov	edi,msg_02c
-	mov	cl,8
-	call	bin2hex_32
+	mov	eax,[max_EMB_free]
+	call	rewrite_next_hash_to_deg
+	mov	eax,[EMB_physi_adr]
+	call	rewrite_next_hash_to_hex
 
 	;/// リアルメモリ ///
 	mov	eax,[DOS_mem_pages]	;
 	shl	eax, 2			;page to KB
-	mov	edi,offset msg_02d	;数値記録用 文字列
-	mov	cl,6			;変換桁数 = 6
-	call	bin2deg_32		;10進数に変換
-	
-	mov	eax,[DOS_mem_adr]	;先頭アドレス
-	mov	edi,offset msg_02e
-	mov	cl,8
-	call	bin2hex_32
-
-	;/// Free386.com本体メモリ ///
-	mov	eax,[top_adr]		;容量は64KB固定なので、先頭アドレスのみ
-	mov	edi,offset msg_02f
-	mov	cl,8
-	call	bin2hex_32
+	call	rewrite_next_hash_to_deg
+	mov	eax,[DOS_mem_adr]
+	call	rewrite_next_hash_to_hex
 
 	;/// call buffer ///
 	movzx	eax,b [callbuf_sizeKB]
-	mov	edi,offset msg_02g	;数値記録用 文字列
-	mov	cl,6			;変換桁数 = 6
-	call	bin2deg_32		;10進数に変換
-
-	mov	eax,[callbuf_adr32]	;先頭アドレス
-	mov	edi,offset msg_02h
-	mov	cl,8
-	call	bin2hex_32
+	call	rewrite_next_hash_to_deg
+	mov	eax,[callbuf_adr32]
+	call	rewrite_next_hash_to_hex
 
 	;/// Additional page table memory ///
 	mov	eax, [page_table_in_dos_memory_size]
 	shr	eax, 10
-	mov	edi, offset msg_02i
-	mov	cl, 6
-	call	bin2deg_32
-
+	call	rewrite_next_hash_to_deg
 	mov	eax,[page_table_in_dos_memory_adr]
-	mov	edi,offset msg_02j
-	mov	cl,8
-	call	bin2hex_32
+	call	rewrite_next_hash_to_hex
 
 	PRINT_	msg_02
 .no_verbose:

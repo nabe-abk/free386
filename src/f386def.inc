@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.66 2023/11/28'
+%define	VER_STRING	'Ver0.66 2023/11/29'
 Major_ver	equ		00h
 Minor_ver	equ		66h
-F386_Date	equ		20231128h	;Develop date
+F386_Date	equ		20231129h	;Develop date
 
 ;==============================================================================
 ; Operation setting
@@ -21,7 +21,6 @@ PC_98		equ	0	; for PC-9801/9821 binary
 PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
-MEMORY_INFO	equ	0	; Internal 64KB memory information with -v opt.
 INT_HOOK	equ	0	; Interrupt hook and register dump
 INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS is 0ch
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
@@ -31,7 +30,6 @@ PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 
 %else
 		; for RELEASE
-MEMORY_INFO	equ	0
 INT_HOOK	equ	0
 INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
@@ -84,8 +82,8 @@ INT_RWBUF_size	equ	4000h	;ファイル入出力専用バッファサイズ
 
 WORK_SIZE	equ	200h	;汎用ワークサイズ / min 200h
 
-_POOL_mem_pages	equ	8	;ページングのために予約するメモリページ数
-_CALLBUF_sizeKB	equ	4	;CALLバッファとして使用するDOSメモリサイズ (KB)
+_CALLBUF_sizeKB	equ	16	;CALLバッファとして使用するDOSメモリサイズ (KB)
+_POOL_for_paging equ	8	;ページングのために予約するメモリページ数
 _REAL_mem_pages	equ	4	;プログラム実行用リアルメモリ (page)
 
 Unit_of_MEM	equ	400000h	;メモリアドレスの割り当て単位(byte)
