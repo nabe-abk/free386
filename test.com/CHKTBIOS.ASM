@@ -6,7 +6,7 @@
 ; nasm -f bin chktbios.asm -o chktbios.com
 ;
 ;------------------------------------------------------------------------------
-%imacro	PRINT	1
+%macro	PRINT	1
 	mov	edx,%1
 	mov	ah,09h
 	int	21h

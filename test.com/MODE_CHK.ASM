@@ -5,7 +5,7 @@
 ;
 ;[TAB=8]
 ;------------------------------------------------------------------------------
-%imacro	PRINT	1
+%macro	PRINT	1
 	mov	edx,%1
 	mov	ah,09h
 	int	21h
@@ -68,4 +68,3 @@ paging	db	'paging = $'
 _on	db	'on ',13,10,'$'
 _off	db	'off',13,10,'$'
 
-
