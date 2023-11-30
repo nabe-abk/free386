@@ -3,32 +3,29 @@
 ;******************************************************************************
 ;[TAB=8]
 ;
-%include	"nasm_abk.h"		;NASM 用ヘッダファイル
-%include	"macro.asm"		;マクロ部の挿入
-%include	"f386def.inc"		;定数部の挿入
-
-%include	"free386.inc"		;外部変数
-
+%include	"macro.inc"
+%include	"f386def.inc"
+%include	"free386.inc"
 
 ;******************************************************************************
 ;■グローバルシンボル宣言
 ;******************************************************************************
 
-public	setup_cv86		;call v86 の初期設定
-public	clear_mode_data		;モード切替えデータの初期化
+global	setup_cv86		;call v86 の初期設定
+global	clear_mode_data		;モード切替えデータの初期化
 
-public	call_V86_int		;int 呼び出し
-public	call_V86_int21		;int 21h 呼び出し
-public	call_V86_HARD_int
+global	call_V86_int		;int 呼び出し
+global	call_V86_int21		;int 21h 呼び出し
+global	call_V86_HARD_int
 
-public	call_V86		;汎用的なな呼び出しルーチン (call して使用)
-public	rint_labels_adr		;リアルモード割り込みフックルーチン先頭アドレス
+global	call_V86		;汎用的なな呼び出しルーチン (call して使用)
+global	rint_labels_adr		;リアルモード割り込みフックルーチン先頭アドレス
 
-public	call_v86_ds
-public	call_v86_es
-public	ISTK_nest
+global	call_v86_ds
+global	call_v86_es
+global	ISTK_nest
 
-public	callf32_from_v86	; use by towns.asm, int 21h ax=250dh
+global	callf32_from_v86	; use by towns.asm, int 21h ax=250dh
 
 segment	text align=4 class=CODE use16
 ;******************************************************************************
@@ -42,7 +39,7 @@ setup_cv86:
 	;//////////////////////////////////////////////////
 	;リルアモード割り込みフックルーチン生成用メモリ取得
 	;//////////////////////////////////////////////////
-	mov	ax,Real_Vectors *4	;フックルーチン生成用メモリ
+	mov	ax,IntVectors *4	;フックルーチン生成用メモリ
 	call	heap_malloc		;上位メモリ割り当て
 	mov	[rint_labels_adr],di	;save
 	mov	dx,di			;dx に
@@ -52,7 +49,7 @@ setup_cv86:
 	;フックルーチンの生成
 	mov	bl,0e8h			;call命令
 	mov	bh, 90h			;NOP 命令
-	mov	cx,Real_Vectors		;int の数
+	mov	cx,IntVectors		;int の数
 	mov	si,offset int_V86	;呼び出しラベル
 	mov	bp,4			;加算値
 	mov	ax,si			;ax = 呼び出しアドレス

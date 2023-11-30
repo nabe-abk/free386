@@ -1,23 +1,22 @@
 ;******************************************************************************
-;　セグメント/テーブル操作ルーチン	for Free386
+;　Segment and memory routine	for Free386
 ;******************************************************************************
 ;[TAB=8]
 ;
-;★元ルーチン
-;　・マルチタスク サポート ライブラリ　セグメント・メモリ関係
-;	>MTASK > MT_SEG.ASM
 ;
-;		'ABK project' all right reserved. Copyright (C)nabe@abk
-;
-
-%include	"nasm_abk.h"	;NASM 用ヘッダ
-%include	"macro.asm"
-%include	"f386def.inc"	;for F386
+%include	"macro.inc"
+%include	"f386def.inc"
+%include	"free386.inc"
+%include	"f386sub.inc"
 
 ;------------------------------------------------------------------------------
 
-%include	"free386.inc"	;外部変数
-%include	"f386sub.inc"
+global	make_mems
+global	make_mems_4k
+global	set_physical_mem
+global	alloc_DOS_mem
+global	alloc_RAM
+global	alloc_RAM_with_ladr
 
 global	map_memory		;物理メモリを配置しセレクタを作成、テーブル参照
 global	make_aliases		;セレクタのエイリアスを作成（テーブル参照）
@@ -50,7 +49,8 @@ BITS	32
 ;	edi = 構造体 offset
 ;
 ;mtask のものとは非互換！！
-proc	make_mems
+	align	4
+make_mems:
 	push	ebx
 	push	ecx
 	push	edx
@@ -121,7 +121,8 @@ proc	make_mems
 ;	eax = selector
 ;	edi = 構造体 offset
 ;
-proc	make_mems_4k
+	align 4
+make_mems_4k:
 	push	ebx
 	push	ecx
 	push	edx
@@ -187,7 +188,7 @@ proc	make_mems_4k
 ;		Cy = 1 ページテーブルが足りない
 ;
 	align	4
-proc set_physical_mem
+set_physical_mem:
 	test	ecx,ecx		;割りつけページ数が 0
 	jz	NEAR .ret	;何もせず ret
 
@@ -281,7 +282,6 @@ proc set_physical_mem
 
 
 
-	align	4
 ;------------------------------------------------------------------------------
 ;●DOS RAM アロケーション
 ;------------------------------------------------------------------------------
@@ -291,7 +291,9 @@ proc set_physical_mem
 ;			eax = 割り当てたページ数
 ;			esi = 割り当て先頭リニアアドレス
 ;		Cy = 1 ページテーブルが足りない (esi破壊)
-proc alloc_DOS_mem
+	
+	align	4
+alloc_DOS_mem:
 	push	ebx
 	push	ecx
 	push	edx
@@ -344,7 +346,7 @@ proc alloc_DOS_mem
 ;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
 ;
 	align	4
-proc alloc_RAM
+alloc_RAM:
 	push	eax
 	push	ebx
 	push	ecx
@@ -373,7 +375,7 @@ proc alloc_RAM
 
 .no_alloc:
 	add	esi, ecx				;空きメモリアドレス更新
-	add	esi,MIN_heap_mem + (Unit_of_MEM -1)	;端数切上げ
+	add	esi,LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi,0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
 	add	[free_LINER_ADR] ,esi			;空きアドレス更新
 
@@ -401,7 +403,7 @@ proc alloc_RAM
 ;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
 ;
 	align	4
-proc alloc_RAM_with_ladr
+alloc_RAM_with_ladr:
 	push	eax
 	push	ebx
 	push	ecx
@@ -427,7 +429,7 @@ proc alloc_RAM_with_ladr
 	cmp	eax, esi
 	ja	.step
 
-	add	esi, MIN_heap_mem + (Unit_of_MEM -1)	;端数切上げ
+	add	esi, LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi, 0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
 	add	[free_LINER_ADR] ,esi			;空きアドレス更新
 

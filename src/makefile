@@ -7,13 +7,13 @@ RM = del
 #///////////////////////////////////////////////////////////////////
 # PATH for NASM
 #///////////////////////////////////////////////////////////////////
-ASM    = ..\bin\free386 ..\tools\nasm
+ASM    = ..\bin\free386 -n -q ..\tools\nasm
 ASMOP  = -f obj
 
 #///////////////////////////////////////////////////////////////////
 # for alink.exp
 #///////////////////////////////////////////////////////////////////
-LINK   = ..\bin\free386 ..\tools\alink-p1.exp
+LINK   = ..\bin\free386 -n -q ..\tools\alink-p1.exp
 LINKOP = -oCOM -o free386.com
 
 #------------------------------------------------------------------------------
@@ -21,7 +21,7 @@ all: free386.com
 
 clean:
 	$(RM) *.obj
-	$(RM) free386.com
+	$(RM) free386.map free386.com
 
 #------------------------------------------------------------------------------
 
@@ -37,10 +37,10 @@ f386sub.obj: f386sub.asm f386def.inc f386seg.inc start.inc
 f386seg.obj: f386seg.asm f386def.inc free386.inc f386sub.inc
 	$(ASM) $(ASMOP) f386seg.asm
 
-f386cv86.obj: f386cv86.asm f386def.inc free386.inc macro.asm
+f386cv86.obj: f386cv86.asm f386def.inc free386.inc macro.inc
 	$(ASM) $(ASMOP) f386cv86.asm
 
-int.obj: int.asm int_dos.asm int_dosx.asm int_f386.asm int_data.asm macro.asm start.inc f386def.inc f386sub.inc f386seg.inc f386cv86.inc free386.inc
+int.obj: int.asm int_dos.asm int_dosx.asm int_f386.asm int_data.asm macro.inc start.inc f386def.inc f386sub.inc f386seg.inc f386cv86.inc free386.inc
 	$(ASM) $(ASMOP) int.asm
 
 free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm towns.asm at.asm pc98.asm start.inc sub.inc f386sub.inc f386seg.inc f386cv86.inc int.inc

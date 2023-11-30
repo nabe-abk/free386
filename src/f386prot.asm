@@ -50,7 +50,7 @@ start32:
 internal_mem_dump:
 	mov	al, [verbose]
 	cmp	al, 2
-	jb	.skip
+	jb	near .skip
 
 	mov	edi, internal_mem_msg
 
@@ -98,7 +98,7 @@ internal_mem_dump:
 	; Real mode vectors backup
 	mov	eax, [RVects_save_adr]
 	call	rewrite_next_hash_to_hex
-	add	eax,  Real_Vectors *4 -1
+	add	eax,  IntVectors *4 -1
 	call	rewrite_next_hash_to_hex
 
 	; GDT/LDT/IDT/TSS
@@ -125,7 +125,7 @@ internal_mem_dump:
 	; work memory
 	mov	eax, [work_adr]
 	call	rewrite_next_hash_to_hex
-	add	eax,  WORK_SIZE -1
+	add	eax,  WORK_size -1
 	call	rewrite_next_hash_to_hex
 
 	; stack info
@@ -375,7 +375,7 @@ para_analyze_loop:
 
 	align	4
 no_file:
-	mov	al, [title_disp]
+	mov	al, [show_TITLE]
 	test	al, al
 	jz	.skip
 	PRINT		msg_10		;使い方表示
@@ -455,7 +455,7 @@ find_period:
 	align	4
 search_file:
 	;////// PATH386 の検索 /////////
-	mov	al,[see_PATH386]	;検索する?
+	mov	al,[search_PATH386]	;検索する?
 	test	al,al
 	jz	.step
 
@@ -466,7 +466,7 @@ search_file:
 	je	.file_found		;ファイル発見 (jmp)
 
 	;////// PATH の検索 ////////////
-.step:	mov	al,[see_PATH]		;検索する?
+.step:	mov	al,[search_PATH]	;検索する?
 	test	al,al
 	jz	.step2
 

@@ -309,7 +309,7 @@ wakeup_nsdd:
 
 	push	ebx
 	push	edi
-	callf	[edi+8]
+	call	far [edi+8]
 	pop	edi
 	pop	ebx
 
@@ -317,7 +317,7 @@ wakeup_nsdd:
 	mov	b [ebx+2], NSDD_wakeup
 	push	ebx
 	push	edi
-	callf	[edi]
+	call	far [edi]
 	pop	edi
 	pop	ebx
 
@@ -365,7 +365,7 @@ sleep_nsdd:
 	push	edi
 	push	esi
 	mov	b [ebx+2], NSDD_sleep
-	callf	[edi]
+	call	far [edi]
 	pop	esi
 	pop	edi
 	pop	ebx

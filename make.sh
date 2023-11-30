@@ -1,5 +1,12 @@
 #!/bin/sh
 
+cd `dirname $0`
 cd src
-make -f makefile.linux
-cp free386.com ../
+
+TARGET=free386.com
+
+make -f makefile.lin $@
+
+if [ -r "$TARGET" ]; then
+	cp "$TARGET" ../
+fi

@@ -125,7 +125,7 @@ VCPI_entry	dd	0		;VCPI サービスエントリ
 
 	;/// リアルモードベクタ設定用データ領域 ////////
 	align	4
-RVects_flag_tbl	resb	Real_Vectors /8	;書き換えフラグ テーブル
+RVects_flag_tbl	resb	IntVectors/8	;書き換えフラグ テーブル
 RVects_save_adr	dd	0		;リアルモードベクタ保存のアドレス
 
 ;

@@ -3,12 +3,8 @@
 ;******************************************************************************
 ;[TAB=8]
 ;
-; 2001/01/18	ファイルを分離
-; 2001/02/26	オブジェクトファイルを分離
-;
-%include	"nasm_abk.h"		;NASM 用ヘッダファイル
-%include	"macro.asm"		;マクロ部の挿入
-%include	"f386def.inc"		;定数部の挿入
+%include	"macro.inc"
+%include	"f386def.inc"
 
 %include	"start.inc"		;動作オプション
 %include	"f386sub.inc"		;Free386 用サブルーチン
@@ -20,12 +16,12 @@
 ;■グローバルシンボル宣言
 ;//////////////////////////////////////////////////////////////////////////////
 
-public		PM_int_00h
-public		PM_int_dummy
-public		DOS_int_list
-public		intr_M0
-public		intr_S0
-public		int21h_table
+global		PM_int_00h
+global		PM_int_dummy
+global		DOS_int_list
+global		intr_M0
+global		intr_S0
+global		int21h_table
 
 ;//////////////////////////////////////////////////////////////////////////////
 ;■割り込み処理ルーチン

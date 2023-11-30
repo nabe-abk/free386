@@ -8,8 +8,7 @@
 ;
 ;[TAB=8]
 ;
-%include	"nasm_abk.h"		;NASM 用ヘッダファイル
-
+%include	"macro.inc"
 %include	"f386def.inc"
 %include	"f386sub.inc"
 
@@ -21,7 +20,7 @@ segment	text align=16 class=CODE use16
 ;○パラメーター解析
 ;------------------------------------------------------------------------------
 ;
-	public	get_parameter
+	global	get_parameter
 
 max_paras	equ	20h	;最大パラメーター数
 
@@ -99,7 +98,7 @@ get_parameter:
 ;		Cy=1	…エラー
 ;
 ;
-	public	hex_to_bin
+	global	hex_to_bin
 
 	align	2
 hex_to_bin:
@@ -176,7 +175,7 @@ h2b_end:
 ;	dx を16進数で、[si] に記録する
 ;	si は ret 時 +4される。
 ;
-	public	HEX_conv4
+	global	HEX_conv4
 HEX_conv4:
 	push	ax
 	push	bx
@@ -232,7 +231,7 @@ bin2Hex_2:			;２文字のみ変換時に使用（笑）
 ;	dl を16進数で、[si] に記録する
 ;	si は ret 時 +4される。
 ;
-	public	HEX_conv2
+	global	HEX_conv2
 HEX_conv2:
 	push	ax
 	push	bx
@@ -254,7 +253,7 @@ BITS	32
 ;------------------------------------------------------------------------------
 ;	ds:[edx]  strings (Null determinant)
 ;
-	public	string_print
+	global	string_print
 string_print:
 	push	eax
 	push	ebx
@@ -294,7 +293,7 @@ string_print:
 ;
 ;ret	edi = 最後の文字の次の byte
 ;
-	public	bin2deg_32
+	global	bin2deg_32
 bin2deg_32:
 	push	eax
 	push	ebx
@@ -356,7 +355,7 @@ bin2deg_32:
 ;
 ;ret	edi = 最後の文字の次の byte
 ;
-	public	bin2hex_32
+	global	bin2hex_32
 bin2hex_32:
 	push	eax
 	push	ebx
@@ -401,7 +400,7 @@ bin2hex_32:
 ;	edi	target
 ;
 	align	4
-	public	rewrite_next_hash_to_hex
+	global	rewrite_next_hash_to_hex
 rewrite_next_hash_to_hex:
 	push	ecx
 .loop:
@@ -415,7 +414,7 @@ rewrite_next_hash_to_hex:
 
 
 	align	4
-	public	rewrite_next_hash_to_deg
+	global	rewrite_next_hash_to_deg
 rewrite_next_hash_to_deg:
 	push	ecx
 .loop:
@@ -456,7 +455,7 @@ count_num_of_hash:
 segment	data align=16 class=CODE use16
 group	comgroup text data
 ;------------------------------------------------------------------------------
-	public	paras,paras_last,paras_p
+	global	paras,paras_last,paras_p
 
 paras		dw	0,0		;発見したパラメーターの数
 paras_last	dw	0,0		;0dh の位置

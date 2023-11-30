@@ -2,10 +2,10 @@
 ;動作定義内部変数
 ;
 
-extern	title_disp		;タイトル表示
+extern	show_TITLE		;タイトル表示
 extern	verbose			;冗長な表示
-extern	see_PATH386		;"PATH386" の検索
-extern	see_PATH		;"PATH" の検索
+extern	search_PATH386		;"PATH386" の検索
+extern	search_PATH		;"PATH" の検索
 
 extern	reset_CRTC		;CRTC の初期化
 extern	check_MACHINE		;機種判別

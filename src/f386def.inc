@@ -12,7 +12,7 @@ Minor_ver	equ		66h
 F386_Date	equ		20231130h	;Release date
 
 ;==============================================================================
-; Operation setting
+; RELEASE and DEBUG setting
 ;==============================================================================
 %ifndef AUTO_RELEASE
 		; Target Machine / If all of zero, for DOS general purpose.
@@ -24,7 +24,6 @@ PC_AT		equ	0	; for PC/AT binary
 INT_HOOK	equ	0	; Interrupt hook and register dump
 INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS. ex) 0ch
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
-INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 PRINT_TO_FILE	equ	0	; int 21/ah=09h to "dump.txt" file
 PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 
@@ -33,125 +32,120 @@ PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 INT_HOOK	equ	0
 INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
-INT_REGDUMP	equ	0ffh
 PRINT_TO_FILE	equ	0
 PRINT_TSUGARU	equ	0
 
 %endif
 
+INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
+
 ;==============================================================================
-; Settings
+; Operation settings
 ;==============================================================================
-USE_MZ_EXP	equ	1	; MP ヘッダロードルーチンを搭載する
-Check_EMS	equ	1	; EMS が install されているか確認する
-USE_frag_mem	equ	1	; Program末端とpage-dir間の空きメモリを使用する
-USE_XMS20	equ	0	; XMS Ver2.0にも対応する（通常不要）
+EXP_EXT		equ	'.exp'	; Autocomplete extensions
+MAX_RAM		equ 10000000h	; 1GB
 
-_TITLE_disp	equ	1	; タイトル表示
-_Verbose	equ	0	; 冗長な表示
-_see_PATH386	equ	1	; 環境変数 PATH386 を参照する
-_see_PATH	equ	0	; 環境変数 PATH を参照する
+USE_MZ_EXP	equ	1	; support MP Header EXP file.
+CHECK_EMS	equ	1	; check EMS installed
+USE_XMS20	equ	0	; support XMS Ver2.0 (not need)
 
-_reset_CRTC	equ	3	; [TOWNS] 終了時 CRTC/VRAM の初期化設定
-				;	0 = 初期化せず,     1 = 初期化, 
-				;	2 = CRTCのみ初期化, 3 = 自動判別
-_check_MACHINE	equ	1	; 簡易機種判別を行う
+Restore8259A	equ	1	; Restore hardware interrupt mask on end
+RestoreRealVec	equ	1	; Restore real mode interrupt vectors on end
 
-SAVE_8259A	equ	1	; ハードウェア割り込みマスクを終了時に復元する
-RestoreRealVec	equ	1	; リアルモード割り込みベクタの復元
+	;---------------------------
+	; Default operation setting
+	;---------------------------
+_show_TITLE	equ	1	; show Free386's title
+_Verbose	equ	0	; verbose
+_search_PATH386	equ	1	; search PATH386 for target EXP file
+_search_PATH	equ	0	; search PATH    for target EXP file
+
+_check_MACHINE	equ	1	; binary machine check
+_reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
+				;	0 = no reset
+				;	1 = force reset
+				;	2 = reset only CRTC
+				;	3 = auto
+				; Not support PC/AT machine.
+
+_CALLBUF_sizeKB	 equ	16	; call buffer size for 32bit to 16bit function
+_POOL_for_paging equ	8	; pool ram pages for paging
+_REAL_mem_pages	 equ	4	; real memory(ram) pages for EXP file
 
 ;==============================================================================
 ; General define
 ;==============================================================================
-EXP_EXT		equ	'.exp'	;補完する拡張子
+F386ERR		equ	0fch	; Free386 internal error code
+CPU_Fault	equ	0fdh	; CPU fault        error code
 
-F386ERR		equ	0fch	;Free386内部エラー終了時のエラーコード
-CPU_Fault	equ	0fdh	;CPU fault
+V86_flags	equ	0000h	; V86 flags initial value
+WORK_size	equ	200h	; Universal work size
 
-Memory_page_max	equ	40000h	;1GB max
-
-V86_stack_size	equ	 200h	;=byte / V86 モードスタックサイズ 
-PM_stack_size	equ	 380h	;=byte / プロテクトモードスタックサイズ
-VCPI_stack_size	equ	  80h	;VCPI call(to V86)時のみ使用するスタックサイズ
+V86_stack_size	equ	 200h	; byte
+PM_stack_size	equ	 380h	; byte
+VCPI_stack_size	equ	  80h	; VCPI call(to V86) dedicated stack
 
 ISTK_nest_max	equ	4	;CPUモード切り替えネスト数
 ISTK_size	equ	400h	;モード切り換え時スタックサイズ（ネスト対応）
-INT_BUF_size	equ	800h	;V86←→Protect間データ渡し配列サイズ（ネスト対応）
+INT_BUF_size	equ	800h	;V86<>Protect間データ渡し配列サイズ（ネスト対応）
 INT_BUF_sizebits equ	10	;↑のビット数
 INT_RWBUF_size	equ	4000h	;ファイル入出力専用バッファサイズ
 
-WORK_SIZE	equ	200h	;汎用ワークサイズ / min 200h
+LADR_UNIT	equ	400000h	; Memory address allocation unit
+LADR_ROOM_size	equ	200000h	; Room for memory address expansion
 
-_CALLBUF_sizeKB	equ	16	;CALLバッファとして使用するDOSメモリサイズ (KB)
-_POOL_for_paging equ	8	;ページングのために予約するメモリページ数
-_REAL_mem_pages	equ	4	;プログラム実行用リアルメモリ (page)
-
-Unit_of_MEM	equ	400000h	;メモリアドレスの割り当て単位(byte)
-MIN_heap_mem	equ	200000h	;最小ヒープリニアアドレス
-
+;==============================================================================
+; Function call setting
+;==============================================================================
 int_21h_MAXF	equ	7fh	;int 21h function's maximum AH
 DOS_Ext_MAXF	equ	17h	;DOS-Extender function's maximum AL
 
-V86_flags	equ	0000h	;V86 モード時のフラグ初期値
-
-F386_INT	equ	9ch	;Free386 独自INT番号
-F386_MAX_func	equ	20h	;Free386 独自INTの最大func番号+1
-
+F386_INT	equ	9ch	;Free386's INT
+F386_INT_MAXF	equ	1fh	;Free386's INT maximum AH
 
 ;==============================================================================
-;★セレクタ関係の定数
+; Selector setting
 ;==============================================================================
-NULL_sel	equ	00h	;ヌルセレクタ
-VCPI_sel	equ	68h	;VCPI 用セレクタ値は 68h ～78h
+NULL_sel	equ	00h
+VCPI_sel	equ	68h	;VCPI (68h, 70h, 78h)
 
-GDTsize		equ	200h	;GDT番号 0～1f8h まで
-LDTsize		equ	200h	;LDT番号 4～1fch まで
-IDTsize		equ	800h	;IDTの大きさ int 0-0ffh (固定)
-TSSsize		equ	80h	;ディフォルトのTSS (68h Byte 以上)
+GDTsize		equ	200h	;GDT (000h tp 1f8h)
+LDTsize		equ	200h	;LDT (004h to 1fch)
+IDTsize		equ	800h	;IDT (000h to 0ffh) / fixed
+TSSsize		equ	80h	;TSS (min 68h byte)
 
-LDT_sel		equ	28h	;LDTセレクタ値
-LDT_RW		equ	30h	;LDTアクセス用セレクタ
-GDT_RW		equ	38h	;GDTアクセス用セレクタ
-IDT_RW		equ	50h	;IDTアクセス用セレクタ
-TSS_sel		equ	80h	;TSSセレクタ
-TSS_RW		equ	88h	;TSSアクセス用セレクタ
+LDT_sel		equ	28h	;LDT
+LDT_RW		equ	30h	;LDT access
+GDT_RW		equ	38h	;GDT access
+IDT_RW		equ	50h	;IDT access
+TSS_sel		equ	80h	;TSS
+TSS_RW		equ	88h	;TSS access
 
-ALLMEM_sel	equ	40h	;全実装メモリを示すセレクタ
-DOSMEM_sel	equ	60h	;DOS メモリ空間を示すセレクタ
+ALLMEM_sel	equ	40h	;ALL RAM selector
+DOSMEM_sel	equ	60h	;DOS 1MB memory
 DOSMEMsize	equ	110000h	;1MB + 64KB (HMA)
 
-F386_cs		equ	08h	;free386用 CSセレクタ
-F386_ds		equ	10h	;free386用 DSセレクタ
-F386_cs2	equ	18h	;free386用 CSセレクタ / 286互換
-F386_ds2	equ	20h	;free386用 DSセレクタ / 286互換
+F386_cs		equ	08h	;Free386's CS
+F386_ds		equ	10h	;Free386's DS
+F386_cs2	equ	18h	;Free386 CS (286 attribute / not use)
+F386_ds2	equ	20h	;Free386 DS (286 attribute / not use)
 
-PSP_sel1	equ	24h	;PSP領域
+PSP_sel1	equ	24h	;PSP
 PSP_sel2	equ	04h	;
-DOSENV_sel	equ	2ch	;DOS 環境変数領域
-DOSMEM_Lsel	equ	34h	;DOS メモリ空間 (in LDT)
+DOSENV_sel	equ	2ch	;DOS ENV
+DOSMEM_Lsel	equ	34h	;DOS 1MB memroy
+
+IntVectors	equ	100h	;Interrupt vectors, fixed
 
 ;==============================================================================
-;★固定定数
-;==============================================================================
-
-Real_Vectors	equ	100h	;リアルモードの割り込みベクタ数
-
-;------------------------------------------------------------------------------
-;TSS offset
-;------------------------------------------------------------------------------
-
-TSS_SS0_off	equ	08h	;特権レべル0 スタック初期値
-TSS_ESP0_off	equ	04h	;
-
-;==============================================================================
-;★機種別の定数
+;Machine type setting
 ;==============================================================================
 ;------------------------------------------------------------------------------
 ;for FM-TOWNS
 ;------------------------------------------------------------------------------
 %if TOWNS
 
-MACHINE_CODE	equ	20h	;TOWNSシリーズ
+MACHINE_CODE	equ	20h	;FM-TOWNS
 
 %define	MACHINE_STRING	'FM-TOWNS'
 %define	Free386_API	'f386_fmt.api'	;機種固有APIのファイル名
@@ -182,7 +176,7 @@ I8259A_IMR_S	equ	12h	;
 ;------------------------------------------------------------------------------
 %if PC_98
 
-MACHINE_CODE	equ	10h	;PC-98x1 シリーズ
+MACHINE_CODE	equ	10h	;PC-9801/9821
 
 %define	MACHINE_STRING	'PC-9801/9821'
 %define	Free386_API	'f386_98.api'	;機種固有APIのファイル名
@@ -214,8 +208,7 @@ MACHINE_CODE	equ	30h	; PC/AT
 
 VESA_buf_sel	equ	148h	; VESA-BIOS buffer selector
 VESA_buf_size	equ	1	; VESA-BIOS buffer size (page / 1=4kb)
-VESA_call_adr	equ	0ffc0h	; VESA-BIOS call を置く VESA_cs 内アドレス
-				; ↑call code が入りきらない誤動作する
+VESA_call_adr	equ	0ffc0h	; VESA-BIOS / call VESA_cs:VESA_call_adr
 
 VESA_cs		equ	150h	; VESA-BIOS code selector
 VESA_ds		equ	158h	; VESA-BIOS data selector (cs alias)

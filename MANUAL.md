@@ -115,7 +115,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0ch	| 08h	| Reserved memory pages for paging. |
 | +0dh	| 08h	| Call buffer size (KB). This is used DOS function call. |
 | +0eh	| 04h	| Maximum number of real memory pages to allocate for EXP file execution. (See -m option) |
-| +0fh	| 00h	| (Reserved) |
+| +0fh	| 00h	| Ignore the maxdata header and allocate maximum memory: 0=off, 1=on |
 
 In addition, if you want to rewrite the default value of PharLap's DOS-Extender Version information,
 search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20) or other.

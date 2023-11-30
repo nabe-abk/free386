@@ -7,8 +7,8 @@
 
 extern	start
 
-global	title_disp, verbose
-global	see_PATH386, see_PATH
+global	show_TITLE, verbose
+global	search_PATH386, search_PATH
 global	reset_CRTC, check_MACHINE
 global	pool_for_paging
 global	callbuf_sizeKB
@@ -28,10 +28,10 @@ segment	text align=16 class=CODE use16
 	align	4
 
 	;[+04 byte]
-title_disp	db	_TITLE_disp	;Free386 タイトル表示
+show_TITLE	db	_show_TITLE	;Free386 タイトル表示
 verbose		db	_Verbose	;冗長な表示モード
-see_PATH386	db	_see_PATH386	;環境変数 PATH386 の検索
-see_PATH	db	_see_PATH	;環境変数 PATH の検索
+search_PATH386	db	_search_PATH386	;環境変数 PATH386 の検索
+search_PATH	db	_search_PATH	;環境変数 PATH の検索
 
 	;[+08 byte]
 reset_CRTC	db	_reset_CRTC	;CRTC のリセット設定

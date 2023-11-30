@@ -4,9 +4,8 @@
 ;******************************************************************************
 ;[TAB=8]
 ;
-%include	"nasm_abk.h"		;NASM 用ヘッダファイル
-%include	"macro.asm"		;マクロ部の挿入
-%include	"f386def.inc"		;定数部の挿入
+%include	"macro.inc"
+%include	"f386def.inc"
 
 %include	"start.inc"		;ファイル先頭 / 動作定義変数
 %include	"sub.inc"		;便利なサブルーチンのヘッダファイル
@@ -20,42 +19,42 @@
 ;******************************************************************************
 
 	;--- for f386seg.asm ------------------------------
-public		GDT_adr, LDT_adr
-public		free_TABLE_ladr
-public		free_LINER_ADR
-public		free_RAM_padr
-public		free_RAM_pages
-public		DOS_mem_adr
-public		DOS_mem_pages
-public		page_dir
+global		GDT_adr, LDT_adr
+global		free_TABLE_ladr
+global		free_LINER_ADR
+global		free_RAM_padr
+global		free_RAM_pages
+global		DOS_mem_adr
+global		DOS_mem_pages
+global		page_dir
 
 	;--- for f386cv86.asm -----------------------------
-public		to_PM_EIP, to_PM_data_ladr
-public		VCPI_entry
-public		v86_cs
-public		int_buf_adr, int_buf_adr_org
-public		int_rwbuf_adr, int_rwbuf_adr_org
-public		int_rwbuf_size
-public		int_rwbuf_adr
-public		VCPI_stack_adr
-public		heap_malloc, stack_malloc
-public		f386err
+global		to_PM_EIP, to_PM_data_ladr
+global		VCPI_entry
+global		v86_cs
+global		int_buf_adr, int_buf_adr_org
+global		int_rwbuf_adr, int_rwbuf_adr_org
+global		int_rwbuf_size
+global		int_rwbuf_adr
+global		VCPI_stack_adr
+global		heap_malloc, stack_malloc
+global		f386err
 
 	;--- for int.asm ----------------------------------
-public		work_adr
-public		PM_stack_adr
-public		END_program
-public		IDT_adr
-public		RVects_flag_tbl
-public		DTA_off, DTA_seg
-public		DOS_int21h_adr
-public		top_adr
-public		default_API
-public		pharlap_version
+global		work_adr
+global		PM_stack_adr
+global		END_program
+global		IDT_adr
+global		RVects_flag_tbl
+global		DTA_off, DTA_seg
+global		DOS_int21h_adr
+global		top_adr
+global		default_API
+global		pharlap_version
 
-public		callbuf_adr16
-public		callbuf_seg16
-public		callbuf_adr32
+global		callbuf_adr16
+global		callbuf_seg16
+global		callbuf_adr32
 
 ;******************************************************************************
 ;■コード(16 bit)
@@ -155,7 +154,7 @@ parameter_check:
 	; -q
 	;///////////////////////////////
 .para_q:
-	mov	b [title_disp],0	;no title output
+	mov	b [show_TITLE],0	;no title output
 	jmp	short .loop
 
 	;///////////////////////////////
@@ -163,7 +162,7 @@ parameter_check:
 	;///////////////////////////////
 .para_p:
 	and	al,01			;-p? / al = ?
-	mov	[see_PATH],al		;search PATH flag
+	mov	[search_PATH],al	;search PATH flag
 	jmp	short .loop
 
 	;///////////////////////////////
@@ -207,7 +206,7 @@ parameter_check:
 ;------------------------------------------------------------------------------
 ;●タイトル表示
 ;------------------------------------------------------------------------------
-	mov	al,[title_disp]	;タイトル表示する?
+	mov	al,[show_TITLE]	;タイトル表示する?
 	test	al,al		;値 check
 	jz	.no_title	;0 なら表示せず
 	PRINT86	P_title		;タイトル表示
@@ -246,7 +245,7 @@ machine_check:
 	;
 	;----- EMSの存在確認 -----
 	;
-%if Check_EMS
+%if CHECK_EMS
 check_ems_driver:
 	mov	ax,3567h	;int 67h のベクタ取得
 	int	21h		;es:[bx] = ベクタ位置
@@ -366,7 +365,7 @@ get_vcip_memory_size:
 	shr	edx,12				;アドレス -> page
 	inc	edx				;edx = 総メモリページ数
 
-	mov	eax, Memory_page_max		;最大メモリ量制限
+	mov	eax, MAX_RAM /4096		;最大メモリ量制限
 	cmp	edx, eax
 	jb	short .step
 	mov	edx, eax
@@ -401,7 +400,7 @@ alloc_call_buffer:
 	;//////////////////////////////////////////////////
 	;汎用ワーク領域
 	;//////////////////////////////////////////////////
-	mov	ax,WORK_SIZE		;汎用ワークサイズ
+	mov	ax,WORK_size		;汎用ワークサイズ
 	call	heap_malloc		;上位メモリ割り当て
 	mov	[work_adr],di		;記録
 
@@ -442,7 +441,7 @@ alloc_call_buffer:
 
 	;//////////////////////////////////////////////////
 	;リアルモードベクタ保存領域
-	mov	ax,Real_Vectors *4	;INT の数
+	mov	ax,IntVectors *4	;INT の数
 	call	heap_malloc		;上位メモリ割り当て
 	mov	[RVects_save_adr],di	;記録
 
@@ -450,7 +449,7 @@ alloc_call_buffer:
 	push	ds
 	xor	esi,esi			;転送元
 	mov	 ds,si			;ds = 0
-	mov	ecx,Real_Vectors	;転送回数 = ベクタ数
+	mov	ecx,IntVectors		;転送回数 = ベクタ数
 	rep	movsd			;一括転送  ds:esi -> es:edi
 	pop	ds
 
@@ -760,7 +759,7 @@ save_VCPI_statas:
 	;///////////////////////////////////////////////////
 	;割り込みマスク保存
 	;///////////////////////////////////////////////////
-%if SAVE_8259A && enable_INTR
+%if Restore8259A && enable_INTR
 	in	al,I8259A_IMR_S		;8259A スレーブ
 	mov	ah,al			;ah へ移動
 	in	al,I8259A_IMR_M		;8259A マスタ
@@ -1002,7 +1001,6 @@ write_IDT:
 ;
 	align	4
 heap_malloc:		;上位からのメモリ割り当て
-%if USE_frag_mem
 	cmp	ax,[frag_mem_size]	;断片化メモリのサイズと比較
 	ja	.not_frag_mem		;if ↑より大きい jmp
 
@@ -1010,7 +1008,7 @@ heap_malloc:		;上位からのメモリ割り当て
 	sub	[frag_mem_size  ],ax	;割り当てたメモリ量を引く
 	add	[frag_mem_offset],ax	;空きメモリを示すポインタを更新
 	ret
-%endif
+
 	align	4
 .not_frag_mem:		;上位空きメモリの単純な割り当て
 	mov	di,[top_mem_offset]	;上位空きメモリ割り当て
@@ -1101,7 +1099,7 @@ free_EMB:
 END_program16:
 	;////////////////////////////////////////////////////////////
 	;/// 割り込みマスク復元 /////////////////////////////////////
-%if SAVE_8259A && enable_INTR
+%if Restore8259A && enable_INTR
 	mov	ax,[intr_mask_org]	;復元情報
 	out	I8259A_IMR_M, al	;マスタ側
 	mov	al,ah			;
@@ -1186,7 +1184,7 @@ END_program:
 RestoreRealVectors:
 	push	d (DOSMEM_sel)			;DOS メモリアクセスレジスタ
 	pop	fs				;load
-	mov	ecx,Real_Vectors		;ベクタ数
+	mov	ecx,IntVectors			;ベクタ数
 	mov	ebx,offset RVects_flag_tbl	;ベクタ書き換えフラグテーブル
 	mov	esi,[RVects_save_adr]		;esi <- ベクタ保存領域
 
@@ -1233,7 +1231,7 @@ RestoreRealVectors:
 
 
 ;******************************************************************************
-;■機種依存コード
+; Model dependent code
 ;******************************************************************************
 
 %if TOWNS
@@ -1249,15 +1247,17 @@ RestoreRealVectors:
 %endif
 
 ;******************************************************************************
-;■データ
+; DATA
 ;******************************************************************************
 
-%include	"f386data.asm"		;データ部インクルード
+%include	"f386data.asm"
 
 ;------------------------------------------------------------------------------
 ;------------------------------------------------------------------------------
-	align	16	;必須！！
+	align	16	;NEED!!
 end_adr:
-
+	;
+	; Below is the heap memory area.
+	;
 ;******************************************************************************
 ;******************************************************************************

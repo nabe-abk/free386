@@ -7,7 +7,7 @@
 ;
 BITS	32
 
-	public	setup_F386_int
+	global	setup_F386_int
 
 ;******************************************************************************
 ;・Free386 オリジナルファンクションのセットアップ
@@ -39,8 +39,8 @@ setup_F386_int:
 Free386_function:
 	push	eax			;
 
-	cmp	ah,F386_MAX_func	;テーブル最大値
-	jae	.no_func		;それ以上なら jmp
+	cmp	ah,F386_INT_MAXF	;最大値
+	ja	.no_func		;それ以上なら jmp
 
 	movzx	eax,ah				;機能番号
 	mov	eax,[cs:F386fn_table + eax*4]	;ジャンプテーブル参照

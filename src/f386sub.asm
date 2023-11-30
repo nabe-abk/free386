@@ -6,30 +6,29 @@
 ;
 ;------------------------------------------------------------------------------
 
-%include	"nasm_abk.h"		;NASM 用ヘッダファイル
-%include	"f386def.inc"		;
-%include	"macro.asm"		;マクロ
+%include	"macro.inc"
+%include	"f386def.inc"
 
-%include	"free386.inc"		;外部変数参照
-%include	"f386seg.inc"		;
-%include	"start.inc"		;
+%include	"free386.inc"
+%include	"f386seg.inc"
+%include	"start.inc"
 
 ;------------------------------------------------------------------------------
 
 	;レジスタダンプ
-	public	register_dump		;safe
-	public	register_dump_fault	;safe
-	public	dump_err_code
-	public	dump_orig_esp
-	public	dump_orig_ss
+	global	register_dump		;safe
+	global	register_dump_fault	;safe
+	global	dump_err_code
+	global	dump_orig_esp
+	global	dump_orig_ss
 %if INT_HOOK
-	public	register_dump_from_int	;safe
+	global	register_dump_from_int	;safe
 %endif
-	public	eax2hex
+	global	eax2hex
 
-	public	searchpath		;ファイルのパスサーチ
-	public	load_exp		;exp ファイルのロード
-	public	run_exp			;exp ファイルの実行
+	global	searchpath		;ファイルのパスサーチ
+	global	load_exp		;exp ファイルのロード
+	global	run_exp			;exp ファイルの実行
 
 ;******************************************************************************
 ;■コード
@@ -996,7 +995,7 @@ exp_up_loop:	;*** ループスタート ****************************
 	;↑ds:edx をワーク領域に復元
 	;
 
-	jmp	short exp_up_loop	;ループさせる***********
+	jmp	exp_up_loop		;ループさせる***********
 
 
 
@@ -1153,7 +1152,7 @@ make_cs_ds:
 	add	eax,3ffh		;端数切上げ
 	shr	eax,10			;eax = ページテーブル用に必要なメモリ
 	sub	ecx,eax			;空きページ数から引く
-	jb	.no_memory		;マイナスならエラー
+	jb	near .no_memory		;マイナスならエラー
 .do_alloc:
 	mov	ebp, [free_LINER_ADR]	;貼り付け先アドレスを保存
 	push	esi

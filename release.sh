@@ -1,4 +1,6 @@
 #!/bin/sh
+
+cd `dirname $0`
 cd src
 
 mv f386def.inc f386def.org
@@ -10,8 +12,8 @@ echo "TOWNS equ 1" >>f386def.inc
 echo "PC_98 equ 0" >>f386def.inc
 echo "PC_AT equ 0" >>f386def.inc
 cat f386def.org >>f386def.inc
-make -f makefile.linux clean
-make -f makefile.linux 
+make -f makefile.lin clean
+make -f makefile.lin 
 
 echo free386.com ../bin/TOWNS
 cp   free386.com ../bin/TOWNS
@@ -24,8 +26,8 @@ echo "TOWNS equ 0" >>f386def.inc
 echo "PC_98 equ 1" >>f386def.inc
 echo "PC_AT equ 0" >>f386def.inc
 cat f386def.org >>f386def.inc
-make -f makefile.linux clean
-make -f makefile.linux 
+make -f makefile.lin clean
+make -f makefile.lin 
 
 echo free386.com ../bin/PC-98
 cp   free386.com ../bin/PC-98
@@ -38,8 +40,8 @@ echo "TOWNS equ 0" >>f386def.inc
 echo "PC_98 equ 0" >>f386def.inc
 echo "PC_AT equ 1" >>f386def.inc
 cat f386def.org >>f386def.inc
-make -f makefile.linux clean
-make -f makefile.linux 
+make -f makefile.lin clean
+make -f makefile.lin 
 
 echo free386.com ../bin/AT
 cp   free386.com ../bin/AT
@@ -52,8 +54,8 @@ echo "TOWNS equ 0" >>f386def.inc
 echo "PC_98 equ 0" >>f386def.inc
 echo "PC_AT equ 0" >>f386def.inc
 cat f386def.org >>f386def.inc
-make -f makefile.linux clean
-make -f makefile.linux 
+make -f makefile.lin clean
+make -f makefile.lin 
 
 echo free386.com ../bin
 cp   free386.com ../bin
@@ -63,4 +65,4 @@ cp   free386.com ../bin
 echo ""
 rm f386def.inc
 mv f386def.org f386def.inc
-make -f makefile.linux clean
+make -f makefile.lin clean

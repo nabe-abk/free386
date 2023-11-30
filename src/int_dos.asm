@@ -369,10 +369,9 @@ int_21h_09h_output_file:
 ; [Debug] Output to Tsugaru console  AH=09h
 ;------------------------------------------------------------------------------
 %if PRINT_TSUGARU
-
-public int_21h_09h_output_tsugaru
-
 	align	4
+
+	global int_21h_09h_output_tsugaru
 int_21h_09h_output_tsugaru:
 	pushad
 	push	ds

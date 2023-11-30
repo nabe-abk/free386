@@ -18,6 +18,7 @@ start:
 	jne	not_f386
 
 	PRINT	msg_is_f386
+	int	0ffh
 	jmp	end
 
 not_f386:
@@ -31,6 +32,7 @@ end:
 
 
 
-msg_is_f386	db	'DOS-Extender is Free386!',13,10,'$'
+msg_is_f386	db	'DOS-Extender is Free386!',13,10
+		db	'Do register dump by Free386 int 0ffh function.',13,10,13,10,'$'
 msg_not_f386	db	'DOS-Extender is not Free386!',13,10,'$'
 

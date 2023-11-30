@@ -259,6 +259,6 @@ F386fn_table:
 	dd	offset F386fn_16h
 	dd	offset F386fn_17h
 
-%rep	(F386_MAX_func - 10h)
+%rep	(F386_INT_MAXF - 17h)
 	dd	offset F386fn_unknown	;É_É~Å[
 %endrep
