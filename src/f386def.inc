@@ -6,7 +6,7 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.66 2023/11/30'
+%define	VER_STRING	'Ver0.66x 2023/11/30'
 Major_ver	equ		00h
 Minor_ver	equ		66h
 F386_Date	equ		20231130h	;Release date
@@ -22,6 +22,7 @@ PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
+INT_HOOK_RETV	equ	1	; with return value dump(only int 21h)
 INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS. ex) 0ch
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
 PRINT_TO_FILE	equ	0	; int 21/ah=09h to "dump.txt" file
@@ -30,6 +31,7 @@ PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 %else
 		; for RELEASE
 INT_HOOK	equ	0
+INT_HOOK_RETV	equ	0
 INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
 PRINT_TO_FILE	equ	0

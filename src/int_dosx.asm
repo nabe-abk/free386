@@ -171,17 +171,20 @@ int_21h_4ah:			;仮対応の機能 / メモリ解放なし
 	shr	edx,12			;size [page]
 	sub	ebx,edx			;変更後 - 変更前
 	jc	.decrease		;縮小なら jmp
-
+	je	.ret			;同じなら変更なし
 	mov	ecx,ebx			;ecx = 増加ページ数
-	call	get_maxalloc_with_adr	;eax = 割り当て可能数, ebx=テーブル用ページ数
-	cmp	eax,ecx			;空き - 必要量
-	jbe	.fail			;足りなければ失敗
 
 	mov	eax,es			;eax = セレクタ
 	call	get_selector_last	;セレクタの最終リニアアドレス
 	mov	esi,eax			;セレクタlimit
 
-	mov	esi,eax			;esi = セレクタの一番後ろベースアドレス
+					;in  esi = 貼り付け先ベースアドレス
+	call	get_maxalloc_with_adr	;out eax = 割り当て可能数, ebx=テーブル用ページ数
+	cmp	eax,ecx			;空き - 必要量
+	jb	.fail			;足りなければ失敗
+
+					;in  esi = 貼り付け先ベースアドレス
+					;    ecx = 貼り付けるページ数
 	call	alloc_RAM_with_ladr	;メモリ割り当て
 	jc	.fail
 

@@ -124,7 +124,7 @@ PM_int_0ch:	clc
 		nop
 
 PM_int_0dh:	stc
-		nop
+		int	3
 		call	cpu_int_with_error_code
 		nop
 

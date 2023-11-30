@@ -1,5 +1,5 @@
 ==============================================================================
-Ver 0.66 - 2023-11-29
+Ver 0.66 - 2023-11-30
 ==============================================================================
 
 - Update functionality of "-m" option.
@@ -9,6 +9,7 @@ Ver 0.66 - 2023-11-29
 - Add: int 21h, ax=250Dh, eax value set.
 - Fix: Do not work int 29h and int 2fh.
 - Fix: EXP's PSP memory infomation is incorrect, when EXP has a base offset.
+- Fix: int 21h/4ah memory allocate bug.
 - [TOWNS] Support int 8eh, ax=C207h.
 
 ==============================================================================

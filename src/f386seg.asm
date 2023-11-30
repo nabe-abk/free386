@@ -399,7 +399,7 @@ alloc_RAM:
 ;	ecx = 貼りつけるページ数
 ;
 ;	Ret	Cy = 0 成功
-;			esi = 割り当て先頭リニアアドレス
+;			esi = 割り当て後リニアアドレス = esi + ecx*4KB
 ;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
 ;
 	align	4
@@ -423,7 +423,10 @@ alloc_RAM_with_ladr:
 	call	set_physical_mem	;メモリ割り当て
 	jc	.no_free_memory		;メモリ不足エラー
 
-	shl	ecx, 12			;byte 単位へ
+	sub	[free_RAM_pages],ecx	;空きメモリページ数減算
+	shl	ecx,12			;byte 単位へ
+	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
+
 	add	esi, ecx		;新しい最後尾アドレス
 	mov	eax, [free_LINER_ADR]	;空きアドレス
 	cmp	eax, esi
@@ -431,7 +434,7 @@ alloc_RAM_with_ladr:
 
 	add	esi, LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi, 0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_LINER_ADR] ,esi			;空きアドレス更新
+	add	[free_LINER_ADR], esi			;空きアドレス更新
 
 .step:
 .no_alloc:
