@@ -5,13 +5,17 @@
 ;[TAB=8]
 ;------------------------------------------------------------------------------
 %ifdef TOWNS
-%define VSYNC_MACHINE	'FM-TOWNS'
-%define VSYNC_INT_NUM	04Bh
+	%define VSYNC_MACHINE	'FM-TOWNS'
+	%define VSYNC_INT_NUM	04Bh
+	%define	ESC_CURSOL_ON	'[0v$'
+	%define ESC_CURSOL_OFF	'[1v$'
 %endif
 
 %ifdef PC98
-%define VSYNC_MACHINE	'PC-98'
-%define VSYNC_INT_NUM	0Ah
+	%define VSYNC_MACHINE	'PC-98'
+	%define VSYNC_INT_NUM	0Ah
+	%define	ESC_CURSOL_ON	'[>5l'
+	%define ESC_CURSOL_OFF	'[>5h'
 %endif
 
 ;------------------------------------------------------------------------------
@@ -22,8 +26,7 @@
 %endmacro
 
 ;------------------------------------------------------------------------------
-
-ENTRY:
+..start:
 	PRINT	warning
 	mov	ah,08h			;push any key
 	int	21h
@@ -50,10 +53,19 @@ ENTRY:
 	call	start_vsync
 
 
+	xor	ebp, ebp	; loop counter
+
 	align	4
 count_loop:
 	mov	eax, [count]
-	mov	edi, NUM
+	mov	edi, count_num
+	mov	ecx, 8
+	call	decimal_string
+
+	sti
+	inc	ebp
+	mov	eax, ebp
+	mov	edi, loop_num
 	mov	ecx, 8
 	call	decimal_string
 
@@ -179,11 +191,12 @@ warning		db	'This binary for ',VSYNC_MACHINE,'.',13,10
 		db	'push any key for continue.',13,10,'$'
 msg		db	13,10,'push any key for stop.',13,10,'$'
 
-cursor_ON	db	27,'[0v$'
-cursor_OFF	db	27,'[1v$'
+cursor_ON	db	27,ESC_CURSOL_ON
+cursor_OFF	db	27,ESC_CURSOL_OFF
 
 counter_msg	db	'Counter: '
-NUM		db	'12345678',13,'$'
+count_num	db	'12345678 / loop: ',
+loop_num	db	'12345678',13,'$'
 
 	align	4
 count		dd	0
