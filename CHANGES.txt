@@ -1,9 +1,11 @@
 ==============================================================================
-Ver 0.66 - 2023-11-30
+Ver 0.70 - 2023-12-01
 ==============================================================================
 
 - Update functionality of "-m" option.
 - Change the timing of model-specific initialization.
+- int 21h/4ah, changed to ignore selector limit shrinkage.
+  Because there is no physical memory release function.
 - Add: "-vv" option.
 - Add: "-q" option.
 - Add: int 21h, ax=250Dh, eax value set.

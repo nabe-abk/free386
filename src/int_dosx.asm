@@ -149,7 +149,7 @@ int_21h_49h:			;仮対応の機能 / メモリ解放をしていない
 ;・セグメントの大きさ変更  AH=4ah
 ;------------------------------------------------------------------------------
 	align	4
-int_21h_4ah:			;仮対応の機能 / メモリ解放なし
+int_21h_4ah:			;メモリ解放機能なし
 	push	eax
 	push	ebx
 	push	ecx
@@ -229,7 +229,16 @@ int_21h_4ah:			;仮対応の機能 / メモリ解放なし
 	jmp	short .fail2
 
 	align	4
-.decrease:	;セレクタサイズが減る
+.decrease:
+%if 0
+	; メモリを開放することが難しいので、
+	; セレクタサイズもそのままにしておき、成功したことにする。
+	; セレクタサイズを減らしてしまうと、
+	; 再度4ahでメモリ拡張するときにメモリ不足でエラーになってしまう。
+	; ※High-Cコンパイラや386linkp等
+	;
+
+	; セレクタサイズを減らす
 	mov	edi,ebx		;edi = 増加サイズ(page / 負数)
 	add	edx,ebx		;edx = 変更後サイズ(page)
 
@@ -246,8 +255,6 @@ int_21h_4ah:			;仮対応の機能 / メモリ解放なし
 
 	call	selector_reload	;全セレクタのリロード
 
-%if 0
-	; DOSメモリ開放時など問題が多い
 	mov	eax,es			;eax = セレクタ
 	call	get_selector_last	;セレクタ最後尾リニアアドレス取得
 
@@ -258,7 +265,6 @@ int_21h_4ah:			;仮対応の機能 / メモリ解放なし
 	mov	[free_RAM_padr] ,ecx	;物理アドレス
 	sub	[free_RAM_pages],edi	;空きメモリページ数加算 (= 負数を引く)
 %endif
-
 	jmp	.ret
 
 

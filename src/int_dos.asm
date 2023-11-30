@@ -148,6 +148,10 @@ PM_int_21h:
 %if INT_HOOK
 	cmp	ah, 09h
 	je	.skip
+    %if INT_HOOK_AH
+	cmp	ah, INT_HOOK_AH
+	jne	.skip
+    %endif
 	call_RegisterDumpInt	21h
 .skip:
 %endif
@@ -170,11 +174,15 @@ PM_int_21h:
 	; ‚±‚Ì“_‚Å original eax ‚ªÏ‚Ü‚ê‚Ä‚¢‚é
 	;
 	cmp	b [esp + 01h], 09h	;AH=09 print string
-	jz	short .normal_call
-%if !INT_HOOK_F386
+	je	short .normal_call
+    %if INT_HOOK_AH
+ 	cmp	b [esp + 01h], INT_HOOK_AH
+ 	jne	short .normal_call
+    %endif
+    %if !INT_HOOK_F386
 	cmp	d [esp + 08h], F386_cs	;ŒÄ‚Ño‚µ‘¤ CS
-	jz	short .normal_call
-%endif
+	je	short .normal_call
+    %endif
 	; ‚±‚Ì“_‚Å original eax ‚ªÏ‚Ü‚ê‚Ä‚¢‚é
 	push	cs			; cs
 	push	d offset .call_retern	; EIP
