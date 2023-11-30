@@ -707,8 +707,8 @@ T_OS_memory_map:
 	dd	148h,0c2000000h,  512/4 -1, 0000h	;R   : OS-ROM
 	dd	11ch, 82000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 2 layer
 	dd	124h, 83000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 1 layer
-	;dd	12ch, 84000000h,  1000h -1, 0200h	;R/W : ???
-	dd	0	;end of data			;Å™T-OS L51Ç≈ämîF
+	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
+	dd	0	;end of data
 
 	align	4
 T_OS_selector_alias:
