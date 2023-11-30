@@ -946,16 +946,18 @@ setup_IDT:
 
 	;/// ハードウェア割り込み /////////////////////////
 %if enable_INTR
-	mov	ax,offset intr_M0	;割り込みマスタ側 #00
+	mov	bp,4	; テーブルオフセット加算値
+
+	mov	ax,HW_INT_TABLE_M	;割り込みマスタ側 #00
 	mov	di,[IDT_adr]		;割り込みテーブル先頭
 	mov	cx,8			;ループ数
-	add	di,INTR_MASTER *8	;マスタ側割り込み番号 *8
+	add	di,HW_INT_MASTER *8	;マスタ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
 
-	mov	ax,offset intr_S0	;割り込みスレーブ側 #00
+	mov	ax,HW_INT_TABLE_S	;割り込みスレーブ側 #00
 	mov	di,[IDT_adr]		;割り込みテーブル先頭
 	mov	cx,8			;ループ数
-	add	di,INTR_SLAVE *8	;スレーブ側割り込み番号 *8
+	add	di,HW_INT_SLAVE *8	;スレーブ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
 %endif
 
@@ -984,8 +986,8 @@ setup_IDT:
 write_IDT:
 	mov	[di  ],eax		;+00h
 	mov	[di+4],edx		;+04h
-	add	ax,bp			;次の割り込みアドレスへ
-	add	di,bp			;セレクタオフセット更新
+	add	ax, bp			;次の割り込みアドレスへ
+	add	di, 8			;セレクタオフセット更新
 	loop	write_IDT
 	ret
 

@@ -2,10 +2,6 @@
 ;　Free386　＜データ部＞
 ;******************************************************************************
 ;
-; 2001/02/26	f386data.asm からの分離
-;
-;
-;
 segment	data align=16 class=CODE use16
 group	comgroup text data
 ;/////////////////////////////////////////////////////////////////////////////
@@ -18,7 +14,7 @@ _ss	dd	0		;ss
 
 	;/// ハードウェア割り込み < 20h 時の退避領域 ///
 %if (enable_INTR)
-%if ((INTR_MASTER < 20h) || (INTR_SLAVE  < 20h))
+%if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE < 20h))
 intr_table	resb	8*20h		;8 byte *20h
 %endif
 %endif

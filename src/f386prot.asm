@@ -128,6 +128,12 @@ internal_mem_dump:
 	add	eax,  WORK_size -1
 	call	rewrite_next_hash_to_hex
 
+	; in real mode interrupt hook routines
+	mov	eax, [rint_labels_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax, IntVectors *4 -1
+	call	rewrite_next_hash_to_hex
+
 	; stack info
 	mov	eax, [VCPI_stack_adr]
 	sub	eax,  VCPI_stack_size

@@ -199,6 +199,7 @@ internal_mem_msg:
 	db	'	IDT		: #### - ####',13,10
 	db	'	TSS		: #### - ####',13,10
 	db	'	general work mem: #### - ####',13,10
+	db	'	16bit int hook  : #### - ####',13,10
 	db	'	VCPI  call stack: #### -',13,10
 	db	'	32bit mode stack: #### -',13,10
 	db	'	16bit mode stack: #### - ffff',13,10

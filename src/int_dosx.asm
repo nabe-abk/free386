@@ -3,8 +3,6 @@
 ;******************************************************************************
 ;[TAB=8]
 ;
-; 2001/03/16	int.asm からファイルを分離
-;
 ;==============================================================================
 ;★DOS-Extender仕様 DOS fuction (int 21)
 ;==============================================================================
@@ -366,7 +364,7 @@ DOS_Ext_fn_2502h:
 	pop	ds		;ds load
 
 %if (enable_INTR)
-%if ((INTR_MASTER < 20h) || (INTR_SLAVE < 20h))
+%if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE < 20h))
 	cmp	cl,20h		;
 	ja	.normal		;通常の処理
 
@@ -434,7 +432,7 @@ DOS_Ext_fn_2504h:
 	mov	ds,eax			;ds load
 
 %if (enable_INTR)
-%if ((INTR_MASTER < 20h) || (INTR_SLAVE  < 20h))
+%if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE  < 20h))
 	cmp	cl,20h		;
 	ja	.normal		;通常の処理
 
@@ -721,8 +719,8 @@ DOS_Ext_fn_250ah:			;仮対応！！
 ;------------------------------------------------------------------------------
 	align	4
 DOS_Ext_fn_250ch:
-	mov	al,INTR_MASTER
-	mov	ah,INTR_SLAVE
+	mov	al,HW_INT_MASTER
+	mov	ah,HW_INT_SLAVE
 	clear_cy
 	iret
 

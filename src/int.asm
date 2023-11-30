@@ -19,8 +19,8 @@
 global		PM_int_00h
 global		PM_int_dummy
 global		DOS_int_list
-global		intr_M0
-global		intr_S0
+global		HW_INT_TABLE_M
+global		HW_INT_TABLE_S
 global		int21h_table
 
 ;//////////////////////////////////////////////////////////////////////////////
@@ -301,53 +301,35 @@ view_int:
 ;★ハードウェア割り込み (INTR)
 ;------------------------------------------------------------------------------
 %if (enable_INTR)
-
 	align	4
-intr_M0:	call	INTR_intM		;マスタ側
-intr_Mtop:	db	90h,90h,90h
-intr_M1:	call	INTR_intM
-		db	90h,90h,90h
-intr_M2:	call	INTR_intM
-		db	90h,90h,90h
-intr_M3:	call	INTR_intM
-		db	90h,90h,90h
-intr_M4:	call	INTR_intM
-		db	90h,90h,90h
-intr_M5:	call	INTR_intM
-		db	90h,90h,90h
-intr_M6:	call	INTR_intM
-		db	90h,90h,90h
-intr_M7:	call	INTR_intM
-		db	90h,90h,90h
-
-intr_S0:	call	INTR_intS		;スレーブ側
-intr_Stop:	db	90h,90h,90h
-intr_S1:	call	INTR_intS
-		db	90h,90h,90h
-intr_S2:	call	INTR_intS
-		db	90h,90h,90h
-intr_S3:	call	INTR_intS
-		db	90h,90h,90h
-intr_S4:	call	INTR_intS
-		db	90h,90h,90h
-intr_S5:	call	INTR_intS
-		db	90h,90h,90h
-intr_S6:	call	INTR_intS
-		db	90h,90h,90h
-intr_S7:	call	INTR_intS
-		db	90h,90h,90h
+HW_INT_TABLE_M:	push	byte 0
+		jmp	short INTR_intM
+		push	byte 1
+		jmp	short INTR_intM
+		push	byte 2
+		jmp	short INTR_intM
+		push	byte 3
+		jmp	short INTR_intM
+		push	byte 4
+		jmp	short INTR_intM
+		push	byte 5
+		jmp	short INTR_intM
+		push	byte 6
+		jmp	short INTR_intM
+		push	byte 7
+		; jmp	short INTR_intM
 
 	;///////////////////////////////////////////////
 	;ハードウェア割り込み（マスタ側）
 	;///////////////////////////////////////////////
 INTR_intM:
-%if (INTR_MASTER > 1fh)
+%if (HW_INT_MASTER > 1fh)
 	push	eax
-	mov	eax,[esp+4]				;呼び元アドレス
-	sub	eax,(offset intr_Mtop) - INTR_MASTER*8	;先頭との差
-							;   + INTR_number*8
-	shr	eax,1					;eax = int番号*4
-	mov	[esp+4],eax				;int番号*4 記録
+
+	mov	eax, [esp+4]
+	add	eax, HW_INT_MASTER
+	shl	eax, 2			;eax = int番号*4
+	mov	[esp+4], eax		;int番号*4 記録
 
 	pop	eax			;eax 復元
 	jmp	call_V86_HARD_int	;V86 ルーチンコール
@@ -356,17 +338,15 @@ INTR_intM:
 	push	eax
 	push	edx
 
-	mov	edx,[esp+8]
-	sub	edx,offset intr_Mtop
-	shr	edx,3			;edx = IRQ番号
+	mov	edx,[esp+8]		; load IRQ number
 
-	mov	al,0bh			;ISR 読み出しコマンド
-	out	I8259A_ISR_M, al	;8259A に書き込み
-	in	al, I8259A_ISR_M	;サービスレジスタ読み出し
-	bt	eax,edx			;ハードウェエ割り込み？
-	jnc	.CPU_int		;bit が 0 なら CPU割り込み
+	mov	al,0bh			; read ISR
+	out	I8259A_ISR_M, al	;
+	in	al, I8259A_ISR_M	; read DATA
+	bt	eax,edx			; ハードウェエ割り込み？
+	jnc	.CPU_int		; bit が 0 なら CPU割り込み
 
-	lea	eax,[edx*4 + INTR_MASTER*4]	;eax = INT番号 *4
+	lea	eax,[edx*4 + HW_INT_MASTER*4]	;eax = INT番号 *4
 	mov	edx,[cs:intr_table + eax*2 +4]	;edx = 呼び出しselector
 	test	edx,edx				;0?
 	jz	.dos_chain			;if 0 jmp
@@ -390,7 +370,7 @@ INTR_intM:
 
 	align	4
 .CPU_int:
-	lea	eax,[PM_int_00h +INTR_MASTER*8 + edx*8]	;CPU例外 Address
+	lea	eax,[PM_int_00h + HW_INT_MASTER*8 + edx*8]	;CPU例外 Address
 	mov	[esp+8],eax				;セーブ
 
 	pop	edx
@@ -402,14 +382,32 @@ INTR_intM:
 	;ハードウェア割り込み（スレーブ側）
 	;///////////////////////////////////////////////
 	align	4
-INTR_intS:
-%if (INTR_SLAVE > 1fh)
-	push	eax
-	mov	eax,[esp+4]				;呼び元アドレス
-	sub	eax,(offset intr_Stop) - INTR_SLAVE*8	;アドレス差 + INT番号
-	shr	eax,1					;eax = int番号*4
+HW_INT_TABLE_S:	push	byte 0
+		jmp	short INTR_intS
+		push	byte 1
+		jmp	short INTR_intS
+		push	byte 2
+		jmp	short INTR_intS
+		push	byte 3
+		jmp	short INTR_intS
+		push	byte 4
+		jmp	short INTR_intS
+		push	byte 5
+		jmp	short INTR_intS
+		push	byte 6
+		jmp	short INTR_intS
+		push	byte 7
+		; jmp	short INTR_intS
 
-	mov	[esp+4],eax		;int番号*4 記録
+INTR_intS:
+%if (HW_INT_SLAVE > 1fh)
+	push	eax
+
+	mov	eax, [esp+4]
+	add	eax, HW_INT_SLAVE
+	shl	eax, 2			;eax = int番号*4
+	mov	[esp+4], eax		;int番号*4 記録
+
 	pop	eax			;eax 復元
 	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
@@ -417,9 +415,7 @@ INTR_intS:
 	push	eax
 	push	edx
 
-	mov	edx,[esp+8]
-	sub	edx,offset intr_Stop
-	shr	edx,3			;edx = IRQ番号 - 8
+	mov	edx,[esp+8]		;edx = IRQ番号 - 8
 
 	mov	al,0bh			;ISR 読み出しコマンド
 	out	I8259A_ISR_S, al	;8259A に書き込み
@@ -427,7 +423,7 @@ INTR_intS:
 	bt	eax,edx			;ハードウェエ割り込み？
 	jnc	.CPU_int		;bit が 0 なら CPU割り込み
 
-	lea	eax,[edx*4 + INTR_SLAVE*4]	;eax = INT番号 *4
+	lea	eax,[edx*4 + HW_INT_SLAVE*4]	;eax = INT番号 *4
 	mov	edx,[cs:intr_table + eax*2 +4]	;edx = 呼び出しselector
 	test	edx,edx				;0?
 	jz	.dos_chain			;if 0 jmp
@@ -451,7 +447,7 @@ INTR_intS:
 
 	align	4
 .CPU_int:
-	lea	eax,[PM_int_00h + INTR_SLAVE*8 + edx*8]	;CPU例外 Address
+	lea	eax,[PM_int_00h + HW_INT_SLAVE*8 + edx*8]	;CPU例外 Address
 	mov	[esp+8],eax
 
 	pop	edx
