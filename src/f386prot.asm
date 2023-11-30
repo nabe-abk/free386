@@ -323,6 +323,29 @@ Debug_code:
 .skip:
 %endif
 
+;------------------------------------------------------------------------------
+;●各機種対応ルーチン
+;------------------------------------------------------------------------------
+%if TOWNS || PC_98 || PC_AT
+	mov	b [init_machine], 1
+	push	edx
+	push	ebp
+	push	fs
+	push	gs
+
+%if TOWNS
+	call	setup_TOWNS		;TOWNS 固有の設定
+%elif PC_98
+	call	setup_PC98		;PC-98x1 固有の設定
+%elif PC_AT
+	call	setup_AT		;PC/AT互換機 固有の設定
+%endif
+
+	pop	gs
+	pop	fs
+	pop	ebp
+	pop	edx
+%endif
 
 ;------------------------------------------------------------------------------
 ;●パラメータ解析
@@ -498,30 +521,6 @@ call_load_exp:
 	mov	ah,4ch
 	int	21h			;プログラム終了
 .skip:
-
-;------------------------------------------------------------------------------
-;●各機種対応ルーチン
-;------------------------------------------------------------------------------
-%if TOWNS || PC_98 || PC_AT
-	mov	b [init_machine], 1
-	push	edx
-	push	ebp
-	push	fs
-	push	gs
-
-%if TOWNS
-	call	setup_TOWNS		;TOWNS 固有の設定
-%elif PC_98
-	call	setup_PC98		;PC-98x1 固有の設定
-%elif PC_AT
-	call	setup_AT		;PC/AT互換機 固有の設定
-%endif
-
-	pop	gs
-	pop	fs
-	pop	ebp
-	pop	edx
-%endif
 
 ;------------------------------------------------------------------------------
 ;●EXP ファイル実行
