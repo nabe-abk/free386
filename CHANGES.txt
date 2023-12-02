@@ -2,7 +2,7 @@
 Ver 0.70b - 2023-12-01
 ==============================================================================
 
-- Improved memory management method.
+- Improved internal memory management method (call buffer and other buffer).
 - Update functionality of "-m" option.
 - Change the timing of model-specific initialization.
 - int 21h/4ah, changed to ignore selector limit shrinkage.
@@ -14,6 +14,7 @@ Ver 0.70b - 2023-12-01
 - Fix: EXP's PSP memory infomation is incorrect, when EXP has a base offset.
 - Fix: int 21h/4ah memory allocate bug.
 - [TOWNS] Support int 8eh, ax=C207h.
+- [TOWNS] Support 386SX models. (Thanks to @RyuTakegami)
 
 ==============================================================================
 Ver 0.65 - 2023-11-25

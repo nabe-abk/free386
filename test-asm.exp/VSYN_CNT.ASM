@@ -5,7 +5,7 @@
 ;[TAB=8]
 ;------------------------------------------------------------------------------
 %ifdef TOWNS
-	%define VSYNC_MACHINE	'FM-TOWNS'
+	%define VSYNC_MACHINE	'FM TOWNS'
 	%define VSYNC_INT_NUM	04Bh
 	%define	ESC_CURSOL_ON	'[0v$'
 	%define ESC_CURSOL_OFF	'[1v$'
@@ -95,7 +95,7 @@ end:
 
 	align	4
 ;------------------------------------------------------------------------------
-; counter handler for FM-TOWNS
+; counter handler for FM TOWNS
 ;------------------------------------------------------------------------------
 %ifdef TOWNS
 counter_handler:

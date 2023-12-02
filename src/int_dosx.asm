@@ -21,7 +21,7 @@ int_21h_30h:
 
 	cmp	ebx,'RAHP'	;RUN386 funciton? / 'PHAR'
 	je	.run386
-	cmp	ebx,'XDJF'	;FM-TOWNS un-documented funciton? / 'FJDX'
+	cmp	ebx,'XDJF'	;FM TOWNS un-documented funciton? / 'FJDX'
 	je	.fujitsu
 	cmp	ebx,'F386'	;Free386 funciton?
 	je	.free386

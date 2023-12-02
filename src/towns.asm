@@ -2,9 +2,6 @@
 ;　Free386	＜プロテクトモード処理部＞
 ;******************************************************************************
 ;
-; 2001/02/11 TOWNS-OS 専用の処理
-; 2016/12/20 CoCo対応
-;
 BITS	16
 ;==============================================================================
 ;★TOWNS 簡易チェック
@@ -41,10 +38,17 @@ check_TOWNS:
 	align	4
 init_TOWNS:
 	;
+	; 386SX判定
+	;
+	in	al, 30h
+	cmp	al, 03h			; 386SX
+	jne	.skip_386sx
+	mov	b [cpu_is_386sx], 1
+.skip_386sx:
+	;
 	; VCPI情報から総メモリ容量の修正
 	;
-	mov	dx, 31h
-	in	al, dx
+	in	al, 31h
 	cmp	ax, 01h			; 初代TOWNS
 	je	.skip
 
@@ -200,7 +204,13 @@ BITS	32
 ;==============================================================================
 proc setup_TOWNS
 	push	es
-	mov	ebx,offset T_OS_memory_map	;メモリのマップ
+	mov	ebx,offset T_OS_memory_map
+
+	mov	al, [cpu_is_386sx]
+	test	al, al
+	jz	.skip
+	mov	ebx,offset T_OS_memory_map_386sx
+.skip:
 	call	map_memory			;
 
 	mov	esi,offset T_OS_selector_alias	;エイリアスの作成
@@ -720,6 +730,19 @@ T_OS_memory_map:
 	dd	124h, 83000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 1 layer
 	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
 	dd	0	;end of data
+
+	align	4
+T_OS_memory_map_386sx:
+		;sel, base     ,  pages -1, type/level
+	dd	100h, 00fc0000h,  256/4 -1, 0a00h	;R/X : boot-ROM
+	;dd	108h, 00fc0000h,  256/4 -1, 0000h	;R   : boot-ROM
+	dd	120h, 00a00000h,  512/4 -1, 0200h	;R/W : VRAM (16/32k)
+	dd	128h, 00b00000h,  512/4 -1, 0200h	;R/W : VRAM (256)
+	dd	130h, 00c00000h,  128/4 -1, 0200h	;R/W : Sprite-RAM
+	dd	138h, 00f00000h,  264/4 -1, 0200h	;R/W : FONT-ROM,学習RAM
+	dd	140h, 00f80000h,    4/4 -1, 0200h	;R/W : Wave-RAM
+	dd	148h, 00e00000h,  512/4 -1, 0000h	;R   : OS-ROM
+	dd	0	; Special thanks to @RyuTakegami
 
 	align	4
 T_OS_selector_alias:

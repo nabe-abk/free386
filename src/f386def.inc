@@ -16,7 +16,7 @@ F386_Date	equ		20231130h	;Release date
 ;==============================================================================
 %ifndef AUTO_RELEASE
 		; Target Machine / If all of zero, for DOS general purpose.
-TOWNS		equ	1	; for FM-TOWNS binary
+TOWNS		equ	1	; for FM TOWNS binary
 PC_98		equ	0	; for PC-9801/9821 binary
 PC_AT		equ	0	; for PC/AT binary
 
@@ -144,13 +144,13 @@ IntVectors	equ	100h	;Interrupt vectors, fixed
 ;Machine type setting
 ;==============================================================================
 ;------------------------------------------------------------------------------
-;for FM-TOWNS
+;for FM TOWNS
 ;------------------------------------------------------------------------------
 %if TOWNS
 
-MACHINE_CODE	equ	20h	;FM-TOWNS
+MACHINE_CODE	equ	20h	;FM TOWNS
 
-%define	MACHINE_STRING	'FM-TOWNS'
+%define	MACHINE_STRING	'FM TOWNS'
 %define	Free386_API	'f386_fmt.api'	;機種固有APIのファイル名
 
 INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する

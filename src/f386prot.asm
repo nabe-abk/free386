@@ -192,12 +192,6 @@ make_page_tables:
 	mov	eax,[DOS_mem_adr]
 	call	rewrite_next_hash_to_hex
 
-	;/// call buffer ///
-	;;movzx	eax,b [call_buf_sizeKB]
-	;;call	rewrite_next_hash_to_deg
-	;;mov	eax,[call_buf_adr32]
-	;;call	rewrite_next_hash_to_hex
-
 	;/// Additional page table memory ///
 	mov	eax, [page_table_in_dos_memory_size]
 	shr	eax, 10
@@ -225,7 +219,7 @@ make_page_tables:
 ;------------------------------------------------------------------------------
 ;●全メモリを示すセレクタを作成
 ;------------------------------------------------------------------------------
-make_all_mem_sel:
+proc make_all_mem_sel
 	mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
 	mov	edx,ecx
 	mov	edi,[work_adr]		;ワークメモリ
@@ -255,6 +249,14 @@ make_all_mem_sel:
 	; edx = 張りつける物理アドレス
 	; ecx = 張りつけるページ数
 	call	set_physical_mem
+
+patch_for_386sx:
+	mov	al, [cpu_is_386sx]
+	test	al, al
+	jz	.skip			;386SX is 24bit address bus.
+	mov	eax, 0100_0000h		;Therefore, addresses over 1000000h are always free.
+	mov	[free_LINER_ADR],eax
+.skip:
 
 ;------------------------------------------------------------------------------
 ;●セレクタの作成（LDT内 セレクタ）

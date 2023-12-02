@@ -1,5 +1,5 @@
 ;
-;VSYNC NOP for FM-TOWNS
+;VSYNC NOP for FM TOWNS
 ;
 ; nasm -f bin vsynopfm.asm -o vsynopfm.com
 ;

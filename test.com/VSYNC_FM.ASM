@@ -24,4 +24,4 @@ start:
 	xor	al,al
 	int	21h
 
-msg	db	'FM-TOWNS Hardware interrupt VSYNC to ON',13,10,'$'
+msg	db	'FM TOWNS Hardware interrupt VSYNC to ON',13,10,'$'

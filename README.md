@@ -10,7 +10,7 @@ This is written in assembly language only.
 * Date: **2023-11-28**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
 * Target: PC/AT
-* Target in Japanese: FM-TOWNS, PC-9801/PC-9821
+* Target in Japanese: FM TOWNS, PC-9801/PC-9821
 * Compatible: MS-DOS and XMS and **VCPI** (with HIMEM.SYS and EMM386.EXE)
 * Language: NASM (Full assembly language)
 * Licence: PDS
@@ -29,7 +29,7 @@ This is written in assembly language only.
 ## Document (Japanese)
 
 * [doc-ja/PC98.txt](doc-ja/PC98.txt)     - PC-98x1 Version's information
-* [doc-ja/FM-TOWNS.txt](doc-ja/FM-TOWNS.txt) - FM-TOWNS Version's information
+* [doc-ja/FM-TOWNS.txt](doc-ja/FM-TOWNS.txt) - FM TOWNS Version's information
 * [doc-ja/ext_api.txt](doc-ja/ext_api.txt)       - DOS-Extenter functions reference
 
 Other Japanese documents in [doc-ja/](doc-ja/).
@@ -74,7 +74,7 @@ Please refer to the displayed command line help or [User's Manual](MANUAL.md).
 
 1. "git clone" or copy all files to your disk.
 2. Install "nasm" and "make" package. ("apt install make nasm" on Debian/Ubuntu)
-3. Edit [f386def.inc] to select the build target.
+3. Edit [f386def.inc](src/f386def.inc) to select the build target.
 4. Run "make.sh".
 
 ## Japanese Memo

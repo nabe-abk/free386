@@ -679,7 +679,7 @@ alloc_page_table:
 ;------------------------------------------------------------------------------
 ;●DOS memory for EXP
 ;------------------------------------------------------------------------------
-alloc_real_mem_for_exp:
+proc alloc_real_mem_for_exp
 	xor	eax, eax
 	xor	bh, bh
 	mov	bl, b [real_mem_pages]	;CALL Buffer size (page)
@@ -716,6 +716,7 @@ alloc_real_mem_for_exp:
 ;------------------------------------------------------------------------------
 ;●VCPI用セレクタの初期化
 ;------------------------------------------------------------------------------
+proc get_VCPI_statas
 	;///////////////////////////////////////////////////
 	;VCPI 呼び出し  01h
 	;///////////////////////////////////////////////////
@@ -727,14 +728,14 @@ alloc_real_mem_for_exp:
 	int	67h			;VCPI Function
 
 	test	ah,ah			;戻り値 check
-	jz	save_VCPI_statas	;問題なければ jmp
+	jz	.save		;問題なければ jmp
 
 	call		free_EMB	; 拡張メモリの開放
 	PRINT86		err_02		; 'VCPI not find'
 	Program_end	F386ERR		; 終了
 
 	align	4
-save_VCPI_statas:
+.save:
 	mov	[VCPI_entry],ebx	;VCPI サービスエントリ
 	sub	 di,[page_table0]	;ユーザ用offset - 先頭offset
 	shl	edi,(12-2)		;edi ユーザー用リニアアドレス開始位置

@@ -1,14 +1,14 @@
 # Free386 User's Manual
 
 This software is a DOS-Extender that is almost compatible with Phar-Lap RUN386.
-This is works with "FM-TOWNS" and "PC-9801(9821)" and "AT compatible machines".
+This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 
 * This software can run .EXP format (P3 or MP format) files on DOS.
 * This software required XMS and VCPI memory server.
 	* Most require HIMEM.SYS and EMM386.EXE for MS-DOS Version 5 or later.
 
 このソフトは、Phar-Lap RUN386 ほぼ互換の DOS-Extender です。
-FM-TOWNS / PC-98x1 / AT互換機で動作します。
+FM TOWNS / PC-98x1 / AT互換機で動作します。
 
 - このソフトは .EXP 形式（P3 or MP形式）のファイルを実行することができます。
 - 実行には XMS メモリサーバ、VCPI メモリサーバが必要です。
@@ -50,7 +50,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -c1, -c
 * -c2
 * -c3 (default)
-	* Set automatic reset of CRTC and VRAM. This function is only implemented in FM-TOWNS and PC-98.
+	* Set automatic reset of CRTC and VRAM. This function is only implemented in FM TOWNS and PC-98.
 	* -c0 Not initialize.
 	* -c1 Always initialize.
 	* -c2 Initialize only the screen mode.
@@ -58,7 +58,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -i0, -i
 * -i1 (default)
 	* -i1 Auto detect machines type for prevents execution of Free386 binaries on different machines.
-* -n (only FM-TOWNS)
+* -n (only TOWNS)
 	* Do not initialize CoCo/NSD driver. Improved execution speed for EXP files that do not require CoCo.
 
 ## Options (in Japanese)
@@ -82,7 +82,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -c1
 * -c2
 * -c3 (default)
-	* CRTCやVRAMの自動リセットを設定します。この機能は FM-TOWNS 及び PC-98 のみ実装されています。
+	* CRTCやVRAMの自動リセットを設定します。この機能は FM TOWNS 及び PC-98 のみ実装されています。
 	* -c0 初期化しない。
 	* -c1 常に初期化する。
 	* -c2 画面モードのみ初期化する。
@@ -90,7 +90,7 @@ FM-TOWNS / PC-98x1 / AT互換機で動作します。
 * -i, -i0
 * -i1 (default)
 	* -i1 実行時機種判別を行い、機種の異なるFree386バイナリの実行を防止します。
-* -n (only FM-TOWNS)
+* -n (only TOWNS)
 	* CoCo/NSD ドライバの初期化を行わず、CoCoが不要なEXPファイルにおいて動作速度を向上させます。
 
 ## Binary Hack for default setting
