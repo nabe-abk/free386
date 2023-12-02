@@ -7,8 +7,13 @@
 %define	w	word
 %define	d	dword
 %define	offset
-;
-;
+
+%macro	proc	1
+	global	%1
+	align	4
+%1:
+%endmacro
+
 %imacro	PRINT86	1
 	mov	dx,%1
 	mov	ah,09h
@@ -71,7 +76,7 @@
 	pushf
 	push	cs
 	push	d (offset .ret_label)
-	push	d %1*4			;int番号 *4
+	push	d %1			;int number
 	jmp	call_V86_int
 
 	align	4
@@ -83,14 +88,6 @@
 	push	cs
 	call	call_V86_int21
 %endmacro
-
-;------------------------------------------------------------------------------
-;・V86 からの割り込みを判別するマクロ（未使用 / VCPI利用時は不要）
-;------------------------------------------------------------------------------
-;%macro	check_int_from_V86	0
-;	test	b [esp+10],02h		;+08h にある EFLAGS の VMビット
-;	jnz	near int_from_V86	;V86モードからの割り込み専用ルーチンへ
-;%endmacro
 
 ;------------------------------------------------------------------------------
 ;・キャリークリア & キャリーセット

@@ -344,7 +344,7 @@ DOS_Ext_fn_2501h:
 
 	push	d (F386_ds)
 	pop	ds
-	call	clear_mode_data		;モード切り換えデータ領域の初期化
+	;;;;call	clear_mode_data		;モード切り換えデータ領域の初期化
 
 	pop	ds
 	clear_cy
@@ -418,11 +418,10 @@ DOS_Ext_fn_2503h:
 ;------------------------------------------------------------------------------
 ;・Protect モードの割り込みベクタ設定  AX=2504h
 ;------------------------------------------------------------------------------
-	align	4
-DOS_Ext_fn_2504h:
-;	cmp	cl,21h		;21h は書き換え禁止
-;	je	.exit
-
+; in 	cl     = interrupt number
+;	ds:edx = entry point
+;
+proc DOS_Ext_fn_2504h
 	push	eax
 	push	ecx
 	push	ds
@@ -731,10 +730,10 @@ DOS_Ext_fn_250ch:
 	align	4
 DOS_Ext_fn_250dh:
 	xor	ecx,ecx
-	mov	ebx, d [cs:callbuf_adr16]
-	mov	 cl, b [cs:callbuf_sizeKB]
+	mov	ebx, d [cs:call_buf_adr16]
+	mov	 cl, b [cs:call_buf_sizeKB]
 	shl	ecx, 10
-	mov	edx, d [cs:callbuf_adr32]
+	mov	edx, d [cs:call_buf_adr32]
 
 	mov	eax, DOSMEM_Lsel
 	mov	 es, eax
@@ -1151,13 +1150,15 @@ DOS_Ext_fn_2515h:
 ;------------------------------------------------------------------------------
 	align	4
 DOS_Ext_fn_2517h:
-	mov	ecx,F386_ds		;ds
-	mov	 es,ecx			;設定
-	mov	ebx,[es:int_buf_adr]	;バッファアドレス es:ebx
-	mov	ecx,[es:v86_cs]		;V86時の DS
-	shl	ecx,16			;上位へ
-	mov	 cx,bx			;下位にオフセット
-	mov	edx,INT_BUF_size	;バッファサイズ
+	mov	ecx,F386_ds
+	mov	 es,ecx
+	mov	ebx,[es:call_buf_adr32]
+	mov	ecx,[es:call_buf_adr16]
+
+	; buffer size
+	xor	ecx, ecx
+	mov	 cl, b [es:call_buf_sizeKB]
+	shl	ecx, 10
 
 	clear_cy
 	iret

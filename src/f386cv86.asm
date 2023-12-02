@@ -5,27 +5,28 @@
 ;
 %include	"macro.inc"
 %include	"f386def.inc"
+
 %include	"free386.inc"
+%include	"f386mem.inc"
 
 ;******************************************************************************
 ;■グローバルシンボル宣言
 ;******************************************************************************
 
-global	setup_cv86		;call v86 の初期設定
-global	clear_mode_data		;モード切替えデータの初期化
+global	setup_cv86
+global	clear_mode_data
 
-global	call_V86_int		;int 呼び出し
-global	call_V86_int21		;int 21h 呼び出し
+global	call_V86_int
+global	call_V86_int21
 global	call_V86_HARD_int
 
-global	call_V86		;汎用的なな呼び出しルーチン (call して使用)
-global	rint_labels_adr		;リアルモード割り込みフックルーチン先頭アドレス
-
+global	call_V86
 global	call_v86_ds
 global	call_v86_es
-global	ISTK_nest
 
-global	callf32_from_v86	; use by towns.asm, int 21h ax=250dh
+global	callf32_from_v86	; use by int 21h ax=250dh and towns.asm
+
+global	rint_labels_adr
 
 segment	text align=4 class=CODE use16
 ;******************************************************************************
@@ -68,13 +69,6 @@ setup_cv86:
 	mov	ax,si			;ax = 呼び出しアドレス
 	loop	.loop
 
-	;//////////////////////////////////////////////////
-	;モード切り換え時用、一時スタックメモリ取得
-	;//////////////////////////////////////////////////
-	mov	ax,ISTK_size * ISTK_nest_max	;V86 <-> Prot stack
-	call	stack_malloc			;下位メモリ割り当て
-	mov	[ISTK_adr    ],di		;記録
-	mov	[ISTK_adr_org],di		;初期値
 	ret
 
 BITS	32
@@ -83,34 +77,17 @@ BITS	32
 ;------------------------------------------------------------------------------
 	align	4
 clear_mode_data:
-	pushfd
-	cli
-	push	eax
-	mov	eax,[ISTK_adr_org]		;初期値ロード
-	mov	[ISTK_adr], eax			;セーブ
-
-	mov	eax,[int_buf_adr_org]		;初期値ロード
-	mov	[int_buf_adr],eax		;セーブ
-
-	mov	eax,[int_rwbuf_adr_org]		;初期値ロード
-	mov	[int_rwbuf_adr] ,eax		;セーブ
-	mov   d	[int_rwbuf_size],INT_RWBUF_size	;セーブ
-
-	xor	eax, eax
-	mov	[ISTK_nest],eax			;nestカウンタ初期化
-	pop	eax
-	popfd
 	ret
 
 
 ;******************************************************************************
 ;■V86 モードの割り込みルーチン呼び出し (from Protect mode)
 ;******************************************************************************
-;	引数	+00h d Int_No * 4
+;	引数	+00h d Interrupt number
 ;
 	align	4
 call_V86_int21:
-	push	d (21h * 4)		;ds : ベクタ番号 ×4
+	push	d 21h			;ベクタ番号
 call_V86_int:
 	sub	esp, 10h		;es --> gs
 	push	eax
@@ -125,7 +102,7 @@ call_V86_int:
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
 	mov	 es,eax			;es にロード
 	mov	eax,[esp + 4*7]		;引数（ベクタ番号*4）を取得
-	mov	eax,[es:eax]		;V86 割り込みベクタロード
+	mov	eax,[es:eax*4]		;V86 割り込みベクタロード
 	mov	[call_v86_adr],eax	;呼び出しアドレスセーブ
 
 	pop	es
@@ -158,11 +135,11 @@ call_V86_int:
 ;******************************************************************************
 ;■V86モードの割り込みルーチン呼び出し (ハードウェア割り込み用)
 ;******************************************************************************
-;	引数	+00h d Int_No * 4
-
+;	引数	+00h d Interrupt number
+;
 	align	4
 call_V86_HARD_int:
-	xchg	[esp], esi		;esi = int番号*4
+	xchg	[esp], esi		;esi = int番号
 	push	eax
 	push	es
 
@@ -174,7 +151,7 @@ call_V86_HARD_int:
 
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
 	mov	 es,eax
-	push	d [es:esi]		;V86割り込みベクタ
+	push	d [es:esi*4]		;V86割り込みベクタ
 
 	call	call_V86
 
@@ -231,7 +208,7 @@ call_V86:
 	push	d [gs:esi+ 4]		;** V86 es
 	push	d [v86_cs]		;** V86 ss
 
-	call	alloc_ISTK_32
+	call	alloc_SW_stack_32
 	push	eax			;** V86 sp
 	pushf				;eflags
 	push	d [v86_cs]		;** V86 CS を記録
@@ -255,13 +232,7 @@ BITS	16
 
 	push	w (-1)			;mark / iret,retf両対応のため
 	pushf				;flag save for INT
-	push	cs			;
-	push	w .call_ret		;戻りラベル
-	push	d [cs:call_v86_adr]	;目的ルーチン
-	sti
-	retf				;far call
-.call_ret:
-	;;call	far [cs:call_v86_adr]	;目的ルーチンのコール
+	call	far [cs:call_v86_adr]	;目的ルーチンのコール
 
 	cli
 	mov	[cs:call_v86_ds],ds	;ds セーブ
@@ -299,7 +270,7 @@ BITS	32
 	mov	 ds,eax			;gs にロード
 
 	lss	esp,[save_esp]		;スタック復元
-	call	free_ISTK_32
+	call	free_SW_stack_32
 
 	;引数	+08h	V86 ds
 	;	+0ch	V86 es
@@ -390,8 +361,8 @@ BITS	32
 	mov	 fs,eax			;
 	mov	 gs,eax			;
 
-	lss	esp, [ISTK_adr]		;ss:esp を設定
-	call	alloc_ISTK_32		;スタック領域確保
+	lss	esp,[PM_stack_adr]	;専用スタックロード
+	;call	alloc_SW_stack_32	;スタック領域確保
 
 	push	d [save_ss]		;リアルモードスタック
 	push	d [save_esp]
@@ -411,7 +382,7 @@ BITS	32
 	pop	d [save_esp]		;リアルモードスタック
 	pop	d [save_ss]
 
-	call	free_ISTK_32		;スタック開放
+	;call	free_SW_stack_32	;スタック開放
 
 	mov	eax,[v86_cs]		;V86時 cs,ds
 	push	eax			;** V86 gs
@@ -445,6 +416,7 @@ callf32_from_v86:
 	push	cs
 	pop	ds
 
+	cli
 	push	bp	; = 2
 	mov	bp, sp
 	mov	eax, [bp + 16h]
@@ -460,11 +432,10 @@ callf32_from_v86:
 	add	eax, esp
 	mov	[cf32_esp32], eax	;linear adddress of ss:esp
 
-	cli
-	mov   d [to_PM_EIP],offset .32	;呼び出しラベル
-	mov	esi, [to_PM_data_ladr]	;モード切替え構造体
-	mov	ax,0de0ch		;to プロテクトモード
-	int	67h			;VCPI call
+	mov   d [to_PM_EIP],offset .32	; jmp to
+	mov	esi, [to_PM_data_ladr]
+	mov	ax,0de0ch
+	int	67h			; VCPI call
 
 
 	align 4
@@ -519,97 +490,75 @@ BITS	16
 
 
 ;******************************************************************************
-;■ISTKサブルーチン 32bit
+; switch cpu mode stack allocation
 ;******************************************************************************
 BITS	32
 ;==============================================================================
-;■ISTK領域からスタックメモリを確保
+; allocation from heap
 ;==============================================================================
-	align	4
-alloc_ISTK_32:		;eax = 確保したISTKバッファ
+; in	-
+; out	eax	new stack pointer
+;
+proc alloc_SW_stack_32
 	pushfd
+	push	ebx
+
 	cli
+	mov	eax, [free_heap_bottom]
+	mov	ebx, eax
+	sub	ebx, SW_stack_size
+	jb	short .error
 
-	mov	eax, [ISTK_nest]
-	cmp	eax, ISTK_nest_max
-	jae	short .error_exit
+	cmp	ebx, [free_heap_top]
+	jb	short .error
 
-	;nest counter +1
-	inc	eax
-	mov	[ISTK_nest], eax
+	mov	[free_heap_bottom], ebx
+	inc	d [sw_cpumode_nest]
 
-	;int_buf のアドレス更新
-	shl	eax, INT_BUF_sizebits
-	add	eax, [int_buf_adr_org]
-	mov	[int_buf_adr]  ,eax
-	mov	[int_rwbuf_adr],eax
-	mov	d [int_rwbuf_size],INT_BUF_size
-
-	;return ISTK
-	mov	eax, [ISTK_adr]
-	sub	d [ISTK_adr], ISTK_size
-
+	pop	ebx
 	popfd
 	ret
 
-.error_exit:
-	call	clear_mode_data
-	F386_end	26h		; ISTK Overflow
+.error:
+	F386_end	26h
 
 ;==============================================================================
-;■ISTK領域のメモリを開放
+; free SW stack memory
 ;==============================================================================
-	align	4
-free_ISTK_32:
+; in	eax = stack pointer
+;
+proc free_SW_stack_32
 	pushfd
-	cli
 	push	eax
 	push	ebx
 
-	mov	eax, [ISTK_nest]
-	test	eax, eax
-	jz	short .error_exit
+	cli
+	mov	ebx, [sw_cpumode_nest]
+	test	ebx, ebx
+	jz	short .error
 
-	;nest counter -1
-	dec	eax
-	mov	[ISTK_nest], eax
+;;	cmp	eax, [free_heap_bottom]
+;;	jne	short .error
 
-	;int_buf のアドレス更新
-	mov	ebx, eax
-	shl	ebx, INT_BUF_sizebits
-	add	ebx, [int_buf_adr_org]
-	mov	[int_buf_adr],ebx
-
-	test	eax, eax
-	jnz	short .nested
-
-	;ネストなしならRead/Write bufferは大きいのを使う
-	mov	d [int_rwbuf_size],INT_RWBUF_size
-	mov	ebx,[int_rwbuf_adr_org]
-.nested:
-	mov	[int_rwbuf_adr],ebx
-
-	;free ISTK
-	add	d [ISTK_adr], ISTK_size
+	; save
+	add	d [free_heap_bottom], SW_stack_size
+	dec	ebx
+	mov	[sw_cpumode_nest], ebx
 
 	pop	ebx
 	pop	eax
 	popfd
 	ret
 
-.error_exit:
-	call	clear_mode_data
-	push	d 0
-	push	d 3F0h
-
-	F386_end	27h		; ISTK Underflow
+.error:
+	F386_end	27h
 
 
 BITS	32
 ;******************************************************************************
 ;■データ
 ;******************************************************************************
-segment	data align=16 class=CODE use16
+segment	data align=4 class=CODE use16
 group	comgroup text data
 ;------------------------------------------------------------------------------
 save_eax	dd	0		;モード切り換え時のレジスタセーブ用
@@ -625,14 +574,12 @@ call_v86_flags	dw	0,0		;
 
 call_v86_adr	dd	0		;V86 / 呼び出す CS:IP
 
-ISTK_adr	dd	0		;V86←→Protectモード切替時用のスタック
-		dd	F386_ds		;セレクタ
-ISTK_adr_org	dd	0
-ISTK_nest	dd	0
+sw_cpumode_nest	dd	0		; Switch cpu mode nest counter
 
-rint_labels_top	dd	0		;↓+3/ 戻りオフセットから int番号算出用
-rint_labels_adr	dd	0		;リアルモード割り込みフックルーチン
-					;　作成領域へのポインタ
+	; Real mode interrupt hook routines, for call to 32bit from V86.
+rint_labels_adr	dd	0
+rint_labels_top	dd	0		; rint_labels_adr +3
+
 
 cf32_ss16	dd	0		;
 cf32_esp32	dd	0		;in 32bit linear address

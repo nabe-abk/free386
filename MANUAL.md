@@ -113,7 +113,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0ah	| 00h	| (Reserved) |
 | +0bh	| 00h	| (Reserved) |
 | +0ch	| 08h	| Reserved memory pages for paging. |
-| +0dh	| 08h	| Call buffer size (KB). This is used DOS function call. max 64KB. |
+| +0dh	| 08h	| Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
 | +0eh	| 04h	| Maximum number of real memory pages to allocate for EXP file execution. (See -m option) |
 | +0fh	| 00h	| Ignore the maxdata header and allocate maximum memory: 0=off, 1=on |
 

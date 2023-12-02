@@ -10,7 +10,8 @@ BITS	32
 ;==============================================================================
 ;★プロテクトモード スタートラベル
 ;==============================================================================
-	align	16
+	align	4
+	global	start32
 start32:
 	mov	ebx,F386_ds		;ds セレクタ
 	mov	ds,ebx			;ds ロード
@@ -78,12 +79,14 @@ internal_mem_dump:
 	inc	eax
 	call	rewrite_next_hash_to_hex
 
-	mov	ebx, [top_mem_offset]
-	mov	edx, [down_mem_offset]
-
+	; all heap memory
 	mov	eax, 10000h
 	sub	eax, [page_dir]
 	call	rewrite_next_hash_to_deg
+
+	; free heap memory
+	mov	ebx, [free_heap_top]
+	mov	edx, [free_heap_bottom]
 
 	mov	eax, ebx
 	call	rewrite_next_hash_to_hex
@@ -122,6 +125,16 @@ internal_mem_dump:
 	add	eax, TSSsize -1
 	call	rewrite_next_hash_to_hex
 
+	; main call buffer
+	mov	eax, [call_buf_adr32]
+	mov	ebx, [call_buf_size]
+	call	rewrite_next_hash_to_hex
+	add	eax, ebx
+	dec	eax
+	call	rewrite_next_hash_to_hex
+	mov	eax, ebx
+	call	rewrite_next_hash_to_deg
+
 	; work memory
 	mov	eax, [work_adr]
 	call	rewrite_next_hash_to_hex
@@ -153,6 +166,7 @@ internal_mem_dump:
 ;------------------------------------------------------------------------------
 ;●メモリ管理の設定
 ;------------------------------------------------------------------------------
+	global	make_page_tables
 make_page_tables:
 	mov	al,[verbose]
 	test	al,al
@@ -179,10 +193,10 @@ make_page_tables:
 	call	rewrite_next_hash_to_hex
 
 	;/// call buffer ///
-	movzx	eax,b [callbuf_sizeKB]
-	call	rewrite_next_hash_to_deg
-	mov	eax,[callbuf_adr32]
-	call	rewrite_next_hash_to_hex
+	;;movzx	eax,b [call_buf_sizeKB]
+	;;call	rewrite_next_hash_to_deg
+	;;mov	eax,[call_buf_adr32]
+	;;call	rewrite_next_hash_to_hex
 
 	;/// Additional page table memory ///
 	mov	eax, [page_table_in_dos_memory_size]
@@ -296,7 +310,7 @@ Debug_code:
 	int	21h	; Debug file create
 
 	jmp	.skip
-.file	db	"dump.txt",0
+.file	db	DUMP_FILE,0
 .skip:
 %endif
 
@@ -381,7 +395,7 @@ para_analyze_loop:
 
 	align	4
 no_file:
-	mov	al, [show_TITLE]
+	mov	al, [show_title]
 	test	al, al
 	jz	.skip
 	PRINT		msg_10		;使い方表示

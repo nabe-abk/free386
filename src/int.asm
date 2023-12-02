@@ -6,11 +6,13 @@
 %include	"macro.inc"
 %include	"f386def.inc"
 
-%include	"start.inc"		;動作オプション
-%include	"f386sub.inc"		;Free386 用サブルーチン
-%include	"f386seg.inc"		;セレクタ/ページングルーチン
-%include	"f386cv86.inc"		;V86 ←→ Protect 低レベル連携ルーチン
-%include	"free386.inc"		;Free386 本体変数
+%include	"start.inc"
+%include	"free386.inc"
+
+%include	"f386sub.inc"
+%include	"f386mem.inc"
+%include	"f386seg.inc"
+%include	"f386cv86.inc"
 
 ;//////////////////////////////////////////////////////////////////////////////
 ;■グローバルシンボル宣言
@@ -19,9 +21,12 @@
 global		PM_int_00h
 global		PM_int_dummy
 global		DOS_int_list
-global		HW_INT_TABLE_M
-global		HW_INT_TABLE_S
 global		int21h_table
+
+%if enable_INTR
+	global	HW_INT_TABLE_M
+	global	HW_INT_TABLE_S
+%endif
 
 ;//////////////////////////////////////////////////////////////////////////////
 ;■割り込み処理ルーチン
@@ -43,14 +48,11 @@ PM_int_dummy:
 	movzx	ebx,b [ebx-1]		;int 番号をロード
 	pop	ds
 
-%if INT_HOOK
 	xchg	[esp], ebx		;ebx復元
+%if INT_HOOK
 	call	register_dump_from_int	;safe
-	xchg	[esp], ebx		;ebx=int番号
 %endif
-	shl	ebx,2			;4 倍する
-
-	xchg	[esp],ebx		;ebx復元 と 呼び出しベクタ設定
+	; stack top is int number
 	jmp	call_V86_int
 
 
@@ -300,7 +302,8 @@ view_int:
 ;------------------------------------------------------------------------------
 ;★ハードウェア割り込み (INTR)
 ;------------------------------------------------------------------------------
-%if (enable_INTR)
+%if enable_INTR
+
 	align	4
 HW_INT_TABLE_M:	push	byte 0
 		jmp	short INTR_intM
@@ -324,19 +327,12 @@ HW_INT_TABLE_M:	push	byte 0
 	;///////////////////////////////////////////////
 INTR_intM:
 %if (HW_INT_MASTER > 1fh)
-	push	eax
-
-	mov	eax, [esp+4]
-	add	eax, HW_INT_MASTER
-	shl	eax, 2			;eax = int番号*4
-	mov	[esp+4], eax		;int番号*4 記録
-
-	pop	eax			;eax 復元
+	add	d [esp], HW_INT_MASTER
 	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 %else	;*** CPU 割り込みと被っている ******************
-	push	eax
 	push	edx
+	push	eax
 
 	mov	edx,[esp+8]		; load IRQ number
 
@@ -346,35 +342,35 @@ INTR_intM:
 	bt	eax,edx			; ハードウェエ割り込み？
 	jnc	.CPU_int		; bit が 0 なら CPU割り込み
 
-	lea	eax,[edx*4 + HW_INT_MASTER*4]	;eax = INT番号 *4
-	mov	edx,[cs:intr_table + eax*2 +4]	;edx = 呼び出しselector
-	test	edx,edx				;0?
+	add	edx, HW_INT_MASTER		; edx = INT番号
+	mov	eax,[cs:intr_table + edx*8 +4]	; edx = 呼び出し先selector
+	test	eax,eax				;0?
 	jz	.dos_chain			;if 0 jmp
 
 	;/// 登録してある割り込みを呼び出し ///
-	mov	eax,[cs:intr_table + eax*2]	;offset
+	mov	edx,[cs:intr_table + edx*8]	;offset
 
-	mov	[esp+8],edx		;セレクタ
-	xchg	[esp+4],eax		;eax 復元 と オフセット記録
-	pop	edx
+	mov	[esp+8],eax		;セレクタ
+	xchg	[esp+4],edx		;eax 復元 と オフセット記録
+	pop	eax
 	retf				;割り込みルーチン呼び出し
 
 
 	align	4
 .dos_chain:
-	mov	[esp+8],eax		;呼び出しINT番号として記録
-	pop	edx
+	mov	[esp+8],edx		;呼び出しINT番号として記録
 	pop	eax
+	pop	edx
 	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 
 	align	4
 .CPU_int:
-	lea	eax,[PM_int_00h + HW_INT_MASTER*8 + edx*8]	;CPU例外 Address
-	mov	[esp+8],eax				;セーブ
+	lea	eax,[PM_int_00h + HW_INT_MASTER*8 + edx*8]	;CPU例外のアドレス
+	mov	[esp+8],eax					;セーブ
 
-	pop	edx
 	pop	eax
+	pop	edx
 	ret				;CPU 例外呼び出し
 %endif
 
@@ -401,19 +397,12 @@ HW_INT_TABLE_S:	push	byte 0
 
 INTR_intS:
 %if (HW_INT_SLAVE > 1fh)
-	push	eax
-
-	mov	eax, [esp+4]
-	add	eax, HW_INT_SLAVE
-	shl	eax, 2			;eax = int番号*4
-	mov	[esp+4], eax		;int番号*4 記録
-
-	pop	eax			;eax 復元
+	add	d [esp], HW_INT_SLAVE
 	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 %else	;*** CPU 割り込みと被っている ******************
-	push	eax
 	push	edx
+	push	eax
 
 	mov	edx,[esp+8]		;edx = IRQ番号 - 8
 
@@ -423,36 +412,36 @@ INTR_intS:
 	bt	eax,edx			;ハードウェエ割り込み？
 	jnc	.CPU_int		;bit が 0 なら CPU割り込み
 
-	lea	eax,[edx*4 + HW_INT_SLAVE*4]	;eax = INT番号 *4
-	mov	edx,[cs:intr_table + eax*2 +4]	;edx = 呼び出しselector
-	test	edx,edx				;0?
+	add	edx, HW_INT_SLAVE		; edx = INT番号
+	mov	eax,[cs:intr_table + edx*8 +4]	; edx = 呼び出し先selector
+	test	eax,eax				;0?
 	jz	.dos_chain			;if 0 jmp
 
 	;/// 登録してある割り込みを呼び出し ///
-	mov	eax,[cs:intr_table + eax*2]	;offset
+	mov	edx,[cs:intr_table + edx*8]	;offset
 
-	mov	[esp+8],edx		;セレクタ
-	xchg	[esp+4],eax		;eax 復元 と オフセット記録
-	pop	edx
+	mov	[esp+8],eax		;セレクタ
+	xchg	[esp+4],edx		;eax 復元 と オフセット記録
+	pop	eax
 	retf				;割り込みルーチン呼び出し
 
 
 	align	4
 .dos_chain:
-	mov	[esp+8],eax		;呼び出しINT番号として記録
-	pop	edx
+	mov	[esp+8],edx		;呼び出しINT番号として記録
 	pop	eax
+	pop	edx
 	jmp	call_V86_HARD_int	;V86 ルーチンコール
 
 
 	align	4
 .CPU_int:
-	lea	eax,[PM_int_00h + HW_INT_SLAVE*8 + edx*8]	;CPU例外 Address
-	mov	[esp+8],eax
+	lea	eax,[PM_int_00h + HW_INT_SLAVE*8 + edx*8]	;CPU例外のアドレス
+	mov	[esp+8],eax					;セーブ
 
-	pop	edx
 	pop	eax
-	ret			;CPU 例外呼び出し
+	pop	edx
+	ret				;CPU 例外呼び出し
 %endif
 %endif
 

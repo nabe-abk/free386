@@ -1,7 +1,8 @@
 ==============================================================================
-Ver 0.70 - 2023-12-01
+Ver 0.70b - 2023-12-01
 ==============================================================================
 
+- Improved memory management method.
 - Update functionality of "-m" option.
 - Change the timing of model-specific initialization.
 - int 21h/4ah, changed to ignore selector limit shrinkage.

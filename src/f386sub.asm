@@ -9,9 +9,9 @@
 %include	"macro.inc"
 %include	"f386def.inc"
 
+%include	"start.inc"
 %include	"free386.inc"
 %include	"f386seg.inc"
-%include	"start.inc"
 
 ;------------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@
 ; 2001/02/06	仕様の勘違いを訂正 & 改良	(by nabe@abk)
 ;
 ;
-segment	text public align=16 class=CODE use16
+segment	text public align=4 class=CODE use16
 BITS	32
 ;------------------------------------------------------------------------------
 ;●レジスタダンプ表示
@@ -1257,7 +1257,7 @@ run_exp:
 ;******************************************************************************
 ;■データ
 ;******************************************************************************
-segment	data align=16 class=CODE use16
+segment	data align=4 class=CODE use16
 group	comgroup text data
 
 ;------------------------------------------------------------------------------

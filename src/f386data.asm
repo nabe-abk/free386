@@ -2,43 +2,40 @@
 ;　Free386　＜データ部＞
 ;******************************************************************************
 ;
-segment	data align=16 class=CODE use16
+segment	data align=4 class=CODE use16
 group	comgroup text data
 ;
 ;==============================================================================
-;★設定
+; Setting
 ;==============================================================================
-env_PATH386	db	'PATH386',0	;ファイル検索時に参照する環境変数
+env_PATH386	db	'PATH386',0	; ファイル検索時に参照する環境変数
 env_PATH	db	'PATH',0	;
 
-default_API	db	Free386_API,0	;ディフォルトの API
-
+default_API	db	Free386_API,0	; API file name
 
 ;==============================================================================
-	align	4
-;--------------------------------------------------------------------
-;----- バッファ情報 -------------------------------------------------
-;
-work_adr	dd	0		;汎用ワークのアドレス (min 200h)
-callbuf_adr16	dw	0		; offset / for DOS-X ax=250dh
-callbuf_seg16	dw	0		; segment / min 1KB
-callbuf_adr32	dd	0		;リニアモードアドレス
-
-int_buf_adr	dd	0		;int 21h等/nest対応
-int_rwbuf_adr	dd	0		;File R/W専用バッファアドレス
-int_rwbuf_size	dd	INT_RWBUF_size	;サイズ
-
-int_buf_adr_org		dd	0	;バッファアドレス初期値
-int_rwbuf_adr_org	dd	0	;
-
-;--------------------------------------------------------------------
-;----- 一般の内部変数 -----------------------------------------------
-;
+; General variable
+;==============================================================================
 pharlap_version	db	'12aJ'		;Ver 1.2aj
 
 err_level	db	0		;プログラムエラーレベル
 f386err		db	0		;F386 内部エラーレベル
 init_machine	db	0		;initalized machin local
+
+
+	align	4
+;==============================================================================
+; Buffer information
+;==============================================================================
+
+work_adr	dd	0		; 汎用ワークのアドレス (200h)
+
+	; file and string buffer
+call_buf_used	dd	0		; used flag
+call_buf_size	dd	0		; byte
+call_buf_adr16	dw	0		; offset
+call_buf_seg16	dw	0		; segment
+call_buf_adr32	dd	0		; address
 
 ;--------------------------------------------------------------------
 ;----- メモリ関連情報 -----------------------------------------------
@@ -46,17 +43,12 @@ init_machine	db	0		;initalized machin local
 	;ページディレクトリやページテーブルは 4KB にalign されなければならず、
 	;プログラム終端との間に使われないメモリ領域が発生してしまう
 	align	4
-frag_mem_offset	dd	offset end_adr	;プログラム末端（データ領域含む）
-frag_mem_size	dd	0		;内部でセーブ
-top_mem_offset	dd	0		;自由に使える一番上位のメモリ
-down_mem_offset	dd	10000h & 0ffffh	;自由に使える一番下位のメモリ+1
 
-PM_stack_adr	dd	0		;プロテクトモード時のスタック
-		dw	F386_ds		;
 
 VCPI_stack_adr	dd	0		;V86 モード切り換え時のみ
 		dw	F386_ds		;　使用するスタック
-
+PM_stack_adr	dd	0		;プロテクトモード時のスタック
+		dw	F386_ds		;
 v86_cs		dw	0,0		;V86モード時 cs
 v86_sp		dw	0,0		;V86モード時 sp
 
@@ -147,9 +139,9 @@ to_PM_CS	dw	F386_cs
 	align	4
 VCPI_cr3	dd	0		;
 
-;
-;----- メッセージ ---------------------------------------------------
-;
+;==============================================================================
+; Messages
+;==============================================================================
 P_title	db	'Free386(386|DOS-Extender) for '
 	db	MACHINE_STRING
 	db	' ',VER_STRING
@@ -163,7 +155,6 @@ msg_01	db	'VCPI Found：VCPI Version $'
 msg_02	db	'[VCPI] Physical Memory size  = ###### KB',13,10
 	db	'[XMS]  Allocate Ext  Memory  = ###### KB (####_####h)',13,10
 	db	'[DOS]  Allocate Real Memory  = ###### KB (####_####h) + 4KB(fragment)',13,10
-	db	'[DOS]  Call Buffer Memory    = ###### KB (####_####h)',13,10
 	db	'[DOS]  Additional Page Table = ###### KB (####_####h)',13,10
 	db	'$'
 msg_05	db	'Load file name = $'
@@ -198,6 +189,7 @@ internal_mem_msg:
 	db	'	LDT		: #### - ####',13,10
 	db	'	IDT		: #### - ####',13,10
 	db	'	TSS		: #### - ####',13,10
+	db	'	call buffer     : #### - #### / ##### byte',13,10
 	db	'	general work mem: #### - ####',13,10
 	db	'	16bit int hook  : #### - ####',13,10
 	db	'	VCPI  call stack: #### -',13,10
@@ -225,13 +217,13 @@ err_22h	db	'F386: Can not read executable file',13,10,'$'
 err_23h	db	'F386: Memory is insufficient to load executable file',13,10,'$'
 err_24h	db	'F386: Unknown EXP header (Compatible: P3-flat model, MZ-header)',13,10,'$'
 err_25h	db	'F386: Real memory heap overflow (*_malloc/*_calloc)',13,10,'$'
-err_26h	db	'F386: INT stack (Protect <-> V86 stack) overflow',13,10,'$'
-err_27h	db	'F386: INT stack (Protect <-> V86 stack) underflow',13,10,'$'
+err_26h	db	'F386: Not enough stack for switch CPU mode',13,10,'$'
+err_27h	db	'F386: Failure to free stack memory for switch CPU mode',13,10,'$'
 err_28h	db	'F386: File read error(int 21h fail)',13,10,'$'
 
 	align	4
-end_msg_table:	;*** 内部エラーコード(20h-) *** (00-1fh:欠番)
-	dw	offset err_xxh	;欠番
+err_msg_table:
+	dw	offset err_xxh	;not use
 	dw	offset err_21h
 	dw	offset err_22h
 	dw	offset err_23h

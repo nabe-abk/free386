@@ -22,11 +22,11 @@ PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
-INT_HOOK_RETV	equ	0	; with return value dump(only int 21h)
+INT_HOOK_RETV	equ	1	; with return value dump(only int 21h)
 INT_HOOK_AH	equ	0	; Interrupt hook int 21h only AH value
 INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS. ex) 0ch
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
-PRINT_TO_FILE	equ	0	; int 21/ah=09h to "dump.txt" file
+PRINT_TO_FILE	equ	0	; int 21/ah=09h to DUMP_FILE file
 PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 
 %else
@@ -41,6 +41,8 @@ PRINT_TSUGARU	equ	0
 %endif
 
 INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
+
+%define	DUMP_FILE	'dump.txt'
 
 ;==============================================================================
 ; Operation settings
@@ -58,8 +60,8 @@ RestoreRealVec	equ	1	; Restore real mode interrupt vectors on end
 	;---------------------------
 	; Default operation setting
 	;---------------------------
-_show_TITLE	equ	1	; show Free386's title
-_Verbose	equ	0	; verbose
+_show_title	equ	1	; show Free386's title
+_verbose	equ	0	; verbose
 _search_PATH386	equ	1	; search PATH386 for target EXP file
 _search_PATH	equ	0	; search PATH    for target EXP file
 
@@ -71,9 +73,9 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 				;	3 = auto
 				; Not support PC/AT machine.
 
-_CALLBUF_sizeKB	 equ	16	; call buffer size for 32bit to 16bit function
-_POOL_for_paging equ	8	; pool ram pages for paging
-_REAL_mem_pages	 equ	4	; real memory(ram) pages for EXP file
+_call_buf_sizeKB equ	16	; call buffer size for 32bit<->16bit function
+_pool_for_paging equ	8	; pool ram pages for paging
+_real_mem_pages  equ	4	; real memory(ram) pages for EXP file
 
 ;==============================================================================
 ; General define
@@ -81,18 +83,16 @@ _REAL_mem_pages	 equ	4	; real memory(ram) pages for EXP file
 F386ERR		equ	0fch	; Free386 internal error code
 CPU_Fault	equ	0fdh	; CPU fault        error code
 
-V86_flags	equ	0000h	; V86 flags initial value
 WORK_size	equ	200h	; Universal work size
+
+GP_BUFFERS	equ	4	; number of general purpose buffers, max 32
+GP_BUFFER_SIZE	equ	400h	; 1KB
 
 V86_stack_size	equ	 200h	; byte
 PM_stack_size	equ	 380h	; byte
 VCPI_stack_size	equ	  80h	; VCPI call(to V86) dedicated stack
 
-ISTK_nest_max	equ	4	;CPUモード切り替えネスト数
-ISTK_size	equ	400h	;モード切り換え時スタックサイズ（ネスト対応）
-INT_BUF_size	equ	800h	;V86<>Protect間データ渡し配列サイズ（ネスト対応）
-INT_BUF_sizebits equ	10	;↑のビット数
-INT_RWBUF_size	equ	4000h	;ファイル入出力専用バッファサイズ
+SW_stack_size	equ	400h	; モード切り換え時スタックサイズ（ネスト対応）
 
 LADR_UNIT	equ	400000h	; Memory address allocation unit
 LADR_ROOM_size	equ	200000h	; Room for memory address expansion
@@ -158,7 +158,7 @@ INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する
 TBIOS_cs	equ	110h	;T-BIOS の code セレクタ
 TBIOS_ds	equ	118h	;T-BIOS の data セレクタ
 
-NSDD_max	equ	20	;NSD Driverの最大対応数（64まで設定可能）
+NSDD_max	equ	20	;NSD Driverの最大対応数
 NSDD_stra_adr	equ	06h	;strategy エントリーのあるオフセット
 NSDD_intr_adr	equ	08h	;interruptエントリーのあるオフセット
 NSDD_sleep	equ	0c0h	; intr/sleep  request

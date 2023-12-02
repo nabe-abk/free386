@@ -6,14 +6,15 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.66
-* Date: **2023/11/28**
+* Version: 0.70
+* Date: **2023-11-28**
 * Author: [nabe@abk](https:/twitter.com/nabe_abk)
-* Machine: PC/AT
-* Machine in Japanese: FM-TOWNS, PC-9801/PC-9821
+* Target: PC/AT
+* Target in Japanese: FM-TOWNS, PC-9801/PC-9821
 * Compatible: MS-DOS and XMS and **VCPI** (with HIMEM.SYS and EMM386.EXE)
 * Language: NASM (Full assembly language)
-* Licence: PDS (only Free386.com and Free386's source files)
+* Licence: PDS
+	* Only Free386.com and Free386's source files. This repository contains files with different licenses.
 
 [CHANGES.txt](CHANGES.txt) for update information.
 
@@ -75,4 +76,8 @@ Please refer to the displayed command line help or [User's Manual](MANUAL.md).
 2. Install "nasm" and "make" package. ("apt install make nasm" on Debian/Ubuntu)
 3. Edit [f386def.inc] to select the build target.
 4. Run "make.sh".
+
+## Japanese Memo
+
+[メモは移動しました。](doc-ja/memo.md)
 

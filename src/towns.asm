@@ -62,8 +62,7 @@ init_TOWNS:
 ;★CoCo情報の保存
 ;==============================================================================
 ; ※CALLバッファに保存する
-	align	4
-init_CoCo:
+proc init_CoCo
 	mov	ax, 0c000h	; CoCo存在確認
 	int	8eh
 	test	ah, ah
@@ -80,10 +79,19 @@ init_CoCo:
 	cmp	di, 656eh	; 'en'
 	jne	.fail
 
-	xor	bp, bp			; counter
-	mov	si, [callbuf_adr16]
-	mov	es, [callbuf_seg16]
+%if NSDD_max*16+4 > GP_BUFFER_SIZE
+	%error NSDD_max is over "GP_BUFFER_SIZE/16 -1".
+%endif
+	; memory allocate
+	call	get_gp_buffer_16
+	test	ax, ax
+	jz	.fail
+
+	mov	[nsdd_info_adr], ax
+	mov	si, ax
 	mov	di, offset nsdd_selectors
+
+	xor	bp, bp			; counter
 .loop:
 	push	di
 	mov	cx, bp
@@ -115,7 +123,7 @@ init_CoCo:
 	jb	.loop
 .end:
 	xor	eax, eax
-	mov	[es:si], eax	; end mark
+	mov	[si], eax	; end mark
 	call	init2_CoCo
 .exit:
 	mov	ax, ds
@@ -129,21 +137,21 @@ init_CoCo:
 	;----------------------------------------------------
 	; セグメント形式のデータの加工
 	;----------------------------------------------------
-	; (example) Seg-Reg形式 / ただし limit は byte
-	; FF 7F 00 80  21 9A 40 00 - FF 7F 00 80  21 92 40 00
-	; 4C 00 00 00  00 00 00 00 - 44 00 00 00  00 00 00 00
 segdata_to_seglist:
-	; in=[di]  out=[es:si]
-	;----------------------------------------------------
-	; 目的の形式
-	;----------------------------------------------------
-	; dd	selector
-	; dd	physical address
-	; dd	pages-1
-	; dd	type/level
+	; in  = [di]
+	;	 Seg-Reg形式 / ただし limit は byte
+	;	 FF 7F 00 80  21 9A 40 00 - FF 7F 00 80  21 92 40 00
+	;	 4C 00 00 00  00 00 00 00 - 44 00 00 00  00 00 00 00
+	; out = [si]
+	;	dd	selector
+	;	dd	physical address
+	;	dd	pages-1
+	;	dd	type/level
+	; ※最後に終了マークとして 00h(dword) を記録
+	;
 	xor	eax, eax
 	mov	 ax,  bx
-	mov	[es:si],eax	; selector
+	mov	[si],eax	; selector
 
 	; di, dx非破壊
 
@@ -154,13 +162,13 @@ segdata_to_seglist:
 	and	ah, 00fh
 	shl	eax, 8
 	mov	ax, [di]	; limit
-	mov	[es:si+8],eax
+	mov	[si+8],eax
 
 	mov	ah, [di+7]
 	mov	al, [di+4]
 	shl	eax, 16
 	mov	ax, [di+2]
-	mov	[es:si+4],eax	; base
+	mov	[si+4],eax	; base
 
 	xor	eax, eax
 	mov	al, [di+5]
@@ -168,7 +176,7 @@ segdata_to_seglist:
 	and	al, 01100000b
 	and	ah, 00001110b
 	shr	al, 5
-	mov	[es:si+12],eax
+	mov	[si+12],eax
 	add	si, 10h
 .skip:
 	ret
@@ -190,8 +198,7 @@ BITS	32
 ;==============================================================================
 ;★T-OS のメモリ周り設定
 ;==============================================================================
-	align	4
-setup_TOWNS:
+proc setup_TOWNS
 	push	es
 	mov	ebx,offset T_OS_memory_map	;メモリのマップ
 	call	map_memory			;
@@ -250,22 +257,19 @@ setup_TOWNS:
 ;------------------------------------------------------------------------------
 ;★NSDドライバのセレクタを作成する
 ;------------------------------------------------------------------------------
-	align	4
-setup_nsdd:
-	mov	ax, 250dh
-	int	21h			; call buffer取得
-
+proc setup_nsdd
+	mov	edx, [nsdd_info_adr]
 	mov	edi, [work_adr]
-	; src es:edx
-	; des ds:edi
+	; src [edx]
+	; des [edi]
 .loop:
-	mov	eax, [es:edx+00h]
+	mov	eax, [edx+00h]
 	test	eax, eax
 	jz	.exit
 
-	mov	ebx, [es:edx+04h]
-	mov	ecx, [es:edx+08h]
-	mov	esi, [es:edx+0ch]
+	mov	ebx, [edx+04h]
+	mov	ecx, [edx+08h]
+	mov	esi, [edx+0ch]
 	mov	[edi+00h], ebx
 	mov	[edi+04h], ecx
 	mov	[edi+08h], esi
@@ -274,17 +278,21 @@ setup_nsdd:
 	add	edx, 10h
 
 	jmp	short .loop
-.exit:
-	ret
+
 .error:
 	mov	b [nsdd_load], 0
+.exit:
+
+	mov	eax, [nsdd_info_adr]
+	call	free_gp_buffer_32
+	xor	eax, eax
+	mov	[nsdd_info_adr], eax
 	ret
 
 ;------------------------------------------------------------------------------
 ;★NSDドライバを wake up する
 ;------------------------------------------------------------------------------
-	align	4
-wakeup_nsdd:
+proc wakeup_nsdd
 	mov	esi, offset nsdd_selectors
 	mov	edi, [work_adr]
 	lea	ebx, [edi + 10h]
@@ -331,8 +339,7 @@ wakeup_nsdd:
 ;------------------------------------------------------------------------------
 ;★NSDドライバを sleep させる
 ;------------------------------------------------------------------------------
-	align	4
-sleep_nsdd:
+proc sleep_nsdd
 	mov	esi, offset nsdd_selectors
 	mov	edi, [work_adr]
 	lea	ebx, [edi + 10h]
@@ -429,13 +436,13 @@ end_TOWNS:
 	push	es
 	mov	ebx, 128h
 	mov	es, bx
-	mov	ebx, 07fffch
-	cmp	d [es:ebx], 011011011h
-	mov	d [es:ebx], 0
+	mov	eax, [es:07fffch]
 	pop	es
-	mov	bl, 1
+
+	cmp	eax, 011011011h
 	jne	.res_c
 
+	;*** check VRAM access bit ***
 	mov	edi,[GDT_adr]		;GDT アドレスロード
 	mov	esi,[LDT_adr]		;LDT アドレスロード
 	mov	 al,[edi + TBIOS_cs +5]	;タイプフィールドロード
@@ -686,10 +693,14 @@ TOWNS_PAL_layer1:	;コンソール (文字) 画面
 ;★CoCo/NSDD関連データ
 ;==============================================================================
 	align	4
-	dw	0		;逆順にたどることがあるのでその時の終了マーク
+nsdd_info_adr:
+	dd	0		; NSDDの情報保存用のbuffer
+
+	dw	0		; 逆順にたどることがあるのでその時の終了マーク
 nsdd_selectors:
 	times	(NSDD_max)	dw	0
 	dw	0		;終了マーク
+
 
 ;==============================================================================
 ;★T-OS のメモリ関連データ

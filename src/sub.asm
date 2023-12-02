@@ -10,9 +10,8 @@
 ;
 %include	"macro.inc"
 %include	"f386def.inc"
-%include	"f386sub.inc"
 
-segment	text align=16 class=CODE use16
+segment	text align=4 class=CODE use16
 ;##############################################################################
 ;●サブルーチン (16 bit)
 ;##############################################################################
@@ -452,7 +451,7 @@ count_num_of_hash:
 ;//////////////////////////////////////////////////////////////////////////////
 ;●データ領域
 ;//////////////////////////////////////////////////////////////////////////////
-segment	data align=16 class=CODE use16
+segment	data align=4 class=CODE use16
 group	comgroup text data
 ;------------------------------------------------------------------------------
 	global	paras,paras_last,paras_p

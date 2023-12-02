@@ -12,7 +12,7 @@
 	FREE386.ASM	Free386 Main ルーチン (主に16bit code)
 	F386PROT.ASM	Free386 Protect Mode ルーチン
 	F386DATA.ASM	Free386 データ領域
-	TOWNS.ASM	FM-TOWNS 固有の処理
+	TOWNS.ASM	FM TOWNS 固有の処理
 	PC98.ASM	PC-98x1 固有の処理
 	AT.ASM		PC/AT互換機 固有の処理
 	-------------------------------------------------------------
@@ -457,7 +457,7 @@ MACHINE_CODE	equ	20h	;TOWNSシリーズ
 　これは、Free386拡張ファンクションの ah=01h で返される値を規定するものです。
 
 -------------------------------------------------------------------------------
-%define	MACHINE_STRING	'FM-TOWNS'
+%define	MACHINE_STRING	'FM TOWNS'
 -------------------------------------------------------------------------------
 
 　マシンを示す文字列を指定するものです。
@@ -1418,7 +1418,7 @@ XMS、プロテクトモードの基礎知識、VCPI、DPMI と解説されて�
 
 ○DOS-Extender について
 
-・FM-TOWNS 386|DOS-Extender V1.2aJ ユーザーズマニュアル
+・FM TOWNS 386|DOS-Extender V1.2aJ ユーザーズマニュアル
 
 　いわゆる TOWNS RUN386 のマニュアルですが、借り物だったりします(^^;;;
 　DOS function / DOS-Extender function リストの他、DOS-Extender 環境について
@@ -1498,14 +1498,14 @@ Free386 とは関係なくても構いませんので、御相談ください。
 
 ○各機種の情報
 
-　TOWNS は FM-TOWNS テクニカルデータブック。
+　TOWNS は FM TOWNS テクニカルデータブック。
 　PC-98 はネットでタダで配ってる、テクニカルデータブックの本になれなかったテ
 キストファイル。
 　AT互換機は現在も捜索中……といったところです。
 
 ・AT互換機のハードウェア全般
 ・PC-98 に搭載されているグラフィックボードの資料
-・FM-TOWNS の非公開I/O や OSの仕様 など
+・FM TOWNS の非公開I/O や OSの仕様 など
 
 　最終的には Linux のソースを読むしかないか……と思ってますが。
 

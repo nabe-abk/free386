@@ -7,7 +7,6 @@
 %include	"macro.inc"
 %include	"f386def.inc"
 %include	"free386.inc"
-%include	"f386sub.inc"
 
 ;------------------------------------------------------------------------------
 

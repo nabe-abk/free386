@@ -11,8 +11,18 @@
 %endmacro
 ;------------------------------------------------------------------------------
 ..start:
-start:
 	PRINT	msg
+
+	mov	ebx, msg2
+int29test:
+	mov	al, [ebx]
+	cmp	al, '$'
+	je	.exit
+	int	29h
+
+	inc	ebx
+	jmp	short int29test
+.exit:
 
 	; key input
 	mov	ah,08h
@@ -24,7 +34,7 @@ start:
 	int	21h
 
 
-msg	db	'This is test program',13,10
-	db	'<<push any to exit>>',13,10,'$'
+msg	db	'This is test program',13,10,'$'
+msg2	db	'<<push any to exit>>',13,10,'$'
 
 

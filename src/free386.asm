@@ -7,12 +7,13 @@
 %include	"macro.inc"
 %include	"f386def.inc"
 
-%include	"start.inc"		;ファイル先頭 / 動作定義変数
-%include	"sub.inc"		;便利なサブルーチンのヘッダファイル
-%include	"f386sub.inc"		;Free386用 サブルーチン
-%include	"f386seg.inc"		;セグメントライブラリ
-%include	"f386cv86.inc"		;V86 ←→ Protect 低レベル連携ルーチン
-%include	"int.inc"		;割り込みルーチンのヘッダファイル
+%include	"start.inc"
+%include	"sub.inc"
+%include	"f386sub.inc"
+%include	"f386mem.inc"
+%include	"f386seg.inc"
+%include	"f386cv86.inc"
+%include	"int.inc"
 
 ;******************************************************************************
 ; global symbols
@@ -20,7 +21,6 @@
 
 	;--- for f386seg.asm ------------------------------
 global		GDT_adr, LDT_adr
-global		free_TABLE_ladr
 global		free_LINER_ADR
 global		free_RAM_padr
 global		free_RAM_pages
@@ -31,30 +31,34 @@ global		page_dir
 	;--- for f386cv86.asm -----------------------------
 global		to_PM_EIP, to_PM_data_ladr
 global		VCPI_entry
-global		v86_cs
-global		int_buf_adr, int_buf_adr_org
-global		int_rwbuf_adr, int_rwbuf_adr_org
-global		int_rwbuf_size
-global		int_rwbuf_adr
 global		VCPI_stack_adr
-global		heap_malloc, stack_malloc
+global		v86_cs
 global		f386err
 
 	;--- for int.asm ----------------------------------
-global		work_adr
 global		PM_stack_adr
 global		END_program
 global		IDT_adr
 global		RVects_flag_tbl
 global		DTA_off, DTA_seg
 global		DOS_int21h_adr
-global		top_adr
 global		default_API
 global		pharlap_version
 
-global		callbuf_adr16
-global		callbuf_seg16
-global		callbuf_adr32
+	;--- for f386mem.asm ------------------------------
+global		program_err_end
+global		end_adr
+
+	;--- memory info ----------------------------------
+global		top_adr
+global		work_adr
+
+global		call_buf_used
+global		call_buf_size
+global		call_buf_adr16
+global		call_buf_seg16
+global		call_buf_adr32
+
 
 ;******************************************************************************
 ;■コード(16 bit)
@@ -154,7 +158,7 @@ parameter_check:
 	; -q
 	;///////////////////////////////
 .para_q:
-	mov	b [show_TITLE],0	;no title output
+	mov	b [show_title],0	;no title output
 	jmp	short .loop
 
 	;///////////////////////////////
@@ -206,7 +210,7 @@ parameter_check:
 ;------------------------------------------------------------------------------
 ;●タイトル表示
 ;------------------------------------------------------------------------------
-	mov	al,[show_TITLE]	;タイトル表示する?
+	mov	al,[show_title]	;タイトル表示する?
 	test	al,al		;値 check
 	jz	.no_title	;0 なら表示せず
 	PRINT86	P_title		;タイトル表示
@@ -351,8 +355,8 @@ VCPI_check:
 	mov	dx,ax			;dx にもセーブ
 	sub	ax,offset end_adr	;ax = 使われてないメモリ領域
 	add	dx,2000h		;空き最上位メモリ
-	mov	[frag_mem_size ],ax	;値をセーブ
-	mov	[top_mem_offset],dx	;
+	mov	[frag_mem_size],ax	;値をセーブ
+	mov	[free_heap_top],dx	;
 
 	;*** これで malloc などが使用可能になる ***
 
@@ -373,50 +377,6 @@ get_vcip_memory_size:
 	mov	[all_mem_pages],edx		;値記録
 
 ;------------------------------------------------------------------------------
-;●alloc DOS memory - for call buffer / work address
-;------------------------------------------------------------------------------
-alloc_call_buffer:
-	xor	bh, bh
-	mov	bl, [callbuf_sizeKB]	;CALL Buffer size (KB)
-	test	bl, bl
-	jnz	short .step
-	mov	bl, 1			;最低1KBは確保
-	mov	[callbuf_sizeKB], bl
-.step:
-	xor	eax, eax
-	shl	bx, 10-4 		; KB to para
-	mov	ah, 48h
-	int	21h
-	jnc	.alloc		;成功なら jmp
-
-	PRINT86		err_11		; CALL buffer確保失敗
-	Program_end	F386ERR		; 終了
-
-.alloc:
-	mov	[callbuf_seg16], ax	; real segment
-	shl	eax, 4
-	mov	[callbuf_adr32],eax	; liner address
-
-	;//////////////////////////////////////////////////
-	;汎用ワーク領域
-	;//////////////////////////////////////////////////
-	mov	ax,WORK_size		;汎用ワークサイズ
-	call	heap_malloc		;上位メモリ割り当て
-	mov	[work_adr],di		;記録
-
-;------------------------------------------------------------------------------
-;●機種固有の初期化設定（メモリ設定済後）
-;------------------------------------------------------------------------------
-
-%if TOWNS
-	call	init_TOWNS
-%elif PC_98
-	;call	init_PC98
-%elif PC_AT
-	;call	init_AT
-%endif
-
-;------------------------------------------------------------------------------
 ;●スタックメモリの確保と設定
 ;------------------------------------------------------------------------------
 	mov	ax,V86_stack_size	;V86時 stack
@@ -435,60 +395,95 @@ alloc_call_buffer:
 	mov	[VCPI_stack_adr],di	;記録
 
 ;------------------------------------------------------------------------------
-;●その他のメモリの確保と設定
+; Memory setting
 ;------------------------------------------------------------------------------
-	xor	edi,edi			;上位 16 bit クリア
-
+	global	memory_setting
+memory_setting:
 	;//////////////////////////////////////////////////
-	;リアルモードベクタ保存領域
-	mov	ax,IntVectors *4	;INT の数
-	call	heap_malloc		;上位メモリ割り当て
-	mov	[RVects_save_adr],di	;記録
+	; Save real mode interrupt table: 0000:0000-03ff
+	;//////////////////////////////////////////////////
+	xor	edi,edi
+	mov	ax,IntVectors *4
+	call	heap_malloc
+	mov	[RVects_save_adr],di	; save address
 
-	;リアルモードベクタの保存
+	; copy
 	push	ds
-	xor	esi,esi			;転送元
-	mov	 ds,si			;ds = 0
-	mov	ecx,IntVectors		;転送回数 = ベクタ数
-	rep	movsd			;一括転送  ds:esi -> es:edi
+	xor	esi,esi			; source
+	mov	 ds,si			; ds = 0
+	mov	ecx,IntVectors
+	rep	movsd			; es:edi <- ds:esi
 	pop	ds
 
 	;//////////////////////////////////////////////////
 	;GDT/LDT/TSS
+	;//////////////////////////////////////////////////
 	mov	ax,GDTsize		;Global Descriptor Table's size
-	call	heap_calloc		;上位メモリ割り当て
-	mov	[GDT_adr],di		;記録
+	call	heap_calloc
+	mov	[GDT_adr],di
 
 	mov	ax,LDTsize		;Local Descriptor Table's size
-	call	heap_calloc		;上位メモリ割り当て
-	mov	[LDT_adr],di		;記録
+	call	heap_calloc
+	mov	[LDT_adr],di
 
 	mov	ax,IDTsize		;Interrupt Descriptor Table's size
-	call	heap_calloc		;上位メモリ割り当て
-	mov	[IDT_adr],di		;記録
+	call	heap_calloc
+	mov	[IDT_adr],di
 
 	mov	ax,TSSsize		;Task State Segment's size
-	call	heap_calloc		;上位メモリ割り当て
-	mov	[TSS_adr],di		;記録
+	call	heap_calloc
+	mov	[TSS_adr],di
 
 	;//////////////////////////////////////////////////
-	;V86←→Protect連携ルーチンのセットアップ
-
+	; alloc real mode int hook memory and other setup
+	;//////////////////////////////////////////////////
 	call	setup_cv86		;in f386cv86.asm
 
 	;//////////////////////////////////////////////////
-	;プロテクトモード←→V86 仲介バッファ
-	mov	ax,INT_BUF_size * ISTK_nest_max	;バッファサイズ
-	call	heap_malloc			;上位メモリ割り当て
-	mov	[int_buf_adr],di		;記録
-	mov	[int_buf_adr_org],di
+	; main call buffer
+	;//////////////////////////////////////////////////
+	movzx	eax, b [call_buf_sizeKB]
+	shl	eax, 10
+	cmp	eax, 10000h
+	jb	.cb_skip
+	mov	eax, 0ffffh
+.cb_skip:
+	mov	[call_buf_size], eax
+	call	heap_malloc
 
-	mov	ax,INT_RWBUF_size		;ファイル入出力専用
-	mov	[int_rwbuf_size],ax
-	call	heap_malloc			;上位メモリ割り当て
-	mov	[int_rwbuf_adr],di		;記録
-	mov	[int_rwbuf_adr_org],di
+	mov	[call_buf_seg16], ds	; real segment
+	mov	[call_buf_adr16], di	; offset
+	mov	[call_buf_adr32], di	; offset
 
+	;//////////////////////////////////////////////////
+	; Universal buffer
+	;//////////////////////////////////////////////////
+	mov	ax, WORK_size
+	call	heap_malloc
+	mov	[work_adr],di
+
+	mov	cx, GP_BUFFERS
+	mov	si, offset gp_buffer_table
+.gp_loop:
+	mov	ax, GP_BUFFER_SIZE
+	call	heap_malloc
+	mov	[si], di	; save
+	add	si, 4
+	loop	.gp_loop
+
+	mov	b [gp_buffer_remain], GP_BUFFERS
+
+;------------------------------------------------------------------------------
+;●機種固有の初期化設定（メモリ設定済後、XMS直前）
+;------------------------------------------------------------------------------
+
+%if TOWNS
+	call	init_TOWNS
+%elif PC_98
+	;call	init_PC98
+%elif PC_AT
+	;call	init_AT
+%endif
 
 ;------------------------------------------------------------------------------
 ;●XMS の確認と呼び出しアドレスの取得
@@ -682,7 +677,7 @@ alloc_page_table:
 .skip:
 
 ;------------------------------------------------------------------------------
-;●DOS memory for exp
+;●DOS memory for EXP
 ;------------------------------------------------------------------------------
 alloc_real_mem_for_exp:
 	xor	eax, eax
@@ -993,86 +988,6 @@ write_IDT:
 
 
 ;------------------------------------------------------------------------------
-;●メモリアロケーション
-;------------------------------------------------------------------------------
-;	in	ax = size (byte)
-;	out	di = offset
-;
-;多重メモリアロケーションの回避は考えていない。
-;16 の倍数以外は指定しないことが望ましい。
-;
-	align	4
-heap_malloc:		;上位からのメモリ割り当て
-	cmp	ax,[frag_mem_size]	;断片化メモリのサイズと比較
-	ja	.not_frag_mem		;if ↑より大きい jmp
-
-	mov	di,[frag_mem_offset]	;断片化メモリの割り当て
-	sub	[frag_mem_size  ],ax	;割り当てたメモリ量を引く
-	add	[frag_mem_offset],ax	;空きメモリを示すポインタを更新
-	ret
-
-	align	4
-.not_frag_mem:		;上位空きメモリの単純な割り当て
-	mov	di,[top_mem_offset]	;上位空きメモリ割り当て
-	add	[top_mem_offset],ax	;サイズ分加算
-	jmp	short check_heap_mem
-
-	align	4
-stack_malloc:		;下位からのメモリ割り当て
-	mov	di,[down_mem_offset]	;最下位空きメモリ
-	sub	[down_mem_offset],ax	;新たな値を記録
-	; jmp	short check_heap_mem
-check_heap_mem:
-	push	ax
-	push	bx
-	mov	ax,[top_mem_offset]
-	mov	bx,[down_mem_offset]
-	dec	ax
-	dec	bx
-	cmp	ax,bx
-	pop	bx
-	pop	ax
-	ja	.error
-	ret
-.error:
-	mov	ah, 25h			;error code
-	jmp	program_err_end
-
-
-	;//////////////////////////////////////////////////
-	;0 初期化したメモリの取得
-	;//////////////////////////////////////////////////
-	align	4
-heap_calloc:
-	push	w (mem_clear)		;戻りラベル
-	jmp	heap_malloc
-
-	align	4
-stack_calloc:
-	std
-	push	w (mem_clear)		;戻りラベル
-	jmp	stack_malloc
-
-	align	4
-mem_clear:		;メモリの 0 クリア
-	push	eax
-	push	ecx
-	push	edi
-
-	movzx	ecx,ax			;ecx メモリサイズ
-	movzx	edi,di			;edi 書き込み先
-	xor	eax,eax			;eax = 0
-	shr	ecx,2			;4 で割る
-	rep	stosd			;メモリ塗りつぶし ->es:[edi]
-
-	pop	edi
-	pop	ecx
-	pop	eax
-	cld
-	ret
-
-
-;------------------------------------------------------------------------------
 ;●確保した拡張メモリの開放
 ;------------------------------------------------------------------------------
 	align	4
@@ -1131,7 +1046,7 @@ program_err_end:
 	sub	ah,20h			;内部エラーコード 00h～1fh は欠番
 	movzx	si,ah			;si にエラー番号を
 	add	si,si			;si*2
-	mov	dx,[end_msg_table + si]	;エラーメッセージのアドレス
+	mov	dx,[err_msg_table + si]	;エラーメッセージのアドレス
 
 	mov	ah,09h			;メッセージ表示
 	int	21h			;DOS call
