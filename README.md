@@ -8,7 +8,7 @@ This is written in assembly language only.
 
 * Version: 0.70
 * Date: **2023-11-28**
-* Author: [nabe@abk](https:/twitter.com/nabe_abk)
+* Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
 * Compatible: MS-DOS and XMS and **VCPI** (with HIMEM.SYS and EMM386.EXE)
