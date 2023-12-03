@@ -21,10 +21,10 @@ global	call_V86_int21
 global	call_V86_HARD_int
 
 global	call_V86
-global	call_v86_ds
-global	call_v86_es
+global	call_V86_ds
+global	call_V86_es
 
-global	callf32_from_v86	; use by int 21h ax=250dh and towns.asm
+global	callf32_from_V86	; use by int 21h ax=250dh and towns.asm
 
 global	rint_labels_adr
 
@@ -103,18 +103,18 @@ call_V86_int:
 	mov	 es,eax			;es にロード
 	mov	eax,[esp + 4*7]		;引数（ベクタ番号*4）を取得
 	mov	eax,[es:eax*4]		;V86 割り込みベクタロード
-	mov	[call_v86_adr],eax	;呼び出しアドレスセーブ
+	mov	[call_V86_adr],eax	;呼び出しアドレスセーブ
 
 	pop	es
 	pop	ds
 
-	mov	eax, [cs:v86_cs]
+	mov	eax, [cs:V86_cs]
 	mov	[esp+04h], eax		;V86 ds
 	mov	[esp+08h], eax		;V86 es
 	mov	[esp+0ch], eax		;V86 fs
 	mov	[esp+10h], eax		;V86 gs
 
-	mov	eax, [cs:call_v86_adr]
+	mov	eax, [cs:call_V86_adr]
 	xchg	[esp], eax		;[esp]=呼び出し先, eax=オリジナル
 	call	call_V86
 
@@ -143,7 +143,7 @@ call_V86_HARD_int:
 	push	eax
 	push	es
 
-	mov	eax,[cs:v86_cs]
+	mov	eax,[cs:V86_cs]
 	push	eax			;gs
 	push	eax			;fs
 	push	eax			;es
@@ -196,7 +196,7 @@ call_V86:
 
 	mov	eax,[esp + 4*4 +4]	;呼び出しアドレスロード
 	lea	esi,[esp + 4*4 +8]	;V86 call パラメータブロック
-	mov	[call_v86_adr],eax	;呼び出しアドレスセーブ
+	mov	[call_V86_adr],eax	;呼び出しアドレスセーブ
 
 	push	ss			;現在のスタック
 	pop	gs			;gs に設定
@@ -206,12 +206,12 @@ call_V86:
 	push	d [gs:esi+ 8]		;** V86 fs
 	push	d [gs:esi   ]		;** V86 ds
 	push	d [gs:esi+ 4]		;** V86 es
-	push	d [v86_cs]		;** V86 ss
+	push	d [V86_cs]		;** V86 ss
 
 	call	alloc_SW_stack_32
 	push	eax			;** V86 sp
 	pushf				;eflags
-	push	d [v86_cs]		;** V86 CS を記録
+	push	d [V86_cs]		;** V86 CS を記録
 	push	d (offset .in86)	;** V86 IP を記録
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
@@ -232,19 +232,19 @@ BITS	16
 
 	push	w (-1)			;mark / iret,retf両対応のため
 	pushf				;flag save for INT
-	call	far [cs:call_v86_adr]	;目的ルーチンのコール
+	call	far [cs:call_V86_adr]	;目的ルーチンのコール
 
 	cli
-	mov	[cs:call_v86_ds],ds	;ds セーブ
-	mov	ds,[cs:v86_cs]		;V86時 ds
-	mov	[call_v86_es],es	;es セーブ
-	mov	[call_v86_fs],fs	;fs セーブ
-	mov	[call_v86_gs],gs	;gs セーブ
+	mov	[cs:call_V86_ds],ds	;ds セーブ
+	mov	ds,[cs:V86_cs]		;V86時 ds
+	mov	[call_V86_es],es	;es セーブ
+	mov	[call_V86_fs],fs	;fs セーブ
+	mov	[call_V86_gs],gs	;gs セーブ
 
 	mov	[save_eax],eax		;eax セーブ
 	mov	[save_esi],esi		;esi セーブ
 	pushf
-	pop	w [call_v86_flags]	;flags セーブ
+	pop	w [call_V86_flags]	;flags セーブ
 
 	pop	ax			;flagsが取り除かれてるか？
 	cmp	ax,-1
@@ -276,12 +276,12 @@ BITS	32
 	;	+0ch	V86 es
 	;	+10h	V86 fs
 	;	+14h	V86 gs
-	mov	eax,[call_v86_ds]	;V86 ds 戻り値
-	mov	esi,[call_v86_es]	;V86 es
+	mov	eax,[call_V86_ds]	;V86 ds 戻り値
+	mov	esi,[call_V86_es]	;V86 es
 	mov	[esp + 4*4 + 08h],eax	;スタックにセーブ
 	mov	[esp + 4*4 + 0ch],esi	;
-	mov	eax,[call_v86_fs]	;V86 fs
-	mov	esi,[call_v86_gs]	;V86 gs
+	mov	eax,[call_V86_fs]	;V86 fs
+	mov	esi,[call_V86_gs]	;V86 gs
 	mov	[esp + 4*4 + 10h],eax	;スタックにセーブ
 	mov	[esp + 4*4 + 14h],esi	;
 
@@ -293,7 +293,7 @@ BITS	32
 	mov	eax,[cs:save_eax]	;eax 復元
 	mov	esi,[cs:save_esi]	;esi 復元
 
-	bt	d [cs:call_v86_flags],0	;V86時 Carryフラグ設定
+	bt	d [cs:call_V86_flags],0	;V86時 Carryフラグ設定
 	ret
 
 
@@ -384,7 +384,7 @@ BITS	32
 
 	;call	free_SW_stack_32	;スタック開放
 
-	mov	eax,[v86_cs]		;V86時 cs,ds
+	mov	eax,[V86_cs]		;V86時 cs,ds
 	push	eax			;** V86 gs
 	push	eax			;** V86 fs
 	push	eax			;** V86 ds
@@ -404,7 +404,7 @@ BITS	32
 ;******************************************************************************
 BITS	16
 	align	4
-callf32_from_v86:
+callf32_from_V86:
 	; retf address	;     = 4
 	push	ds	; 2*4 = 8
 	push	es
@@ -455,7 +455,7 @@ BITS	32
 	push	esi
 	mov	esi, esp
 
-	mov	eax,[v86_cs]		;V86時 cs,ds
+	mov	eax,[V86_cs]		;V86時 cs,ds
 	push	eax			;** V86 gs
 	push	eax			;** V86 fs
 	push	eax			;** V86 ds
@@ -520,7 +520,8 @@ proc alloc_SW_stack_32
 	ret
 
 .error:
-	F386_end	26h
+	mov	b [f386err], 26h
+	jmp	exit_32
 
 ;==============================================================================
 ; free SW stack memory
@@ -551,7 +552,8 @@ proc free_SW_stack_32
 	ret
 
 .error:
-	F386_end	27h
+	mov	b [f386err], 27h
+	jmp	exit_32
 
 
 BITS	32
@@ -566,13 +568,13 @@ save_esi	dd	0		;
 save_esp	dd	0		;あくまで一時領域
 save_ss		dd	0		;
 
-call_v86_ds	dw	0,0		;
-call_v86_es	dw	0,0		;V86 のルーチンコール後の
-call_v86_fs	dw	0,0		; 各レジスタの値
-call_v86_gs	dw	0,0		;
-call_v86_flags	dw	0,0		;
+call_V86_ds	dw	0,0		;
+call_V86_es	dw	0,0		;V86 のルーチンコール後の
+call_V86_fs	dw	0,0		; 各レジスタの値
+call_V86_gs	dw	0,0		;
+call_V86_flags	dw	0,0		;
 
-call_v86_adr	dd	0		;V86 / 呼び出す CS:IP
+call_V86_adr	dd	0		;V86 / 呼び出す CS:IP
 
 sw_cpumode_nest	dd	0		; Switch cpu mode nest counter
 

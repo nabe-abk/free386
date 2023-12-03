@@ -542,7 +542,7 @@ int_21h_1ch:
 	xor	ebx,ebx			;ebx 上位16bit クリア
 	calli	call_V86_int21		;DS:BX = FAT-ID アドレス
 
-	mov	esi,[cs:call_v86_ds]	;real ds
+	mov	esi,[cs:call_V86_ds]	;real ds
 	shl	esi, 4			;セグメントを16倍 (para -> byte)
 	add	ebx,esi			;ebx = FAT:ID ベースアドレス
 	push	d (DOSMEM_Lsel)		;DOSメモリアクセスセレクタ
@@ -1024,7 +1024,7 @@ int_21h_ret_esbx:
 	mov	eax,DOSMEM_Lsel
 	mov	es, eax
 
-	mov	eax, [cs:call_v86_es]
+	mov	eax, [cs:call_V86_es]
 	shl	eax, 4			;to Liner
 	add	ebx, eax
 

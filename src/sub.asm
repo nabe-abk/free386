@@ -302,7 +302,7 @@ bin2deg_32:
 	push	ebp
 
 	mov	ebx,offset deg_table	;10^n 数値テーブル
-	mov	esi,offset deg_str	;10進 文字列変換テーブル
+	mov	esi,offset hex_str	;10進 文字列変換テーブル
 
 	dec	ecx			;桁数 -1
 	mov	ebp,15			;危険防止のためのマスク値
@@ -322,7 +322,7 @@ bin2deg_32:
 	mov	byte [esi],'0'		;0 の位置に '0' を入れる
 .skip:
 
-	mov	al,[esi + eax]		;該当文字コード (0～9)
+	add	al,[esi + eax]		;該当文字コード (0～9)
 	mov	[edi],al		;記録
 	mov	eax,edx			;eax = 余り
 	inc	edi			;次の文字格納位置ヘ
@@ -454,8 +454,11 @@ count_num_of_hash:
 segment	data align=4 class=CODE use16
 group	comgroup text data
 ;------------------------------------------------------------------------------
-	global	paras,paras_last,paras_p
-
+global	paras
+global	paras_last
+global	paras_p
+global	hex_str
+;------------------------------------------------------------------------------
 paras		dw	0,0		;発見したパラメーターの数
 paras_last	dw	0,0		;0dh の位置
 paras_p		resw	max_paras	;ポインタ配列
@@ -473,7 +476,6 @@ deg_07	dd	10000000
 deg_08	dd	100000000
 deg_09	dd	1000000000
 
-deg_str:
 hex_str	db	'0123456789ABCDEF'
 
 ;*** 16 進数 数値変換用テーブル ***

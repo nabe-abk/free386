@@ -49,7 +49,7 @@ check_heap_mem:
 	ret
 .error:
 	mov	ah, 25h			;error code
-	jmp	program_err_end
+	jmp	error_exit_16
 
 ;------------------------------------------------------------------------------
 ; heap memory functions with zero fill

@@ -301,7 +301,7 @@ eax2hex:
 .loop:
 	mov	ebx, eax
 	shr	ebx, 28
-	mov	 cl, [hexstr + ebx]
+	mov	 cl, [hex_str + ebx]
 	mov	[edx], cl
 	inc	edx
 	shl	eax, 4
@@ -1308,7 +1308,11 @@ blue_flags	db "O  D  S  Z  C  ",13,10
 string_return	db '*Ret:*'
 string_crlf	db 13,10,'$'
 
-hexstr		db	"0123456789ABCDEF"
+blue_err_str	db	"Err "
+blue_int_str	db	"Int "
+
+extern	hex_str		;Definded in sub.asm
+;hex_str 	db	'0123456789ABCDEF'
 
 err_size	db	34
 err_max		db	12h
@@ -1337,8 +1341,6 @@ err_dmy		db	'1xh - Unknown (Stack broken?)     '
 dump_err_code	dd	-1
 dump_orig_esp	dd	-1
 dump_orig_ss	dd	-1
-blue_err_str	db	"Err "
-blue_int_str	db	"Int "
 
 ;------------------------------------------------------------------------------
 ;・ファイルパス検索

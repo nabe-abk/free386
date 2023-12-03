@@ -63,7 +63,7 @@ int_21h_00h:
 	xor	al,al			;リターンコード = 0 / DOS互換
 int_21h_4ch:
 	add	esp,12			;スタック除去
-	jmp	END_program		;DOS-Extender 終了処理
+	jmp	exit_32		;DOS-Extender 終了処理
 
 	;★本来はここに DOS_Extender 終了処理が入る
 
@@ -471,17 +471,16 @@ proc DOS_Ext_fn_2504h
 ;------------------------------------------------------------------------------
 ;・リアル(V86) モードの割り込みベクタ設定  AX=2505h
 ;------------------------------------------------------------------------------
+; in	 cl = interrupt number
+;	ebx = handler address / SEG:OFF
+;
 	align	4
 DOS_Ext_fn_2505h:
 	call	set_V86_vector
 	clear_cy
 	iret
 
-	align	4
-set_V86_vector:
-;	cmp	cl,21h		;21h は書き換え禁止
-;	je	.exit
-
+proc set_V86_vector
 	push	ds
 	push	ebx
 	push	ecx
@@ -503,7 +502,6 @@ set_V86_vector:
 	pop	ds
 .exit:	ret
 
-
 ;------------------------------------------------------------------------------
 ;・常にプロテクトモードで発生する割り込みの設定  AX=2506h
 ;------------------------------------------------------------------------------
@@ -518,7 +516,7 @@ DOS_Ext_fn_2506h:
 	push	d (F386_ds)	;ds
 	pop	ds		;
 
-	mov	ebx,[v86_cs]		;V86 ベクタ CS
+	mov	ebx,[V86_cs]		;V86 ベクタ CS
 	shl	ebx,16			;上位へ
 	mov	esi,[rint_labels_adr]	;int 0    の hook ルーチンアドレス
 	lea	 bx,[esi+ecx*4]		;int cl 番の hook ルーチンアドレス
@@ -738,9 +736,9 @@ DOS_Ext_fn_250dh:
 	mov	eax, DOSMEM_Lsel
 	mov	 es, eax
 
-	mov	 ax, [v86_cs]
+	mov	 ax, [V86_cs]
 	shl	eax, 16
-	mov	 ax, offset callf32_from_v86
+	mov	 ax, offset callf32_from_V86
 
 	clear_cy
 	iret
@@ -826,7 +824,7 @@ DOS_Ext_fn_250fh:
 ;・リアルモードのルーチンfarコール　AX=250eh
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_250eh:		;仮対応！！　v86 call時、フラグ保存しない
+DOS_Ext_fn_250eh:		;仮対応！！　V86 call時、フラグ保存しない
 
 	test	ecx,ecx		;スタックコピー回数
 	jnz	.fail		;指定があれば失敗

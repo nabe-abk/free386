@@ -1,10 +1,6 @@
 ;******************************************************************************
-;　Free386	＜プロテクトモード処理部＞
+;　Free386 in protect mode
 ;******************************************************************************
-;
-; 2001/01/18 ファイルを分離
-;
-;
 ;
 BITS	32
 ;==============================================================================
@@ -28,12 +24,11 @@ start32:
 	;///////////////////////////////
 	mov	eax,2506h		;常にプロテクトモードで発生する割り込み
 	mov	 cl,23h			;CTRL-C 割り込み
-	mov	edx,offset END_program	;hook 先ルーチン
+	mov	edx,offset exit_32	;hook 先ルーチン
 
 	push	cs
 	pop	ds			;ds:edx = エトリーアドレス
-	int	21h			;DOS-Extender function
-
+	int	21h
 	mov	ds,ebx			;ds 復元
 
 	;///////////////////////////////
@@ -59,7 +54,7 @@ internal_mem_dump:
 	dec	eax
 	call	rewrite_next_hash_to_hex
 
-	mov	eax, [v86_cs]
+	mov	eax, [V86_cs]
 	call	rewrite_next_hash_to_hex
 
 	mov	eax, end_adr
@@ -156,7 +151,7 @@ internal_mem_dump:
 	sub	eax,  PM_stack_size
 	call	rewrite_next_hash_to_hex
 
-	movzx	eax, w [v86_sp]
+	movzx	eax, w [V86_sp]
 	sub	eax, V86_stack_size
 	call	rewrite_next_hash_to_hex
 
@@ -213,7 +208,8 @@ make_page_tables:
 	test	eax,eax			;プロテクトメモリ量
 	jnz	.step			;0 でなければ継続(jmp)
 
-	F386_end	21h		;メモリなし
+	mov	b [f386err], 21h	;メモリなし
+	jmp	exit_32
 .step:
 
 ;------------------------------------------------------------------------------
@@ -389,7 +385,7 @@ no_file:
 	jz	.skip
 	PRINT		msg_10		;使い方表示
 .skip:
-	Program_END	00		;プログラム終了処理
+	call_4ch	00		;プログラム終了処理
 
 
 	align	4
@@ -501,7 +497,9 @@ search_file:
 	PRINT	msg_05
 	mov	edx,[work_adr]		;検索したファイル名
 	call	string_print		;文字列表示 (null:終端)
-	F386_end	22h
+
+	mov	b [f386err], 22h
+	jmp	exit_32
 
 	;
 	;ロードファイル名の表示
@@ -540,8 +538,7 @@ call_load_exp:
 ;------------------------------------------------------------------------------
 ;●プログラムの終了(32bit)
 ;------------------------------------------------------------------------------
-	align	4
-END_program:
+proc exit_32
 	cli
 	mov	bx,F386_ds		;ds 復元
 	mov	ds,ebx			;
@@ -598,8 +595,8 @@ RestoreRealVectors:
 	;///////////////////////////////
 	;V86 モードへ戻る
 	;///////////////////////////////
-	mov	eax,[v86_cs]		;V86時 cs,ds
-	mov	ebx,[v86_sp]		;V86時 sp
+	mov	eax,[V86_cs]		;V86時 cs,ds
+	mov	ebx,[V86_sp]		;V86時 sp
 
 	cli				;割り込み禁止
 	push	eax			;V86 gs
@@ -610,7 +607,7 @@ RestoreRealVectors:
 	push	ebx			;V86 esp
 	pushfd				;eflags
 	push	eax			 ;V86 cs
-	push	d (offset END_program16) ;V86 EIP / 終了ラベル
+	push	d (offset exit_16) ;V86 EIP / 終了ラベル
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call    far [VCPI_entry]	;VCPI call

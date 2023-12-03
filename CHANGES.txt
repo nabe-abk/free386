@@ -7,6 +7,7 @@ Ver 0.70b - 2023-12-01
 - Change the timing of model-specific initialization.
 - int 21h/4ah, changed to ignore selector limit shrinkage.
   Because there is no physical memory release function.
+- Add: int 24h's abort trap.
 - Add: "-vv" option.
 - Add: "-q" option.
 - Add: int 21h, ax=250Dh, eax value set.

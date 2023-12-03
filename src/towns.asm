@@ -191,7 +191,7 @@ init2_CoCo:
 	; [Regist] real mode to 32bit mode far call routine
 	;
 	mov	dx, cs
-	mov	bx, offset callf32_from_v86
+	mov	bx, offset callf32_from_V86
 	mov	ax, 0c207h
 	int	8eh
 	ret

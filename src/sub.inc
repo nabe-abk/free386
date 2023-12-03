@@ -21,4 +21,6 @@ extern	paras			;発見したパラメーターの数
 extern	paras_last		;パラメタ列最後尾
 extern	paras_p			;パラメタ先頭へのポインタ
 
+extern	deg_table
+extern	hex_str
 

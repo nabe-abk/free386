@@ -48,8 +48,8 @@ VCPI_stack_adr	dd	0		;V86 モード切り換え時のみ
 		dw	F386_ds		;　使用するスタック
 PM_stack_adr	dd	0		;プロテクトモード時のスタック
 		dw	F386_ds		;
-v86_cs		dw	0,0		;V86モード時 cs
-v86_sp		dw	0,0		;V86モード時 sp
+V86_cs		dw	0,0		;V86モード時 cs
+V86_sp		dw	0,0		;V86モード時 sp
 
 		align	4
 GDT_adr		dd	0		;GDT のオフセット
@@ -103,13 +103,15 @@ DTA_seg		dw	PSP_sel1,0	;
 
 ;----- データ領域２ -------------------------------------------------
 ;
-	align	16
+	align	4
 LGDT_data	dw	GDTsize-1	;GDT リミット
 		dd	0		;    リニアアドレス
 LIDT_data	dw	IDTsize-1	;IDT リミット
 		dd	0		;    リニアアドレス
 
-DOS_int21h_adr	dd	0		;DOS int 21h   CS:IP
+DOS_int21h_adr	dw	0,0		;DOS int 21h CS:IP
+DOS_int24h_adr	dw	0		;DOS int 24h CS:IP
+DOS_int24h_seg	dw	0		;
 VCPI_entry	dd	0		;VCPI サービスエントリ
 		dw	VCPI_sel	;VCPI セレクタ
 
@@ -145,6 +147,8 @@ P_title	db	'Free386(386|DOS-Extender) for '
 	db	MACHINE_STRING
 	db	' ',VER_STRING
 	db	' (C)nabe@abk',13,10,'$'
+seg_msg	db	'Code segment: '
+seg_hex	db	'####',13,10,'$'
 
 EXE_err	db	'Do not execute free386.exe (Please run free386.com)',13,10,'$'
 

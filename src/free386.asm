@@ -32,12 +32,12 @@ global		page_dir
 global		to_PM_EIP, to_PM_data_ladr
 global		VCPI_entry
 global		VCPI_stack_adr
-global		v86_cs
+global		V86_cs
 global		f386err
 
 	;--- for int.asm ----------------------------------
 global		PM_stack_adr
-global		END_program
+global		exit_32
 global		IDT_adr
 global		RVects_flag_tbl
 global		DTA_off, DTA_seg
@@ -46,7 +46,7 @@ global		default_API
 global		pharlap_version
 
 	;--- for f386mem.asm ------------------------------
-global		program_err_end
+global		error_exit_16
 global		end_adr
 
 	;--- memory info ----------------------------------
@@ -76,7 +76,7 @@ start:
 
 	mov		ds,ax		; ds を cs からロード
 	PRINT86		EXE_err		;「com 形式で実行してください」
-	Program_end	F386ERR		; プログラム終了(ret = 99)
+	call_4ch	F386ERR		; プログラム終了
 
 	align	4
 .step:	;///////////////////////////////
@@ -210,12 +210,21 @@ parameter_check:
 ;------------------------------------------------------------------------------
 ;●タイトル表示
 ;------------------------------------------------------------------------------
+proc print_title
 	mov	al,[show_title]	;タイトル表示する?
 	test	al,al		;値 check
 	jz	.no_title	;0 なら表示せず
 	PRINT86	P_title		;タイトル表示
 .no_title:
 
+	cmp	b [verbose], 2
+	jb	.skip
+
+	mov	dx, cs
+	mov	si, seg_hex
+	call	HEX_conv4
+	PRINT86	seg_msg
+.skip:
 
 ;------------------------------------------------------------------------------
 ;●簡易機種判別
@@ -237,7 +246,7 @@ machine_check:
 
 	jnc	.check_safe		;Cy=0 なら該当機種
 	PRINT86		err_10		;機種判別失敗
-	Program_end	F386ERR		;終了
+	call_4ch	F386ERR		;終了
 
 .no_check:
 .check_safe:
@@ -273,7 +282,7 @@ check_ems_driver:
 	;/// エラー処理 /////////
 .not_found:
 	PRINT86		err_01e		; 'EMS not found'
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 
 .skip:
 	push	ds
@@ -290,7 +299,7 @@ VCPI_check:
 	jz	short .skip	; found VCPI
 
 	PRINT86		err_01		; 'VCPI not find'
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 .skip:
 	
 ;------------------------------------------------------------------------------
@@ -383,8 +392,8 @@ get_vcip_memory_size:
 	call	stack_malloc		;下位メモリ割り当て
 	mov	sp,di			;スタック切替え
 
-	mov	[v86_cs],cs		;cs 退避
-	mov	[v86_sp],di		;sp 退避
+	mov	[V86_cs],cs		;cs 退避
+	mov	[V86_sp],di		;sp 退避
 
 	mov	ax,PM_stack_size	;プロテクトモード時 stack
 	call	stack_malloc		;下位メモリ割り当て
@@ -495,7 +504,7 @@ XMS_setup:
 	je	.found		;等しければ jmp
 
 	PRINT86		err_04		;「XMS が見つからない」
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 
 	align	2
 .found:
@@ -552,7 +561,7 @@ get_EMB_XMS20:
 %endif
 get_EMB_failed:
 	PRINT86		err_05
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 
 
 ;------------------------------------------------------------------------------
@@ -587,9 +596,9 @@ get_EMB_XMS30:
 ;------------------------------------------------------------------------------
 	align	4
 lock_failed:
-	call	free_EMB	;EMB の開放
-	PRINT86	err_07		;「ロック失敗」
-	Program_END F386ERR	;プログラム終了
+	call		free_EMB	;EMB の開放
+	PRINT86		err_07		;「ロック失敗」
+	call_4ch	F386ERR		;プログラム終了
 
 	align	4
 lock_EMB:
@@ -638,7 +647,7 @@ alloc_page_table:
 
 	call		free_EMB
 	PRINT86		err_12
-	Program_end	F386ERR
+	call_4ch	F386ERR
 
 .alloc:
 	shl	eax, 4
@@ -732,7 +741,7 @@ proc get_VCPI_statas
 
 	call		free_EMB	; 拡張メモリの開放
 	PRINT86		err_02		; 'VCPI not find'
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 
 	align	4
 .save:
@@ -958,6 +967,18 @@ setup_IDT:
 %endif
 
 ;------------------------------------------------------------------------------
+;●hook int 24h
+;------------------------------------------------------------------------------
+	mov	ax, 3524h		; read int 24h
+	int	21h
+	mov	[DOS_int24h_adr], bx
+	mov	[DOS_int24h_seg], es
+
+	mov	dx, offset hook_int_24h
+	mov	ax, 2524h		; set int 24h
+	int	21h
+
+;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え
 ;------------------------------------------------------------------------------
 	mov	ax,0de0ch		;VCPI function  0Ch
@@ -969,7 +990,7 @@ setup_IDT:
 
 	call		free_EMB	; 拡張メモリの開放
 	PRINT86		err_03		; CPU 切替え失敗
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 
 
 ;==============================================================================
@@ -1009,20 +1030,35 @@ free_EMB:
 .ret	ret
 
 
+;------------------------------------------------------------------------------
+; hook for int 24
+;------------------------------------------------------------------------------
+proc hook_int_24h
+	pushf
+	call	far [cs:DOS_int24h_adr]
+
+	cmp	al,02h
+	jne	.ret
+	int	23h		; Force end program
+.ret:
+	iret
+	; 本来 al=2 のときは、CTRL-C ルーチン（int 23h）が呼ばれるはずだが、
+	; なぜか呼ばれない（DOS6にて確認）ので、
+	; あまり良い方法ではないが強制的に呼んでいる。
+
 ;##############################################################################
 ;==============================================================================
 ;■プログラムの終了 (16 bit)
 ;==============================================================================
-	align	4
-END_program16:
+proc exit_16
 	;////////////////////////////////////////////////////////////
 	;/// 割り込みマスク復元 /////////////////////////////////////
-%if Restore8259A && enable_INTR
-	mov	ax,[intr_mask_org]	;復元情報
-	out	I8259A_IMR_M, al	;マスタ側
-	mov	al,ah			;
-	out	I8259A_IMR_S, al	;スレーブ側
-%endif
+	%if Restore8259A && enable_INTR
+		mov	ax,[intr_mask_org]	;復元情報
+		out	I8259A_IMR_M, al	;マスタ側
+		mov	al,ah			;
+		out	I8259A_IMR_S, al	;スレーブ側
+	%endif
 
 	;///////////////////////////////
 	;各機種固有の終了処理
@@ -1043,7 +1079,7 @@ END_program16:
 
 	mov	ax,[err_level]		;AH = Free386 ERR / AL = Program ERR
 	test	ah,ah			;check
-	jnz	program_err_end		;non 0 ならエラー終了
+	jnz	error_exit_16		;non 0 ならエラー終了
 
 	mov	ah,4ch
 	int	21h			;正常終了
@@ -1052,8 +1088,7 @@ END_program16:
 ;------------------------------------------------------------------------------
 ;●内部エラー発生
 ;------------------------------------------------------------------------------
-	align	4
-program_err_end:
+proc error_exit_16
 	sub	ah,20h			;内部エラーコード 00h～1fh は欠番
 	movzx	si,ah			;si にエラー番号を
 	add	si,si			;si*2
@@ -1062,7 +1097,7 @@ program_err_end:
 	mov	ah,09h			;メッセージ表示
 	int	21h			;DOS call
 
-	Program_end	F386ERR		; 終了
+	call_4ch	F386ERR		; 終了
 
 
 ;******************************************************************************

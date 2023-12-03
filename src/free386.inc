@@ -13,11 +13,11 @@ extern		page_dir
 extern		to_PM_EIP, to_PM_data_ladr
 extern		VCPI_entry
 extern		VCPI_stack_adr
-extern		v86_cs
+extern		V86_cs
 extern		f386err
 
 extern		PM_stack_adr
-extern		END_program
+extern		exit_32
 extern		IDT_adr
 extern		RVects_flag_tbl
 extern		DTA_off, DTA_seg
@@ -25,9 +25,8 @@ extern		DOS_int21h_adr
 extern		default_API
 extern		pharlap_version
 
-extern		program_err_end
+extern		error_exit_16
 extern		end_adr
-
 extern		top_adr
 extern		work_adr
 
@@ -36,4 +35,3 @@ extern		call_buf_size
 extern		call_buf_adr16
 extern		call_buf_seg16
 extern		call_buf_adr32
-
