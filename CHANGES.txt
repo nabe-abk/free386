@@ -16,6 +16,7 @@ Ver 0.70b - 2023-12-01
 - Fix: int 21h/4ah memory allocate bug.
 - [TOWNS] Support int 8eh/ax=C207h for CoCo/NSD driver.
 - [TOWNS] Support 386SX models. (Thanks to @RyuTakegami)
+- [TOWNS] Fix: CRTC/VRAM auto reset bug.
 
 ==============================================================================
 Ver 0.65 - 2023-11-25

@@ -246,9 +246,16 @@ proc init_TOWNS_32
 	;------------------------------------------
 	;VRAMの書き換えチェック用の値
 	;------------------------------------------
+	mov	edi,[GDT_adr]		;GDT アドレスロード
+	mov	 al,[edi + F386_ds +5]	;タイプフィールドロード
+	test	 al,01
+	jnz	.not_emulator
+
+	mov	b [is_emulator], 1
 	mov	ebx, 128h
 	mov	es, bx
 	mov	d [es:07fffch], 011011011h
+.not_emulator:
 
 	;------------------------------------------
 	;NSDD初期化
@@ -440,16 +447,20 @@ proc exit_TOWNS_32
 	jne	.res_c			; でなければ jmp
 
 	;*** VRAMが書き換わっている？ ***
-	; Emulator is not set segment access bit
+	cmp	b [is_emulator], 0
+	je	.not_emulator
+
 	push	es
 	mov	ebx, 128h
 	mov	es, bx
 	mov	eax, [es:07fffch]
 	pop	es
 
+	mov	 bl, 1			;reset VRAM flag
 	cmp	eax, 011011011h
 	jne	.res_c
 
+.not_emulator:
 	;*** check VRAM access bit ***
 	mov	edi,[GDT_adr]		;GDT アドレスロード
 	mov	esi,[LDT_adr]		;LDT アドレスロード
@@ -512,7 +523,7 @@ TOWNS_DOS_CRTC_init:
 	;/// 画面出力off ///////////////
 	mov	dx,0FDA0h	;出力制御レジスタ
 	xor	al,al		;al
-	;out	dx,al		;画面出力off
+	out	dx,al		;画面出力off
 
 	;///////////////////////////////
 	;/// CRTC レジスタの操作 ///////
@@ -588,7 +599,7 @@ TOWNS_DOS_CRTC_init:
 	;/// 画面出力on ////////////////
 	mov	dx,0FDA0h	;出力制御レジスタ
 	mov	al,0fh		;bit 3,2 = layer0 / bit 1,0 = layer1
-	;out	dx,al		;画面出力off
+	out	dx,al		;画面出力off
 
 	;///////////////////////////////
 	;/// FM音源タイマリスタート ////
@@ -677,7 +688,7 @@ proc exit_TOWNS_16
 ;==============================================================================
 ;■データ領域
 ;==============================================================================
-
+is_emulator	db	0
 nsdd_load	db	1
 
 ;==============================================================================

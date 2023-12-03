@@ -6,8 +6,8 @@ This is written in assembly language only.
 
 ## Overview
 
-* Version: 0.70
-* Date: **2023-11-28**
+* Version: 0.80
+* Date: **2023-12-04**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
