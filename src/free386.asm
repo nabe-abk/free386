@@ -364,8 +364,10 @@ VCPI_check:
 	mov	dx,ax			;dx にもセーブ
 	sub	ax,offset end_adr	;ax = 使われてないメモリ領域
 	add	dx,2000h		;空き最上位メモリ
-	mov	[frag_mem_size],ax	;値をセーブ
-	mov	[free_heap_top],dx	;
+
+	; save
+	mov	[frag_mem_size],ax
+	mov	[free_heap_top],dx
 
 	;*** これで malloc などが使用可能になる ***
 
@@ -402,6 +404,12 @@ get_vcip_memory_size:
 	mov	ax,VCPI_stack_size	;CPU Prot->V86 切り換え時専用 stack
 	call	stack_malloc		;下位メモリ割り当て
 	mov	[VCPI_stack_adr],di	;記録
+
+	; CPU mode change stack
+	mov	ax, SW_stack_size * SW_max_nest
+	call	stack_malloc
+	mov	[sw_stack_bottom]     ,di
+	mov	[sw_stack_bottom_orig],di
 
 ;------------------------------------------------------------------------------
 ; Memory setting
@@ -620,9 +628,9 @@ lock_EMB:
 
 	mov	ecx,[max_EMB_free]	;確保されたメモリサイズ (KB)
 	sub	edx,eax			;利用開始アドレス - 確保したアドレス
-	jz	short .jp
+	jz	short .jp1
 	dec	ecx
-.jp:	shr	ecx,2			;KB単位 → page 単位
+.jp1:	shr	ecx,2			;KB単位 → page 単位
 	cmp	ecx,0x40000		;256Kpage max
 	jb	.jp2
 	mov	ecx,0x40000		;1GB max
@@ -631,7 +639,7 @@ lock_EMB:
 ;------------------------------------------------------------------------------
 ;alloc DOS memory - for page table
 ;------------------------------------------------------------------------------
-alloc_page_table:
+proc alloc_page_table
 	mov	ebx, [EMB_physi_adr]	; free Phisical address
 	shr	ebx, 22			; to need page tables
 	jz	.skip

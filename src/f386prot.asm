@@ -143,6 +143,12 @@ internal_mem_dump:
 	call	rewrite_next_hash_to_hex
 
 	; stack info
+	mov	eax, [sw_stack_bottom_orig]
+	sub	eax,  SW_stack_size * SW_max_nest
+	call	rewrite_next_hash_to_hex
+	mov	eax,  SW_stack_size
+	call	rewrite_next_hash_to_deg
+
 	mov	eax, [VCPI_stack_adr]
 	sub	eax,  VCPI_stack_size
 	call	rewrite_next_hash_to_hex
@@ -250,7 +256,7 @@ patch_for_386sx:
 	mov	al, [cpu_is_386sx]
 	test	al, al
 	jz	.skip			;386SX is 24bit address bus.
-	mov	eax, 0100_0000h		;Therefore, addresses over 1000000h are always free.
+	mov	eax, 01000000h		;Therefore, addresses over 1000000h are always free.
 	mov	[free_LINER_ADR],eax
 .skip:
 

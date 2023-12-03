@@ -15,7 +15,5 @@ extern	call_V86_es
 
 extern	callf32_from_V86
 
-extern	alloc_SW_stack_32
-extern	free_SW_stack_32
 extern	rint_labels_adr
 

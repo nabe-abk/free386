@@ -208,7 +208,7 @@ call_V86:
 	push	d [gs:esi+ 4]		;** V86 es
 	push	d [V86_cs]		;** V86 ss
 
-	call	alloc_SW_stack_32
+	call	alloc_sw_stack_32
 	push	eax			;** V86 sp
 	pushf				;eflags
 	push	d [V86_cs]		;** V86 CS を記録
@@ -270,7 +270,7 @@ BITS	32
 	mov	 ds,eax			;gs にロード
 
 	lss	esp,[save_esp]		;スタック復元
-	call	free_SW_stack_32
+	call	free_sw_stack_32
 
 	;引数	+08h	V86 ds
 	;	+0ch	V86 es
@@ -362,7 +362,7 @@ BITS	32
 	mov	 gs,eax			;
 
 	lss	esp,[PM_stack_adr]	;専用スタックロード
-	;call	alloc_SW_stack_32	;スタック領域確保
+	;call	alloc_sw_stack_32	;スタック領域確保
 
 	push	d [save_ss]		;リアルモードスタック
 	push	d [save_esp]
@@ -382,7 +382,7 @@ BITS	32
 	pop	d [save_esp]		;リアルモードスタック
 	pop	d [save_ss]
 
-	;call	free_SW_stack_32	;スタック開放
+	;call	free_sw_stack_32	;スタック開放
 
 	mov	eax,[V86_cs]		;V86時 cs,ds
 	push	eax			;** V86 gs
@@ -489,72 +489,6 @@ BITS	16
 	retf
 
 
-;******************************************************************************
-; switch cpu mode stack allocation
-;******************************************************************************
-BITS	32
-;==============================================================================
-; allocation from heap
-;==============================================================================
-; in	-
-; out	eax	new stack pointer
-;
-proc alloc_SW_stack_32
-	pushfd
-	push	ebx
-
-	cli
-	mov	eax, [free_heap_bottom]
-	mov	ebx, eax
-	sub	ebx, SW_stack_size
-	jb	short .error
-
-	cmp	ebx, [free_heap_top]
-	jb	short .error
-
-	mov	[free_heap_bottom], ebx
-	inc	d [sw_cpumode_nest]
-
-	pop	ebx
-	popfd
-	ret
-
-.error:
-	mov	b [f386err], 26h
-	jmp	exit_32
-
-;==============================================================================
-; free SW stack memory
-;==============================================================================
-; in	eax = stack pointer
-;
-proc free_SW_stack_32
-	pushfd
-	push	eax
-	push	ebx
-
-	cli
-	mov	ebx, [sw_cpumode_nest]
-	test	ebx, ebx
-	jz	short .error
-
-;;	cmp	eax, [free_heap_bottom]
-;;	jne	short .error
-
-	; save
-	add	d [free_heap_bottom], SW_stack_size
-	dec	ebx
-	mov	[sw_cpumode_nest], ebx
-
-	pop	ebx
-	pop	eax
-	popfd
-	ret
-
-.error:
-	mov	b [f386err], 27h
-	jmp	exit_32
-
 
 BITS	32
 ;******************************************************************************
@@ -575,8 +509,6 @@ call_V86_gs	dw	0,0		;
 call_V86_flags	dw	0,0		;
 
 call_V86_adr	dd	0		;V86 / 呼び出す CS:IP
-
-sw_cpumode_nest	dd	0		; Switch cpu mode nest counter
 
 	; Real mode interrupt hook routines, for call to 32bit from V86.
 rint_labels_adr	dd	0

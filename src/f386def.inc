@@ -93,6 +93,7 @@ PM_stack_size	equ	 380h	; byte
 VCPI_stack_size	equ	  80h	; VCPI call(to V86) dedicated stack
 
 SW_stack_size	equ	400h	; モード切り換え時スタックサイズ（ネスト対応）
+SW_max_nest	equ	4	; ネストの最大深さ
 
 LADR_UNIT	equ	400000h	; Memory address allocation unit
 LADR_ROOM_size	equ	200000h	; Room for memory address expansion

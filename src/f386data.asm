@@ -195,6 +195,7 @@ internal_mem_msg:
 	db	'	call buffer     : #### - #### / ##### byte',13,10
 	db	'	general work mem: #### - ####',13,10
 	db	'	16bit int hook  : #### - ####',13,10
+	db	'	CPU switch stack: #### -      / ##### byte * ','0' + SW_max_nest,13,10
 	db	'	VCPI  call stack: #### -',13,10
 	db	'	32bit mode stack: #### -',13,10
 	db	'	16bit mode stack: #### - ffff',13,10

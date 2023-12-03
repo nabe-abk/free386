@@ -183,6 +183,15 @@ proc free_gp_buffer_32
 	jmp	short .ret
 
 
+;==============================================================================
+; clear general purpose buffer
+;==============================================================================
+proc clear_gp_buffer_32
+	mov	d [gp_buffer_used],   0
+	mov	d [gp_buffer_remain], GP_BUFFERS
+	ret
+
+
 BITS	16
 ;==============================================================================
 ; Get general purpose buffer (16bits)
@@ -268,6 +277,68 @@ proc free_gp_buffer_16
 	mov	ax, 1
 	jmp	short .ret
 
+;******************************************************************************
+; switch cpu mode stack allocation
+;******************************************************************************
+BITS	32
+;==============================================================================
+; allocation from heap
+;==============================================================================
+; in	-
+; out	eax	new stack pointer
+;
+proc alloc_sw_stack_32
+	pushfd
+
+	cli
+	cmp	b [sw_cpumode_nest], SW_max_nest
+	jae	short .error
+	inc	b [sw_cpumode_nest]
+
+	mov	eax, [sw_stack_bottom]
+	sub	d [sw_stack_bottom], SW_stack_size
+
+	popfd
+	ret
+
+.error:
+	mov	b [f386err], 26h
+	jmp	exit_32
+
+;==============================================================================
+; free SW stack memory
+;==============================================================================
+;
+proc free_sw_stack_32
+	pushfd
+	push	eax
+
+	cli
+	cmp	b [sw_cpumode_nest], 0
+	je	short .error
+	dec	b [sw_cpumode_nest]
+
+	add	d [sw_stack_bottom], SW_stack_size
+
+	pop	eax
+	popfd
+	ret
+
+.error:
+	mov	b [f386err], 27h
+	jmp	exit_32
+
+;==============================================================================
+; clear SW stack
+;==============================================================================
+proc clear_sw_stack_32
+	push	eax
+	mov	eax, [sw_stack_bottom_orig]
+	mov	[sw_stack_bottom], eax
+
+	mov	b [sw_cpumode_nest], 0
+	ret
+
 
 ;******************************************************************************
 ; DATA
@@ -279,8 +350,11 @@ global	frag_mem_offset
 global	frag_mem_size
 global	free_heap_top
 global	free_heap_bottom
+
 global	gp_buffer_remain
 global	gp_buffer_table
+global	sw_stack_bottom
+global	sw_stack_bottom_orig
 
 frag_mem_offset		dd	offset end_adr	; プログラム末端（データ領域含む）
 frag_mem_size		dd	0		; 内部でセーブ
@@ -292,5 +366,9 @@ gp_buffer_used		dd	0		; buffer used flag
 gp_buffer_table:
   times	GP_BUFFERS	dd	0		; address
 
+
+sw_cpumode_nest		dd	0		; Switch cpu mode nest counter
+sw_stack_bottom		dd	0		; stack pointer
+sw_stack_bottom_orig	dd	0		; original value for reset (AX=2501h)
 
 ;******************************************************************************

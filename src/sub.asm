@@ -306,7 +306,7 @@ bin2deg_32:
 
 	dec	ecx			;桁数 -1
 	mov	ebp,15			;危険防止のためのマスク値
-	mov	b [esi],' '		;0 の部分に スペースを入れる
+	mov	byte [esi],' '		;0 の部分に スペースを入れる
 	and	ecx,ebp			;危険防止のためのマスク
 
 	align	4
@@ -322,7 +322,7 @@ bin2deg_32:
 	mov	byte [esi],'0'		;0 の位置に '0' を入れる
 .skip:
 
-	add	al,[esi + eax]		;該当文字コード (0～9)
+	mov	al,[esi + eax]		;該当文字コード (0～9)
 	mov	[edi],al		;記録
 	mov	eax,edx			;eax = 余り
 	inc	edi			;次の文字格納位置ヘ
@@ -373,7 +373,7 @@ bin2hex_32:
 	rol	eax, 4
 	movzx	ebx, al
 	and	bl, 0fh
-	mov	dl, [.hex + ebx]
+	mov	dl, [hex_str + ebx]
 
 	cmp	b [edi], '_'
 	jne	.skip
@@ -388,9 +388,6 @@ bin2hex_32:
 	pop	ebx
 	pop	eax
 	ret
-
-	align	4
-.hex	db	"0123456789abcdef"
 
 ;------------------------------------------------------------------------------
 ;○次の # を書き換える
@@ -476,7 +473,7 @@ deg_07	dd	10000000
 deg_08	dd	100000000
 deg_09	dd	1000000000
 
-hex_str	db	'0123456789ABCDEF'
+hex_str	db	'0123456789abcdef'
 
 ;*** 16 進数 数値変換用テーブル ***
 h2b	db	 0, 1, 2, 3, 4, 5, 6, 7,  8, 9,-1,-1,-1,-1,-1,-1

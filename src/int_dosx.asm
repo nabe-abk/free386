@@ -344,7 +344,9 @@ DOS_Ext_fn_2501h:
 
 	push	d (F386_ds)
 	pop	ds
-	;;;;call	clear_mode_data		;モード切り換えデータ領域の初期化
+
+	call	clear_gp_buffer_32	; Reset GP buffer
+	call	clear_sw_stack_32	; Reset CPU mode change stack
 
 	pop	ds
 	clear_cy
