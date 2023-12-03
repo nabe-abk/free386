@@ -20,7 +20,6 @@ pharlap_version	db	'12aJ'		;Ver 1.2aj
 
 err_level	db	0		;プログラムエラーレベル
 f386err		db	0		;F386 内部エラーレベル
-init_machine	db	0		;initalized machin local
 cpu_is_386sx	db	0		;CPU is 386SX
 
 	align	4

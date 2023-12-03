@@ -348,25 +348,12 @@ Debug_code:
 ;------------------------------------------------------------------------------
 ;●各機種対応ルーチン
 ;------------------------------------------------------------------------------
-%if TOWNS || PC_98 || PC_AT
-	mov	b [init_machine], 1
-	push	edx
-	push	ebp
-	push	fs
-	push	gs
-
 %if TOWNS
-	call	setup_TOWNS		;TOWNS 固有の設定
+	call	init_TOWNS_32		;TOWNS 固有の設定
 %elif PC_98
-	call	setup_PC98		;PC-98x1 固有の設定
+	call	init_PC98_32		;PC-98x1 固有の設定
 %elif PC_AT
-	call	setup_AT		;PC/AT互換機 固有の設定
-%endif
-
-	pop	gs
-	pop	fs
-	pop	ebp
-	pop	edx
+	call	init_AT_32		;PC/AT互換機 固有の設定
 %endif
 
 ;------------------------------------------------------------------------------
@@ -548,4 +535,83 @@ call_load_exp:
 ;●EXP ファイル実行
 ;------------------------------------------------------------------------------
 	jmp	NEAR run_exp
+
+
+;------------------------------------------------------------------------------
+;●プログラムの終了(32bit)
+;------------------------------------------------------------------------------
+	align	4
+END_program:
+	cli
+	mov	bx,F386_ds		;ds 復元
+	mov	ds,ebx			;
+	mov	es,ebx			;VCPI で切り換え時、
+	mov	fs,ebx			;セグメントレジスタは不定値
+	mov	gs,ebx			;
+	lss	esp,[PM_stack_adr]	;スタックポインタロード
+
+	mov	[err_level],al		;エラーレベル記録
+
+	;///////////////////////////////
+	;各機種固有の終了処理
+	;///////////////////////////////
+	%if TOWNS
+		call	exit_TOWNS_32		;TOWNS の終了処理
+	%elif PC_98
+		call	exit_PC98_32		;PC-98x1 の終了処理
+	%elif PC_AT
+		call	exit_AT_32		;PC/AT互換機の終了処理
+	%endif
+
+	;///////////////////////////////
+	;リアルモードベクタの復元
+	;///////////////////////////////
+%if RestoreRealVec
+RestoreRealVectors:
+	push	d (DOSMEM_sel)			;DOS メモリアクセスレジスタ
+	pop	fs				;load
+	mov	ecx,IntVectors			;ベクタ数
+	mov	ebx,offset RVects_flag_tbl	;ベクタ書き換えフラグテーブル
+	mov	esi,[RVects_save_adr]		;esi <- ベクタ保存領域
+
+	align	4
+.loop:
+	dec	ecx			;ecx -1
+	bt	[ebx],ecx		;書き換えをフラグ ?
+	jc	.Recovary		;書き換えられてれば復元
+	test	ecx,ecx			;カウンタ確認
+	jz	.end
+	jmp	short .loop
+
+	align	4
+.Recovary:
+	mov	eax,[esi + ecx*4]	;オリジナル値ロード
+	mov	[fs:ecx*4],eax		;復元
+
+	test	ecx,ecx			;カウンタ確認
+	jnz	.loop			;ループ
+
+	align	4
+.end:
+%endif
+
+	;///////////////////////////////
+	;V86 モードへ戻る
+	;///////////////////////////////
+	mov	eax,[v86_cs]		;V86時 cs,ds
+	mov	ebx,[v86_sp]		;V86時 sp
+
+	cli				;割り込み禁止
+	push	eax			;V86 gs
+	push	eax			;V86 fs
+	push	eax			;V86 ds
+	push	eax			;V86 es
+	push	eax			;V86 ss
+	push	ebx			;V86 esp
+	pushfd				;eflags
+	push	eax			 ;V86 cs
+	push	d (offset END_program16) ;V86 EIP / 終了ラベル
+
+	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
+	call    far [VCPI_entry]	;VCPI call
 

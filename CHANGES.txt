@@ -13,7 +13,7 @@ Ver 0.70b - 2023-12-01
 - Fix: Do not work int 29h and int 2fh.
 - Fix: EXP's PSP memory infomation is incorrect, when EXP has a base offset.
 - Fix: int 21h/4ah memory allocate bug.
-- [TOWNS] Support int 8eh, ax=C207h.
+- [TOWNS] Support int 8eh/ax=C207h for CoCo/NSD driver.
 - [TOWNS] Support 386SX models. (Thanks to @RyuTakegami)
 
 ==============================================================================

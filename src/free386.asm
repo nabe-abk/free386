@@ -228,11 +228,11 @@ machine_check:
 	jz	.no_check		;0 ならチェックしない
 
 %if TOWNS
-	call	check_TOWNS		;TOWNSか判別
+	call	check_TOWNS_16		;TOWNSか判別
 %elif PC_98
-	call	check_PC98		;PC-98x1か判別
+	call	check_PC98_16		;PC-98x1か判別
 %elif PC_AT
-	call	check_AT		;PC/AT互換機か判別
+	call	check_AT_16		;PC/AT互換機か判別
 %endif
 
 	jnc	.check_safe		;Cy=0 なら該当機種
@@ -478,11 +478,11 @@ memory_setting:
 ;------------------------------------------------------------------------------
 
 %if TOWNS
-	call	init_TOWNS
+	call	init_TOWNS_16
 %elif PC_98
-	;call	init_PC98
+	call	init_PC98_16
 %elif PC_AT
-	;call	init_AT
+	call	init_AT_16
 %endif
 
 ;------------------------------------------------------------------------------
@@ -1024,10 +1024,20 @@ END_program16:
 	out	I8259A_IMR_S, al	;スレーブ側
 %endif
 
-%if TOWNS
-	call	end_TOWNS16
-%endif
+	;///////////////////////////////
+	;各機種固有の終了処理
+	;///////////////////////////////
+	%if TOWNS
+		call	exit_TOWNS_16
+	%elif PC_98
+		call	exit_PC98_16
+	%elif PC_AT
+		call	exit_AT_16
+	%endif
 
+	;///////////////////////////////
+	;メモリ解放
+	;///////////////////////////////
 	sti
 	call	free_EMB		;確保したメモリの開放
 
@@ -1056,97 +1066,11 @@ program_err_end:
 
 
 ;******************************************************************************
-;■コード(32 bit)
+; 32bit mode code
 ;******************************************************************************
 BITS	32
 
 %include	"f386prot.asm"		;プロテクトモード・メインプログラム
-
-;------------------------------------------------------------------------------
-;●プログラムの終了(32bit)
-;------------------------------------------------------------------------------
-	align	4
-END_program:
-	cli
-	mov	bx,F386_ds		;ds 復元
-	mov	ds,ebx			;
-	mov	es,ebx			;VCPI で切り換え時、
-	mov	fs,ebx			;セグメントレジスタは不定値
-	mov	gs,ebx			;
-	lss	esp,[PM_stack_adr]	;スタックポインタロード
-
-	mov	[err_level],al		;エラーレベル記録
-
-	;///////////////////////////////
-	;各機種固有の終了処理
-	;///////////////////////////////
-%if TOWNS || PC_98 || PC_AT
-	mov	al,[init_machine]
-	test	al,al
-	jz	.skip_machin_recovery
-
-%if TOWNS
-	call	end_TOWNS		;TOWNS の終了処理
-%elif PC_98
-	call	end_PC98		;PC-98x1 の終了処理
-%elif PC_AT
-	call	end_AT			;PC/AT互換機の終了処理
-%endif
-
-.skip_machin_recovery:
-%endif
-	;///////////////////////////////
-	;リアルモードベクタの復元
-	;///////////////////////////////
-%if RestoreRealVec
-RestoreRealVectors:
-	push	d (DOSMEM_sel)			;DOS メモリアクセスレジスタ
-	pop	fs				;load
-	mov	ecx,IntVectors			;ベクタ数
-	mov	ebx,offset RVects_flag_tbl	;ベクタ書き換えフラグテーブル
-	mov	esi,[RVects_save_adr]		;esi <- ベクタ保存領域
-
-	align	4
-.loop:
-	dec	ecx			;ecx -1
-	bt	[ebx],ecx		;書き換えをフラグ ?
-	jc	.Recovary		;書き換えられてれば復元
-	test	ecx,ecx			;カウンタ確認
-	jz	.end
-	jmp	short .loop
-
-	align	4
-.Recovary:
-	mov	eax,[esi + ecx*4]	;オリジナル値ロード
-	mov	[fs:ecx*4],eax		;復元
-
-	test	ecx,ecx			;カウンタ確認
-	jnz	.loop			;ループ
-
-	align	4
-.end:
-%endif
-
-	;///////////////////////////////
-	;V86 モードへ戻る
-	;///////////////////////////////
-	mov	eax,[v86_cs]		;V86時 cs,ds
-	mov	ebx,[v86_sp]		;V86時 sp
-
-	cli				;割り込み禁止
-	push	eax			;V86 gs
-	push	eax			;V86 fs
-	push	eax			;V86 ds
-	push	eax			;V86 es
-	push	eax			;V86 ss
-	push	ebx			;V86 esp
-	pushfd				;eflags
-	push	eax			 ;V86 cs
-	push	d (offset END_program16) ;V86 EIP / 終了ラベル
-
-	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
-	call    far [VCPI_entry]	;VCPI call
-
 
 ;******************************************************************************
 ; Model dependent code
@@ -1154,13 +1078,9 @@ RestoreRealVectors:
 
 %if TOWNS
 	%include "towns.asm"
-%endif
-
-%if PC_98
+%elif PC_98
 	%include "pc98.asm"
-%endif
-
-%if PC_AT
+%elif PC_AT
 	%include "at.asm"
 %endif
 
