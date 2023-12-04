@@ -305,16 +305,16 @@ alloc_DOS_mem:
 	jae	.enough
 	mov	ecx,eax			;足りなければ、あるだけ貼り付け
 .enough:
-	mov	edx,[DOS_mem_adr]	;DOSメモリ
-	mov	esi,[free_LINER_ADR]	;割りつけ先アドレス
+	mov	edx,[DOS_mem_ladr]	;DOSメモリ
+	mov	esi,[free_liner_adr]	;割りつけ先アドレス
 	call	set_physical_mem	;メモリ割り当て
 	jc	.no_free_memory		;メモリ不足エラー
 
 	sub	[DOS_mem_pages] ,ecx	;空きメモリページ数減算
 	mov	eax, ecx
 	shl	ecx, 12			;byte 単位へ
-	add	[DOS_mem_adr]   ,ecx	;空きDOSメモリ
-	add	[free_LINER_ADR],ecx	;空きメモリアドレス更新
+	add	[DOS_mem_ladr]  ,ecx	;空きDOSメモリ
+	add	[free_liner_adr],ecx	;空きメモリアドレス更新
 
 	clc
 .exit:
@@ -325,7 +325,7 @@ alloc_DOS_mem:
 
 .no_dos_mem:
 	xor	eax, eax
-	mov	esi, [free_LINER_ADR]
+	mov	esi, [free_liner_adr]
 	clc
 	jmp	short .exit
 
@@ -354,7 +354,7 @@ alloc_RAM:
 	test	ecx,ecx
 	jz	.no_alloc
 
-	mov	esi, [free_LINER_ADR]	;割りつけ先アドレス
+	mov	esi, [free_liner_adr]	;割りつけ先アドレス
 	call	get_maxalloc_with_adr	;eax = 最大割り当て可能メモリページ数
 					;ebx = ページテーブル用に必要なページ数
 
@@ -362,7 +362,7 @@ alloc_RAM:
 	jb	.no_free_memory		;小さければメモリ不足
 
 	mov	edx,[free_RAM_padr]	;空き物理メモリ
-	;mov	esi,[free_LINER_ADR]	;割りつけ先アドレス
+	;mov	esi,[free_liner_adr]	;割りつけ先アドレス
 	shl	ebx,12			;ページテーブル用に必要なメモリ(byte)
 	add	edx,ebx			;割りつける物理メモリをずらす
 	call	set_physical_mem	;メモリ割り当て
@@ -376,7 +376,7 @@ alloc_RAM:
 	add	esi, ecx				;空きメモリアドレス更新
 	add	esi,LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi,0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_LINER_ADR] ,esi			;空きアドレス更新
+	add	[free_liner_adr] ,esi			;空きアドレス更新
 
 	clc		;キャリークリア
 .exit:
@@ -427,13 +427,13 @@ alloc_RAM_with_ladr:
 	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
 
 	add	esi, ecx		;新しい最後尾アドレス
-	mov	eax, [free_LINER_ADR]	;空きアドレス
+	mov	eax, [free_liner_adr]	;空きアドレス
 	cmp	eax, esi
 	ja	.step
 
 	add	esi, LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi, 0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_LINER_ADR], esi			;空きアドレス更新
+	add	[free_liner_adr], esi			;空きアドレス更新
 
 .step:
 .no_alloc:

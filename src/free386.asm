@@ -21,10 +21,10 @@
 
 	;--- for f386seg.asm ------------------------------
 global		GDT_adr, LDT_adr
-global		free_LINER_ADR
+global		free_liner_adr
 global		free_RAM_padr
 global		free_RAM_pages
-global		DOS_mem_adr
+global		DOS_mem_ladr
 global		DOS_mem_pages
 global		page_dir
 
@@ -97,9 +97,8 @@ parameter_check:
 	; -m : Use memory maximum
 	;///////////////////////////////
 .para_m:
-	mov	b [pool_for_paging],1	;ページング用プールメモリ
-	mov	b [real_mem_pages] ,250	;DOSメモリを最大まで使う, 255指定不可
-	mov	b [maximum_heap]   ,1	;ヘッダを無視して最大ヒープメモリを割り当て
+	mov	b [pool_for_paging], 1	;ページング用プールメモリ
+	mov	w [resv_real_memKB], 0	;reserved dos memory = 0
 	jmp	.loop
 	;/// Move some parameters to this location. Because does not fit in jmp short.
 	;/// jmp short に収まらないので一部解析をここに記述
@@ -637,30 +636,94 @@ lock_EMB:
 .jp2:	mov	[EMB_pages],ecx		;使用可能なページ数として記録
 
 ;------------------------------------------------------------------------------
-;alloc DOS memory - for page table
+;alloc DOS memory
 ;------------------------------------------------------------------------------
-proc alloc_page_table
-	mov	ebx, [EMB_physi_adr]	; free Phisical address
-	shr	ebx, 22			; to need page tables
-	jz	.skip
-
-	mov	bp, bx			; need tables save to bp
-
+proc alloc_dos_memory
 	xor	eax, eax
-	inc	ebx			; for fragment
-	shl	ebx, 12 - 4 		; PAGE to para
+	xor	ebx, ebx
+
+	mov	ah, 48h
+	mov	bx, 0ffffh
+	int	21h
+	cmp	ax,08h
+	jne	.not_alloc
+
+	mov	ax, [resv_real_memKB]
+	shl	ax, 10 - 4		; KB to paragrah
+	cmp	bx, ax			; free memory < reserved memory
+	jbe	.not_alloc		; jmp
+
+	sub	bx, ax			; bx = can use memory(para)
+	dec	bx			; for MCB (1para)
+	jz	.not_alloc
+
 	mov	ah, 48h
 	int	21h
-	jnc	.alloc			; jump if success
+	jc	.not_alloc
 
-	call		free_EMB
-	PRINT86		err_12
-	call_4ch	F386ERR
+	mov	[DOS_alloc_seg],  ax	;allocate DOS memory segment
+	mov	[DOS_alloc_sizep],bx	;allocate DOS memory size(para)
+	mov	bp, bx
 
-.alloc:
-	shl	eax, 4
-	mov	[page_table_in_dos_memory_adr] ,eax	; liner address
-	shl	ebx, 4
+	mov	dx, ax
+	add	ax, 000ffh		;for 4KB fragment
+	and	ax, 0ff00h		;mask
+	mov	cx, ax			;cx = original seg
+	sub	cx, dx			;cx = top frag paras
+	sub	bx, cx			;bx = size - frag size
+
+	shl	eax, 12 - 4		;seg  to linear address
+	mov	[DOS_mem_ladr], eax	;save
+
+	mov	cx, bx
+	and	bx, 0ff00h		;4KB unit
+	sub	cx, bx			;cx = bottom frag paras
+	shr	ebx, 12 - 4		;para to page
+	mov	[DOS_mem_pages],ebx	;save
+
+	test	cx, cx
+	jz	.skip_shrink
+
+	sub	bp, cx			;bp = new para size
+	mov	bx, bp			;bx = new para size
+
+	push	es
+	mov	es, [DOS_alloc_seg]
+	mov	ah, 4ah
+	int	21h			;Shrink memory block
+	pop	es
+	jc	.skip
+
+	mov	[DOS_alloc_sizep],bx	;new dos memory size(para)
+.skip:
+.skip_shrink:
+.not_alloc:
+
+;------------------------------------------------------------------------------
+;DOS memory for page table
+;------------------------------------------------------------------------------
+proc alloc_page_table
+	mov	ebx, [EMB_physi_adr]	; free memory's phisical address
+	add	ebx, 0fffh		; 4KB Unit
+	shr	ebx, 22			; to need page tables
+	jz	.not_need
+
+	mov	ax, [DOS_mem_pages]
+	cmp	ax, bx
+	jae	.skip
+
+	call		free_EMB	;EMB の開放
+	PRINT86		err_12		;ページテーブルメモリが足りない
+	call_4ch	F386ERR		;プログラム終了
+
+.skip:
+	sub	ax, bx
+	mov	[DOS_mem_pages], ax
+	shl	ebx, 12			;pages to size
+	mov	eax, [DOS_mem_ladr]
+	add	[DOS_mem_ladr], ebx	;renew ladr
+
+	mov	[page_table_in_dos_memory_ladr],eax	; liner address
 	mov	[page_table_in_dos_memory_size],ebx	; size
 
 	; prepare loop
@@ -691,44 +754,7 @@ proc alloc_page_table
 
 	push	ds
 	pop	es
-.skip:
-
-;------------------------------------------------------------------------------
-;●DOS memory for EXP
-;------------------------------------------------------------------------------
-proc alloc_real_mem_for_exp
-	xor	eax, eax
-	xor	bh, bh
-	mov	bl, b [real_mem_pages]	;CALL Buffer size (page)
-	mov	cl, bl
-	inc	bl			;4KB境界調整用に1つ多く確保
-	shl	bx, 8			;Page to para(Byte/16)
-
-	mov	ah,48h
-	int	21h
-	jnc	.success
-
-	cmp	ax,08h
-	jnz	.fail
-
-	;原因はメモリ不足, bx=最大メモリ
-	and	bx, 0ff00h		;4KB単位に
-	mov	cx, bx
-	shr	cx, 8			;para to page
-	dec	cl
-
-	;再度割り当て実行
-	mov	ah,48h
-	int	21h
-	jc	.fail
-
-.success:
-	shl	eax, 4			; para to offset
-	add	eax, 0x00000fff
-	and	eax, 0xfffff000
-	mov	[DOS_mem_adr], eax	; 4KB page top
-	mov	[DOS_mem_pages], cl	
-.fail:
+.not_need:
 
 ;------------------------------------------------------------------------------
 ;●VCPI用セレクタの初期化
@@ -756,7 +782,7 @@ proc get_VCPI_statas
 	mov	[VCPI_entry],ebx	;VCPI サービスエントリ
 	sub	 di,[page_table0]	;ユーザ用offset - 先頭offset
 	shl	edi,(12-2)		;edi ユーザー用リニアアドレス開始位置
-	mov	[free_LINER_ADR],edi	;未定義のリニアアドレス最低位番地
+	mov	[free_liner_adr],edi	;未定義のリニアアドレス最低位番地
 
 
 ;------------------------------------------------------------------------------

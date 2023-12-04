@@ -15,8 +15,7 @@ global	reset_CRTC
 global	check_MACHINE
 global	pool_for_paging
 global	call_buf_sizeKB
-global	real_mem_pages
-global	maximum_heap
+global	resv_real_memKB
 
 ;==============================================================================
 segment	text align=16 class=CODE use16
@@ -43,8 +42,7 @@ check_MACHINE	db	_check_MACHINE		;簡易機種判別
 		db	0
 	;[+12 byte]
 pool_for_paging	db	_pool_for_paging	;ページング用の予約メモリ
-call_buf_sizeKB	db	_call_buf_sizeKB	;CALL buffer size (KB)
-real_mem_pages	db	_real_mem_pages		;プログラム実行用リアルメモリ
-maximum_heap	db	0			;ヘッダを無視して最大ヒープメモリを割り当て
+call_buf_sizeKB	db	_call_buf_sizeKB	;CALL buffer size [KB]
+resv_real_memKB	dw	_resv_real_memKB	;空けておくリアルメモリ [KB]
 
 ;==============================================================================

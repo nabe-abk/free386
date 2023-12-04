@@ -33,7 +33,7 @@ check_V86:
 	jz	short check_paging
 
 	mov	dx, pm
-.skip
+.skip:
 	mov	ah,09h
 	int	21h
 

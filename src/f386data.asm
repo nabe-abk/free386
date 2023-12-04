@@ -71,13 +71,15 @@ EMB_top_adr	dd	0		;管理する EMB の最上位アドレス / XMS3.0
 max_EMB_free	dd	0		;最大の EMB 空きメモリサイズ    (Kbyte)
 total_EMB_free	dd	0		;トータルの EMB 空きメモリサイズ(Kbyte)
 
-DOS_mem_adr	dd	0		;確保したDOSメモリのアドレス
-DOS_mem_pages	dd	0		;確保したページ数
+DOS_alloc_seg	dd	0		;allocate DOS memory segment
+DOS_alloc_sizep	dd	0		;allocate DOS memory size(para)
+DOS_mem_ladr	dd	0		;can use DOS memory linear address
+DOS_mem_pages	dd	0		;can use DOS memory pages
 
 ;--------------------------------------------------------------------
 ;----- プロテクトメモリ管理情報 -------------------------------------
 ;
-free_LINER_ADR	dd	0		;未定義(未使用)リニアアドレス (最低位)
+free_liner_adr	dd	0		;未定義(未使用)リニアアドレス (最低位)
 free_RAM_padr	dd	0		;空き先頭物理RAMページアドレス
 free_RAM_pages	dd	0		;利用可能な物理RAMページ数 (4KB単位)
 
@@ -88,7 +90,7 @@ vcpi_mem_pages	dd	0		;VCPI の管理するメモリページ数
 page_dir	dw	0,0	;F386ds	;ページディレクトリ オフセット
 page_table0	dw	0,0	;F386ds	;ページテーブル0 オフセット
 
-page_table_in_dos_memory_adr	dd	0	;リアルメモリに確保した追加のページテーブルアドレス
+page_table_in_dos_memory_ladr	dd	0	;リアルメモリに確保した追加のページテーブルアドレス
 page_table_in_dos_memory_size	dd	0	;リアルメモリに確保した追加のページテーブルサイズ
 
 ;--------------------------------------------------------------------
@@ -154,34 +156,10 @@ EXE_err	db	'Do not execute free386.exe (Please run free386.com)',13,10,'$'
 
 end_mes	db	'Finish',13,10,'$'
 
-msg_01	db	'VCPI Found：VCPI Version $'
-msg_02	db	'[VCPI] Physical Memory size  = ###### KB',13,10
-	db	'[XMS]  Allocate Ext  Memory  = ###### KB (####_####h)',13,10
-	db	'[DOS]  Allocate Real Memory  = ###### KB (####_####h) + 4KB(fragment)',13,10
-	db	'[DOS]  Additional Page Table = ###### KB (####_####h)',13,10
-	db	'$'
-msg_05	db	'Load file name = $'
-msg_06	db	'Found XMS 2.0',13,10,'$'
-msg_07	db	'Found XMS 3.0',13,10,'$'
-msg_10	db	'Usage: free386 <target.exp>',13,10
-	db	13,10
-	db	'	-v	Verbose (memory information and other)',13,10
-	db	'	-vv	More verbose (internal memory information)',13,10
-	db	"	-q	Do not output Free386's title and this help",13,10
-	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
-	db	'	-m	Use memory to the maximum with real memory',13,10
-	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
-%if MACHINE_CODE
-	db	'	-c?     Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
-	db	'	-i	Do not check machine',13,10
-%endif
-%if TOWNS
-	db	'	-n	Do not load NSD driver',13,10
-%endif
-	db	'$'
-
-internal_mem_msg:
-	db	"*** Free386 internal memroy information ***",13,10
+msg_02	db	"*** Free386 memroy information ***",13,10
+	db	'	[VCPI] Physical Memory size = ####### KB',13,10
+	db	'	[XMS]  Allocate Ext Memory  = ####### KB (####_####h)',13,10
+	db	'	[DOS]  Allocate DOS Memory  = ####### KB (####_####h)',13,10
 	db	'	program code	: 0100 - #### / cs=ds=####',13,10
 	db	'	frag memory	: #### - #### / ##### byte free',13,10
 	db	'	page table 	: #### - #### /  8192 byte',13,10
@@ -199,6 +177,26 @@ internal_mem_msg:
 	db	'	VCPI  call stack: #### -',13,10
 	db	'	32bit mode stack: #### -',13,10
 	db	'	16bit mode stack: #### - ffff',13,10
+	db	'$'
+
+msg_05	db	'Load file name = $'
+msg_06	db	'Found XMS 2.0',13,10,'$'
+msg_07	db	'Found XMS 3.0',13,10,'$'
+msg_10	db	'Usage: free386 <target.exp>',13,10
+	db	13,10
+	db	'	-v	Verbose (memory information and other)',13,10
+	db	'	-vv	More verbose (internal memory information)',13,10
+	db	"	-q	Do not output Free386's title and this help",13,10
+	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
+	db	'	-m	Set reserved DOS memory to 0 byte and allocate more memory for EXP.',13,10
+	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
+%if MACHINE_CODE
+	db	'	-c?     Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
+	db	'	-i	Do not check machine',13,10
+%endif
+%if TOWNS
+	db	'	-n	Do not load NSD driver',13,10
+%endif
 	db	'$'
 
 err_01e	db	'EMS Device Header is not found',13,10,'$'

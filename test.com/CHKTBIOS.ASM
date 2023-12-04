@@ -82,7 +82,7 @@ eax2hex:
 	cmp	byte [di], '_'
 	jne	.skip
 	inc	di
-.skip
+.skip:
 	mov	[di], dl
 	inc	di
 

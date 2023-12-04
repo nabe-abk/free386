@@ -54,7 +54,7 @@ free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm towns.asm at.asm 
 	$(ASM) $(ASMOP) free386.asm
 
 free386.com: start.obj sub.obj f386mem.obj f386seg.obj f386sub.obj f386cv86.obj int.obj free386.obj
-	echo start.obj sub.obj f386mem.obj f386seg.obj f386sub.obj f386cv86.obj int.obj free386.obj>objs
+	echo $< >objs
 	$(LINK) $(LINKOP) @objs
 	$(RM) objs
 

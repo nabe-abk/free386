@@ -41,15 +41,35 @@ start32:
 %endif
 
 ;------------------------------------------------------------------------------
-; Memory detail infomation
+; Memory infomation
 ;------------------------------------------------------------------------------
-internal_mem_dump:
-	mov	al, [verbose]
-	cmp	al, 2
-	jb	near .skip
+proc memory_infomation
+	cmp	b [verbose], 0
+	jz	near .skip
 
-	mov	edi, internal_mem_msg
+	mov	edi, offset msg_02
 
+	; memory info
+	mov	eax, [all_mem_pages]
+	shl	eax, 2				;page to KB
+	call	rewrite_next_hash_to_deg
+
+	; allocated protect memory
+	mov	eax, [max_EMB_free]
+	call	rewrite_next_hash_to_deg
+	mov	eax, [EMB_physi_adr]
+	call	rewrite_next_hash_to_hex
+
+	; allcated dos memory
+	mov	eax, [DOS_alloc_sizep]
+	add	eax, b 1fh		;round up
+	shr	eax, 10-4		;para to KB
+	call	rewrite_next_hash_to_deg
+	mov	eax, [DOS_alloc_seg]
+	shl	eax, 4			;seg to linear address
+	call	rewrite_next_hash_to_hex
+
+	; program code offset
 	mov	eax, end_adr
 	dec	eax
 	call	rewrite_next_hash_to_hex
@@ -161,62 +181,16 @@ internal_mem_dump:
 	sub	eax, V86_stack_size
 	call	rewrite_next_hash_to_hex
 
-	PRINT	internal_mem_msg
+	PRINT	msg_02
 .skip:
 
 ;------------------------------------------------------------------------------
 ;●メモリ管理の設定
 ;------------------------------------------------------------------------------
-	global	make_page_tables
-make_page_tables:
-	mov	al,[verbose]
-	test	al,al
-	jz	near .no_verbose
-
-	mov	edi, msg_02
-
-	;/// 総物理メモリ量 ///
-	mov	eax,[all_mem_pages]	;メモリドライハによって実際とは違う値が返る
-	shl	eax,2			;4倍して eax = XXX KB
-	call	rewrite_next_hash_to_deg
-
-	;/// 確保した拡張メモリ ///
-	mov	eax,[max_EMB_free]
-	call	rewrite_next_hash_to_deg
-	mov	eax,[EMB_physi_adr]
-	call	rewrite_next_hash_to_hex
-
-	;/// リアルメモリ ///
-	mov	eax,[DOS_mem_pages]	;
-	shl	eax, 2			;page to KB
-	call	rewrite_next_hash_to_deg
-	mov	eax,[DOS_mem_adr]
-	call	rewrite_next_hash_to_hex
-
-	;/// Additional page table memory ///
-	mov	eax, [page_table_in_dos_memory_size]
-	shr	eax, 10
-	call	rewrite_next_hash_to_deg
-	mov	eax,[page_table_in_dos_memory_adr]
-	call	rewrite_next_hash_to_hex
-
-	PRINT_	msg_02
-.no_verbose:
-
-	;--------------------------------------------------
-	;メモリ管理情報の設定
-	;--------------------------------------------------
 	mov	eax,[EMB_pages]		;EMBメモリページ数
 	mov	edx,[EMB_physi_adr]	;空き物理メモリ先頭
 	mov	[free_RAM_pages] ,eax	;全プロテクトメモリとして使用する
 	mov	[free_RAM_padr]  ,edx	;空き先頭物理メモリ先頭アドレス
-
-	test	eax,eax			;プロテクトメモリ量
-	jnz	.step			;0 でなければ継続(jmp)
-
-	mov	b [f386err], 21h	;メモリなし
-	jmp	exit_32
-.step:
 
 ;------------------------------------------------------------------------------
 ;●全メモリを示すセレクタを作成
@@ -237,13 +211,13 @@ proc make_all_mem_sel
 	;全メモリセレクタ作成後に以下は実行
 	;
 	;mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
-	mov	esi,[free_LINER_ADR]	;空きリニアアドレス
+	mov	esi,[free_liner_adr]	;空きリニアアドレス
 	mov	edx,esi			;物理アドレスと1対1
 
 	add	ecx,0xff		;255pages
 	xor	 cl,cl			;1MB単位に切り上げ
 	shl	ecx,12			;eax = 物理アドレス最大値
-	mov	[free_LINER_ADR],ecx	;空きリニアアドレス更新
+	mov	[free_liner_adr],ecx	;空きリニアアドレス更新
 	sub	ecx,esi			;割り当てるメモリサイズ
 	shr	ecx,12			;割り当てるページ数
 
@@ -257,7 +231,7 @@ patch_for_386sx:
 	test	al, al
 	jz	.skip			;386SX is 24bit address bus.
 	mov	eax, 01000000h		;Therefore, addresses over 1000000h are always free.
-	mov	[free_LINER_ADR],eax
+	mov	[free_liner_adr],eax
 .skip:
 
 ;------------------------------------------------------------------------------

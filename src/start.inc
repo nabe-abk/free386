@@ -10,6 +10,5 @@ extern	reset_CRTC
 extern	check_MACHINE
 extern	pool_for_paging
 extern	call_buf_sizeKB
-extern	real_mem_pages
-extern	maximum_heap
+extern	resv_real_memKB
 

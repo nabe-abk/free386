@@ -1,7 +1,7 @@
 
-ASM   = .\00nasm.bat
+ASM   = 00_nasm.bat
 ASMOP = -f pharlap
-LINK  = .\00linker.bat
+LINK  = 00_link.bat
 LINKOP= -offset 4000h -maxdata 10000h
 
 all: msg_test.exp

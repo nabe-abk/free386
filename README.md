@@ -7,7 +7,7 @@ This is written in assembly language only.
 ## Overview
 
 * Version: 0.80
-* Date: **2023-12-04**
+* Date: **2023-12-05**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
@@ -56,7 +56,7 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 * tools/exe2com.exe  - compatible to exe2bin
 * tools/imake.exe    - "make" for MS-DOS
 
-## How to Command Line
+## Command Line Options
 
 ```
 X:\>free386.com

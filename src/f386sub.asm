@@ -1119,12 +1119,6 @@ make_cs_ds:
 	push	esi
 	push	ebp
 
-	mov	al, [maximum_heap]
-	test	al,al
-	jz	.skip
-	mov	ecx, 0fffffh		;最大メモリ割り当て
-.skip:
-
 	mov	ebp,[free_RAM_pages]	;空きメモリと比較
 	add	ebp,[DOS_mem_pages]	;DOSメモリ
 
@@ -1154,11 +1148,11 @@ make_cs_ds:
 	sub	ecx,eax			;空きページ数から引く
 	jb	near .no_memory		;マイナスならエラー
 .do_alloc:
-	mov	ebp, [free_LINER_ADR]	;貼り付け先アドレスを保存
+	mov	ebp, [free_liner_adr]	;貼り付け先アドレスを保存
 	push	esi
 	and	esi, 0xfffff000		;ずらし量
 	add	esi, ebp		;空きリニアアドレスに加算
-	mov	[free_LINER_ADR], esi	;ずらす
+	mov	[free_liner_adr], esi	;ずらす
 	pop	esi
 
 	push	ecx

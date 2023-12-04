@@ -3,10 +3,10 @@
 ;******************************************************************************
 
 extern		GDT_adr, LDT_adr
-extern		free_LINER_ADR
+extern		free_liner_adr
 extern		free_RAM_padr
 extern		free_RAM_pages
-extern		DOS_mem_adr
+extern		DOS_mem_ladr
 extern		DOS_mem_pages
 extern		page_dir
 

@@ -1,8 +1,8 @@
 #
 
-CC   = 00cc.bat
+CC   = 00_cc.bat
 COPT = -off Floating_point
-LINK = 00linker.bat
+LINK = 00_link.bat
 
 all: dump_mem.exp
 

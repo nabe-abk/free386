@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.80 2023-12-04'
+%define	VER_STRING	'Ver0.80 2023-12-05'
 Major_ver	equ		00h
 Minor_ver	equ		80h
-F386_Date	equ		20231204h	;Release date
+F386_Date	equ		20231205h	;Release date
 
 ;==============================================================================
 ; RELEASE and DEBUG setting
@@ -74,8 +74,8 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 				; Not support PC/AT machine.
 
 _call_buf_sizeKB equ	16	; call buffer size for 32bit<->16bit function
-_pool_for_paging equ	8	; pool ram pages for paging
-_real_mem_pages  equ	4	; real memory(ram) pages for EXP file
+_pool_for_paging equ	8	; pool RAM pages for paging
+_resv_real_memKB equ	32	; reserved real memory (KB) for DOS
 
 ;==============================================================================
 ; General define
@@ -92,8 +92,8 @@ V86_stack_size	equ	 200h	; byte
 PM_stack_size	equ	 380h	; byte
 VCPI_stack_size	equ	  80h	; VCPI call(to V86) dedicated stack
 
-SW_stack_size	equ	400h	; モード切り換え時スタックサイズ（ネスト対応）
-SW_max_nest	equ	4	; ネストの最大深さ
+SW_stack_size	equ	400h	; CPU switch stack size
+SW_max_nest	equ	4	; CPU switch max nest
 
 LADR_UNIT	equ	400000h	; Memory address allocation unit
 LADR_ROOM_size	equ	200000h	; Room for memory address expansion

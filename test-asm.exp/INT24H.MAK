@@ -1,7 +1,7 @@
 
-ASM   = .\00nasm.bat
+ASM   = 00_nasm.bat
 ASMOP = -f pharlap
-LINK  = .\00linker.bat
+LINK  = 00_link.bat
 LINKOP= -maxdata 1000h
 
 all: int24h_b.exp int24h_c.exp
