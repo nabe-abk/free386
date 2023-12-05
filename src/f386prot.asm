@@ -121,6 +121,12 @@ proc more_memory_infomation
 	add	eax,  IntVectors *4 -1
 	call	rewrite_next_hash_to_hex
 
+	; Real mode interrupt hook routines
+	mov	eax, [rint_labels_adr]
+	call	rewrite_next_hash_to_hex
+	add	eax, IntVectors *4 -1
+	call	rewrite_next_hash_to_hex
+
 	; GDT/LDT/IDT/TSS
 	mov	eax, [GDT_adr]
 	call	rewrite_next_hash_to_hex
@@ -148,12 +154,6 @@ proc more_memory_infomation
 	mov	eax, [work_adr]
 	call	rewrite_next_hash_to_hex
 	add	eax,  WORK_size -1
-	call	rewrite_next_hash_to_hex
-
-	; in real mode interrupt hook routines
-	mov	eax, [rint_labels_adr]
-	call	rewrite_next_hash_to_hex
-	add	eax, IntVectors *4 -1
 	call	rewrite_next_hash_to_hex
 
 	; stack info

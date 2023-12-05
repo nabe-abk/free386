@@ -159,10 +159,10 @@ msg_02	db	'	program code	: 0100 - #### / cs=ds=####',13,10
 	db	'	all heap memory	: #### - ffff / ##### byte',13,10
 	db	'	free heap memory: #### - #### / ##### byte',13,10
 	db	'	real vecs backup: #### - ####',13,10
+	db	'	16bit int hook  : #### - ####',13,10
 	db	'	GDT,LDT,IDT,TSS	: #### - #### - #### - #### - ####',13,10
 	db	'	call buffer     : #### - #### / ##### byte',13,10
 	db	'	general work mem: #### - ####',13,10
-	db	'	16bit int hook  : #### - ####',13,10
 	db	'	CPU switch stack: #### - #### / ##### byte * ','0' + SW_max_nest,13,10
 	db	'	VCPI,32,16 stack: #### - #### - #### - ffff',13,10
 	db	'$'
