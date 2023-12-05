@@ -14,3 +14,8 @@ make -f makefile.lin $@
 if [ -r "$TARGET" ]; then
 	cp "$TARGET" ../
 fi
+
+if [ "$1" = "clean" ]; then
+	cd ..
+	rm -f "$TARGET"
+fi

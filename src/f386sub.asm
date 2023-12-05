@@ -11,6 +11,7 @@
 
 %include	"start.inc"
 %include	"free386.inc"
+%include	"f386mem.inc"
 %include	"f386seg.inc"
 
 ;------------------------------------------------------------------------------

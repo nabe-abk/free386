@@ -2,36 +2,43 @@
 ; extern variables
 ;******************************************************************************
 
-extern		GDT_adr, LDT_adr
+;--- for f386seg.asm ------------------------------
+extern		GDT_adr
+extern		LDT_adr
+extern		IDT_adr
+extern		page_dir_ladr
 extern		free_liner_adr
 extern		free_RAM_padr
 extern		free_RAM_pages
-extern		DOS_mem_ladr
-extern		DOS_mem_pages
-extern		page_dir
 
-extern		to_PM_EIP, to_PM_data_ladr
+;--- for f386cv86.asm -----------------------------
+extern		to_PM_EIP
+extern		to_PM_data_ladr
 extern		VCPI_entry
 extern		VCPI_stack_adr
 extern		V86_cs
 extern		f386err
 
-extern		PM_stack_adr
-extern		exit_32
+;--- for int.asm ----------------------------------
 extern		IDT_adr
+extern		PM_stack_adr
 extern		RVects_flag_tbl
-extern		DTA_off, DTA_seg
+extern		DTA_off
+extern		DTA_seg
 extern		DOS_int21h_adr
 extern		default_API
 extern		pharlap_version
-
-extern		error_exit_16
-extern		end_adr
-extern		top_adr
-extern		work_adr
 
 extern		call_buf_used
 extern		call_buf_size
 extern		call_buf_adr16
 extern		call_buf_seg16
 extern		call_buf_adr32
+
+;--- other ----------------------------------------
+extern		error_exit_16
+extern		exit_32
+
+extern		top_ladr
+extern		end_adr
+extern		work_adr

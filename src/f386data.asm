@@ -71,11 +71,6 @@ EMB_top_adr	dd	0		;管理する EMB の最上位アドレス / XMS3.0
 max_EMB_free	dd	0		;最大の EMB 空きメモリサイズ    (Kbyte)
 total_EMB_free	dd	0		;トータルの EMB 空きメモリサイズ(Kbyte)
 
-DOS_alloc_seg	dd	0		;allocate DOS memory segment
-DOS_alloc_sizep	dd	0		;allocate DOS memory size(para)
-DOS_mem_ladr	dd	0		;can use DOS memory linear address
-DOS_mem_pages	dd	0		;can use DOS memory pages
-
 ;--------------------------------------------------------------------
 ;----- プロテクトメモリ管理情報 -------------------------------------
 ;
@@ -87,17 +82,15 @@ free_RAM_pages	dd	0		;利用可能な物理RAMページ数 (4KB単位)
 all_mem_pages	dd	0		;物理メモリ、総メモリページ数
 vcpi_mem_pages	dd	0		;VCPI の管理するメモリページ数
 
-page_dir	dw	0,0	;F386ds	;ページディレクトリ オフセット
-page_table0	dw	0,0	;F386ds	;ページテーブル0 オフセット
-
-page_table_in_dos_memory_ladr	dd	0	;リアルメモリに確保した追加のページテーブルアドレス
-page_table_in_dos_memory_size	dd	0	;リアルメモリに確保した追加のページテーブルサイズ
+page_dir_ladr		dd	0	;page directory linear address
+page_dir_seg		dw	0,0	;page directory's dos segment
+page_tables_in_dos	dd	2	;Number of page tables in dos memory
 
 ;--------------------------------------------------------------------
 ;----- データ領域 ---------------------------------------------------
 ;
 	align	4
-top_adr		dd	0		;プログラム先頭リニアアドレス
+top_ladr	dd	0		;プログラム先頭リニアアドレス
 intr_mask_org	dw	0		;8259A オリジナル値バックアップ
 
 DTA_off		dd	80h		;DTA 初期値
@@ -156,27 +149,22 @@ EXE_err	db	'Do not execute free386.exe (Please run free386.com)',13,10,'$'
 
 end_mes	db	'Finish',13,10,'$'
 
-msg_02	db	"*** Free386 memroy information ***",13,10
+msg_01	db	"*** Free386 memroy information ***",13,10
 	db	'	[VCPI] Physical Memory size = ####### KB',13,10
 	db	'	[XMS]  Allocate Ext Memory  = ####### KB (####_####h)',13,10
 	db	'	[DOS]  Allocate DOS Memory  = ####### KB (####_####h)',13,10
-	db	'	program code	: 0100 - #### / cs=ds=####',13,10
-	db	'	frag memory	: #### - #### / ##### byte free',13,10
-	db	'	page table 	: #### - #### /  8192 byte',13,10
-	db	'	heap memory	: #### - ffff / ##### byte',13,10
+	db	'	[DOS]  Reserved DOS Memory  =    #### KB',13,10
+	db	'$'
+msg_02	db	'	program code	: 0100 - #### / cs=ds=####',13,10
+	db	'	all heap memory	: #### - ffff / ##### byte',13,10
 	db	'	free heap memory: #### - #### / ##### byte',13,10
 	db	'	real vecs backup: #### - ####',13,10
-	db	'	GDT		: #### - ####',13,10
-	db	'	LDT		: #### - ####',13,10
-	db	'	IDT		: #### - ####',13,10
-	db	'	TSS		: #### - ####',13,10
+	db	'	GDT,LDT,IDT,TSS	: #### - #### - #### - #### - ####',13,10
 	db	'	call buffer     : #### - #### / ##### byte',13,10
 	db	'	general work mem: #### - ####',13,10
 	db	'	16bit int hook  : #### - ####',13,10
-	db	'	CPU switch stack: #### -      / ##### byte * ','0' + SW_max_nest,13,10
-	db	'	VCPI  call stack: #### -',13,10
-	db	'	32bit mode stack: #### -',13,10
-	db	'	16bit mode stack: #### - ffff',13,10
+	db	'	CPU switch stack: #### - #### / ##### byte * ','0' + SW_max_nest,13,10
+	db	'	VCPI,32,16 stack: #### - #### - #### - ffff',13,10
 	db	'$'
 
 msg_05	db	'Load file name = $'

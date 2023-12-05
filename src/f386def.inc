@@ -73,7 +73,7 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 				;	3 = auto
 				; Not support PC/AT machine.
 
-_call_buf_sizeKB equ	16	; call buffer size for 32bit<->16bit function
+_call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function
 _pool_for_paging equ	8	; pool RAM pages for paging
 _resv_real_memKB equ	32	; reserved real memory (KB) for DOS
 
@@ -92,7 +92,7 @@ V86_stack_size	equ	 200h	; byte
 PM_stack_size	equ	 380h	; byte
 VCPI_stack_size	equ	  80h	; VCPI call(to V86) dedicated stack
 
-SW_stack_size	equ	400h	; CPU switch stack size
+SW_stack_size	equ	200h	; CPU switch stack size
 SW_max_nest	equ	4	; CPU switch max nest
 
 LADR_UNIT	equ	400000h	; Memory address allocation unit

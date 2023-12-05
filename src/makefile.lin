@@ -33,13 +33,13 @@ start.obj: start.asm $(base)
 sub.obj: sub.asm $(base)
 	$(ASM) $(ASMOP) sub.asm
 
-f386mem.obj: f386mem.asm $(base) free386.inc
+f386mem.obj: f386mem.asm $(base) start.inc free386.inc
 	$(ASM) $(ASMOP) f386mem.asm
 
-f386seg.obj: f386seg.asm $(base) free386.inc
+f386seg.obj: f386seg.asm $(base) free386.inc f386mem.inc
 	$(ASM) $(ASMOP) f386seg.asm
 
-f386sub.obj: f386sub.asm $(base) start.inc free386.inc f386seg.inc
+f386sub.obj: f386sub.asm $(base) start.inc free386.inc f386mem.inc f386seg.inc
 	$(ASM) $(ASMOP) f386sub.asm
 
 f386cv86.obj: f386cv86.asm $(base) free386.inc f386mem.inc

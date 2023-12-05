@@ -7,6 +7,7 @@
 %include	"macro.inc"
 %include	"f386def.inc"
 %include	"free386.inc"
+%include	"f386mem.inc"
 
 ;------------------------------------------------------------------------------
 
@@ -186,8 +187,7 @@ make_mems_4k:
 ;	Ret	Cy = 0 成功
 ;		Cy = 1 ページテーブルが足りない
 ;
-	align	4
-set_physical_mem:
+proc set_physical_mem
 	test	ecx,ecx		;割りつけページ数が 0
 	jz	NEAR .ret	;何もせず ret
 
@@ -238,8 +238,8 @@ set_physical_mem:
 	mov	ebx,esi			;ebx = 張りつけ先リニアアドレス
 	shr	ebx,20			;bit 31-20
 	and	 bl, 0fch		;bit 21,20 のクリア
-	add	ebx,[page_dir]		;page dir
-	mov	edi,[ebx]		;リニアアドレスを参照
+	add	ebx,[page_dir_ladr]	;page dir
+	mov	edi,[es:ebx]		;リニアアドレスを参照
 	test	edi,edi			;if entry != 0 （テーブルが存在する）
 	jnz	short .loop_start	;  jmp
 
@@ -254,7 +254,7 @@ set_physical_mem:
 	mov	eax,[free_RAM_padr]	;空き物理メモリ先頭
 	mov	edi,eax			;ediにsave
 	or	 al,7			;page entry
-	mov	[ebx],eax		;entry
+	mov	[es:ebx],eax		;entry
 	add	eax,ebp	;=1000h		;4KB step
 	xor	 al,al			;下位bit clear
 	mov	[free_RAM_padr],eax	;空き物理メモリ
@@ -556,11 +556,14 @@ get_maxalloc:
 	align	4
 get_maxalloc_with_adr:
 	push	ecx
+	push	es
+	push	d DOSMEM_sel
+	pop	es
 
-	mov	ebx, esi		;割りつけ先アドレス
-	shr	ebx, 20			;bit 31-20
-	and	 bl, 0fch		;bit 21,20 のクリア
-	mov	eax, [page_dir + ebx]	;割り付け先頭のページテーブルを確認
+	mov	ebx, esi			;割りつけ先アドレス
+	shr	ebx, 20				;bit 31-20
+	and	 bl, 0fch			;bit 21,20 のクリア
+	mov	eax, [es:page_dir_ladr+ebx]	;割り付け先頭のページテーブルを確認
 
 	xor	ebx, ebx
 	test	eax, eax
@@ -581,6 +584,7 @@ get_maxalloc_with_adr:
 	shr	ebx, 10			;ecx = ページテーブル用に必要なページ数
 	sub	eax, ebx		;残りページ数 - ページテーブル用メモリ
 
+	pop	es
 	pop	ecx
 	ret
 

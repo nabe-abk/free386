@@ -5,6 +5,8 @@
 ;
 %include	"macro.inc"
 %include	"f386def.inc"
+
+%include	"start.inc"
 %include	"free386.inc"
 
 segment	text align=4 class=CODE use16
@@ -15,16 +17,6 @@ segment	text align=4 class=CODE use16
 ;	out	di = offset
 ;
 proc heap_malloc
-	cmp	ax,[frag_mem_size]	;断片化メモリのサイズと比較
-	ja	.not_frag_mem		;if ↑より大きい jmp
-
-	mov	di,[frag_mem_offset]	;断片化メモリの割り当て
-	sub	[frag_mem_size  ],ax	;割り当てたメモリ量を引く
-	add	[frag_mem_offset],ax	;空きメモリを示すポインタを更新
-	ret
-
-	align	4
-.not_frag_mem:				;上位空きメモリの単純な割り当て
 	mov	di,[free_heap_top]	;上位空きメモリ割り当て
 	add	[free_heap_top],ax	;サイズ分加算
 	jmp	short check_heap_mem
@@ -81,6 +73,103 @@ mem_clear:		;メモリの 0 クリア
 	pop	eax
 	cld
 	ret
+
+;******************************************************************************
+; DOS memory functions
+;******************************************************************************
+;------------------------------------------------------------------------------
+;alloc memory from DOS
+;------------------------------------------------------------------------------
+proc init_dos_malloc
+	xor	eax, eax
+	xor	ebx, ebx
+
+	mov	ah, 48h
+	mov	bx, 0ffffh
+	int	21h
+	cmp	ax,08h
+	jne	.not_alloc
+
+	mov	ax, [resv_real_memKB]
+	shl	ax, 10 - 4		; KB to paragrah
+	cmp	bx, ax			; free memory < reserved memory
+	jbe	.not_alloc		; jmp
+
+	sub	bx, ax			; bx = can use memory(para)
+	dec	bx			; for MCB (1para)
+	jz	.not_alloc
+
+	mov	ah, 48h
+	int	21h
+	jc	.not_alloc
+
+	mov	[DOS_alloc_seg],  ax	;allocate DOS memory segment
+	mov	[DOS_alloc_sizep],bx	;allocate DOS memory size(para)
+	mov	bp, bx
+
+	mov	dx, ax
+	add	ax, 000ffh		;for 4KB fragment
+	and	ax, 0ff00h		;mask
+	mov	cx, ax			;cx = original seg
+	sub	cx, dx			;cx = top frag paras
+	sub	bx, cx			;bx = size - frag size
+
+	shl	eax, 4			;para to linear address
+	mov	[DOS_mem_ladr], eax	;save
+
+	mov	cx, bx
+	and	bx, 0ff00h		;4KB unit
+	sub	cx, bx			;cx = bottom frag paras
+	mov	dx, cx			;dx = save
+	shr	ebx, 12 - 4		;para to page
+	mov	[DOS_mem_pages],ebx	;save
+
+	test	cx, cx
+	jz	.skip_shrink
+
+	sub	bp, cx			;bp = new para size
+	mov	bx, bp			;bx = new para size
+
+	push	es
+	mov	es, [DOS_alloc_seg]
+	mov	ah, 4ah
+	int	21h			;Shrink memory block
+	pop	es
+	jc	.skip
+
+	mov	[DOS_alloc_sizep],bx	;new dos memory size(para)
+	shr	dx, 10 - 4		;para to KB
+	add	b [resv_real_memKB],dl	;Reserved memory increase
+
+.skip:
+.skip_shrink:
+.not_alloc:
+	ret
+
+;------------------------------------------------------------------------------
+;alloc DOS memory page
+;------------------------------------------------------------------------------
+;	in	 ax = page
+;		 cl = error code (for allocation failure)
+;	out	edi = liner address
+;
+proc dos_malloc_page
+	cmp	[DOS_mem_pages], ax
+	jb	.error
+
+	push	ebx
+	sub	[DOS_mem_pages], ax
+	movzx	ebx, ax
+	shl	ebx, 12		; page to byte
+
+	mov	eax, [DOS_mem_ladr]
+	add	[DOS_mem_ladr], ebx
+	pop	ebx
+	ret
+
+.error:
+	mov	ah, cl
+	jmp	error_exit_16
 
 
 
@@ -346,26 +435,30 @@ proc clear_sw_stack_32
 segment	data align=4 class=CODE use16
 group	comgroup text data
 
-global	frag_mem_offset
-global	frag_mem_size
 global	free_heap_top
 global	free_heap_bottom
+global	DOS_mem_ladr
+global	DOS_mem_pages
+global	DOS_alloc_sizep		; use only memory information
+global	DOS_alloc_seg		; use only memory information
 
 global	gp_buffer_remain
 global	gp_buffer_table
 global	sw_stack_bottom
 global	sw_stack_bottom_orig
 
-frag_mem_offset		dd	offset end_adr	; プログラム末端（データ領域含む）
-frag_mem_size		dd	0		; 内部でセーブ
-free_heap_top		dd	offset end_adr	; 自由に使える一番上位のメモリ
-free_heap_bottom	dd	10000h & 0ffffh	; 自由に使える一番下位のメモリ+1
+free_heap_top		dd	offset end_adr	; heap memory top    offset
+free_heap_bottom	dd	10000h & 0ffffh	; heap memory bottom offset+1
+
+DOS_alloc_seg		dd	0		;allocate DOS memory segment
+DOS_alloc_sizep		dd	0		;allocate DOS memory size(para)
+DOS_mem_ladr		dd	0		;can use DOS memory linear address
+DOS_mem_pages		dd	0		;can use DOS memory pages
 
 gp_buffer_remain	dd	GP_BUFFERS	; remain buffers
 gp_buffer_used		dd	0		; buffer used flag
 gp_buffer_table:
   times	GP_BUFFERS	dd	0		; address
-
 
 sw_cpumode_nest		dd	0		; Switch cpu mode nest counter
 sw_stack_bottom		dd	0		; stack pointer

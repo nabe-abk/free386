@@ -19,39 +19,31 @@
 ; global symbols
 ;******************************************************************************
 
-	;--- for f386seg.asm ------------------------------
-global		GDT_adr, LDT_adr
+;--- for f386seg.asm ------------------------------
+global		GDT_adr
+global		LDT_adr
+global		page_dir_ladr
 global		free_liner_adr
 global		free_RAM_padr
 global		free_RAM_pages
-global		DOS_mem_ladr
-global		DOS_mem_pages
-global		page_dir
 
-	;--- for f386cv86.asm -----------------------------
-global		to_PM_EIP, to_PM_data_ladr
+;--- for f386cv86.asm -----------------------------
+global		to_PM_EIP
+global		to_PM_data_ladr
 global		VCPI_entry
 global		VCPI_stack_adr
 global		V86_cs
 global		f386err
 
-	;--- for int.asm ----------------------------------
-global		PM_stack_adr
-global		exit_32
+;--- for int.asm ----------------------------------
 global		IDT_adr
+global		PM_stack_adr
 global		RVects_flag_tbl
-global		DTA_off, DTA_seg
+global		DTA_off
+global		DTA_seg
 global		DOS_int21h_adr
 global		default_API
 global		pharlap_version
-
-	;--- for f386mem.asm ------------------------------
-global		error_exit_16
-global		end_adr
-
-	;--- memory info ----------------------------------
-global		top_adr
-global		work_adr
 
 global		call_buf_used
 global		call_buf_size
@@ -59,6 +51,13 @@ global		call_buf_adr16
 global		call_buf_seg16
 global		call_buf_adr32
 
+;--- other ----------------------------------------
+global		error_exit_16
+global		exit_32
+
+global		top_ladr
+global		end_adr
+global		work_adr
 
 ;******************************************************************************
 ;■コード(16 bit)
@@ -69,6 +68,7 @@ segment	text public align=16 class=CODE use16
 ;------------------------------------------------------------------------------
 	global	start
 start:
+	xor	eax,eax
 	mov	ax,cs
 	mov	bx,ds
 	cmp	ax,bx		;cs と ds を比較
@@ -78,8 +78,11 @@ start:
 	PRINT86		EXE_err		;「com 形式で実行してください」
 	call_4ch	F386ERR		; プログラム終了
 
-	align	4
-.step:	;///////////////////////////////
+.step:
+	shl	eax, 4		; seg to linear address
+	mov	[top_ladr], eax	; save
+
+	;///////////////////////////////
 	;未使用 DOS メモリの開放
 	mov	bx,1000h		;64KB / 16
 	mov	ah,4ah			;メモリブロックサイズの変更
@@ -300,75 +303,6 @@ VCPI_check:
 	PRINT86		err_01		; 'VCPI not find'
 	call_4ch	F386ERR		; 終了
 .skip:
-	
-;------------------------------------------------------------------------------
-;●ページディレクトリのメモリ確保
-;------------------------------------------------------------------------------
-	;///////////////////////////////////////////////////
-	;ページディレクトリ用アドレス算出
-	;///////////////////////////////////////////////////
-	xor	ebx,ebx			;上位16ビットクリア
-	xor	edx,edx			;
-
-	mov	ax,offset end_adr	;プログラム最後尾オフセット
-	mov	bx,ds			;データセグメント
-	mov	dx,bx			;同じ
-	add	ax,0fh			;端数切上げ
-	shr	ax,4			;byte単位 -> para単位
-	add	bx,ax			;終了リニア para アドレス
-	add	bx,0ffh			;4KB 以下切上げ
-	and	bx,0ff00h		;para 単位のリニアアドレス
-
-	mov	bp,bx			;リニアアドレス(/16)をコピー
-	sub	bx,dx			;セグメント値を引く
-	shl	bx,4			;オフセットに変換
-	mov	[page_dir],bx		;ページディレクトリ先頭オフセット
-	mov	ax,bx
-	add	ax,1000h		;+4KB
-	mov	[page_table0],ax	;ページテーブル0の先頭オフセット
-
-	; 8KB zero fill
-	xor	eax,eax			;eax = 0
-	mov	edi,ebx			;書き込み先  es:edi
-	mov	ecx,2000h / 4		;書き込み回数
-	rep	stosd			;ページテーブルメモリを 0 クリア
-
-	shl	edx,4			;このプログラムの先頭リニアアドレス
-	mov	[top_adr],edx		;記憶
-
-	mov	cx,bp			;page dir リニアアドレス(/16)
-	shr	cx,(12-4)		;para単位 -> page単位
-	mov	ax,0de06h		;VCPI 06h/物理アドレス取得
-	int	67h			;物理アドレス取得 -> edx
-	mov	[to_PM_CR3],edx		;CR3 の値として記録
-
-	;///////////////////////////////////////////////////
-	;ページディレクトリ初期化
-	;///////////////////////////////////////////////////
-	add	cx,1			;4KB 先が最初のページtable
-	mov	ax,0de06h		;VCPI 06h/物理アドレス取得
-	int	67h			;VCPI call
-	mov	dl,07h			;有効なtableエントリへ
-	mov	[bx],edx		;最初のページテーブルをエントリする
-
-;------------------------------------------------------------------------------
-;●メモリ管理情報の設定
-;------------------------------------------------------------------------------
-	;メモリ管理情報の設定：断片メモリと、空き最上位メモリを算出する
-
-	;ページディレクトリやページテーブルは 4KB に align されなければならず、
-	;プログラム終端との間に空きメモリ領域が発生してしまう。 >frag_mem
-
-	mov	ax,[page_dir]		;page ディレクトリオフセット
-	mov	dx,ax			;dx にもセーブ
-	sub	ax,offset end_adr	;ax = 使われてないメモリ領域
-	add	dx,2000h		;空き最上位メモリ
-
-	; save
-	mov	[frag_mem_size],ax
-	mov	[free_heap_top],dx
-
-	;*** これで malloc などが使用可能になる ***
 
 ;------------------------------------------------------------------------------
 ;●メモリ総量の取得 / VCPI
@@ -587,7 +521,7 @@ get_EMB_XMS30:
 
 	mov	[max_EMB_free]  ,eax	;最大長、空きメモリサイズ (KB)
 	mov	[total_EMB_free],edx	;総空きメモリサイズ (KB)
-	mov	[EMB_top_adr ]  ,ecx	;管理する最上位アドレス
+	mov	[EMB_top_adr]   ,ecx	;管理する最上位アドレス
 
 	mov	edx,eax			;edx = 確保するメモリサイズ
 	mov	ah,89h			;最大連続空きメモリを全て確保
@@ -636,154 +570,125 @@ lock_EMB:
 .jp2:	mov	[EMB_pages],ecx		;使用可能なページ数として記録
 
 ;------------------------------------------------------------------------------
-;alloc DOS memory
+; initalize page directory and first page table
 ;------------------------------------------------------------------------------
-proc alloc_dos_memory
-	xor	eax, eax
-	xor	ebx, ebx
+proc init_page_directory
+	call	init_dos_malloc
 
-	mov	ah, 48h
-	mov	bx, 0ffffh
-	int	21h
-	cmp	ax,08h
-	jne	.not_alloc
+	mov	ax, 2			;page dir + page table 0
+	mov	cl,12			;allocate error code
+	call	dos_malloc_page
 
-	mov	ax, [resv_real_memKB]
-	shl	ax, 10 - 4		; KB to paragrah
-	cmp	bx, ax			; free memory < reserved memory
-	jbe	.not_alloc		; jmp
+	mov	[page_dir_ladr],eax	;page directory linear address
+	shr	eax, 4
+	mov	[page_dir_seg], ax	;page directory dos segment
 
-	sub	bx, ax			; bx = can use memory(para)
-	dec	bx			; for MCB (1para)
-	jz	.not_alloc
-
-	mov	ah, 48h
-	int	21h
-	jc	.not_alloc
-
-	mov	[DOS_alloc_seg],  ax	;allocate DOS memory segment
-	mov	[DOS_alloc_sizep],bx	;allocate DOS memory size(para)
-	mov	bp, bx
-
-	mov	dx, ax
-	add	ax, 000ffh		;for 4KB fragment
-	and	ax, 0ff00h		;mask
-	mov	cx, ax			;cx = original seg
-	sub	cx, dx			;cx = top frag paras
-	sub	bx, cx			;bx = size - frag size
-
-	shl	eax, 12 - 4		;seg  to linear address
-	mov	[DOS_mem_ladr], eax	;save
-
-	mov	cx, bx
-	and	bx, 0ff00h		;4KB unit
-	sub	cx, bx			;cx = bottom frag paras
-	shr	ebx, 12 - 4		;para to page
-	mov	[DOS_mem_pages],ebx	;save
-
-	test	cx, cx
-	jz	.skip_shrink
-
-	sub	bp, cx			;bp = new para size
-	mov	bx, bp			;bx = new para size
-
+	; 8KB zero fill
 	push	es
-	mov	es, [DOS_alloc_seg]
-	mov	ah, 4ah
-	int	21h			;Shrink memory block
+	mov	es, ax			;page dir segment
+
+	xor	eax,eax			;eax = 0
+	xor	edi,edi			;es:edi
+	mov	ecx,2000h / 4		;loop
+	rep	stosd			;zero fill
+
+	mov	ecx, [page_dir_ladr]
+	shr	ecx, 12			;byte to page
+	mov	ax,0de06h		;VCPI 06h, get phisical address
+	int	67h			;edx = page directory phisical address
+	mov	[to_PM_CR3],edx		;save
+
+	;///////////////////////////////////////////////////
+	;Regist first page table to page directory
+	;///////////////////////////////////////////////////
+	inc	cx			;first page table linear address
+	mov	ax,0de06h		;VCPI 06h, get phisical address
+	int	67h			;VCPI call
+	mov	  dl,07h		;enable entry
+	mov	[es:0],edx		;entry first page table
+
 	pop	es
-	jc	.skip
-
-	mov	[DOS_alloc_sizep],bx	;new dos memory size(para)
-.skip:
-.skip_shrink:
-.not_alloc:
 
 ;------------------------------------------------------------------------------
-;DOS memory for page table
+; alloc additional page table from DOS memory
 ;------------------------------------------------------------------------------
+;	When more than 4MB of extended memory is used,
+;	additional page tables are required in DOS memory.
+;  拡張メモリが4MB以上使われている時、DOSメモリ内に追加ページテーブルが必要。
+;
 proc alloc_page_table
-	mov	ebx, [EMB_physi_adr]	; free memory's phisical address
-	add	ebx, 0fffh		; 4KB Unit
-	shr	ebx, 22			; to need page tables
+	mov	eax, [EMB_physi_adr]	; free memory's phisical address
+	add	eax, 0fffh		; 4KB Unit
+	shr	eax, 22			; to need page tables
 	jz	.not_need
 
-	mov	ax, [DOS_mem_pages]
-	cmp	ax, bx
-	jae	.skip
+	add	[page_tables_in_dos],ax	; count up
+	mov	bp, ax			; bp = need tables
 
-	call		free_EMB	;EMB の開放
-	PRINT86		err_12		;ページテーブルメモリが足りない
-	call_4ch	F386ERR		;プログラム終了
+	mov	cl, 12			; allocate error code
+	call	dos_malloc_page
+	mov	ecx, eax		; ecx = linear address
+	shr	ecx, 12			; byte to page
 
-.skip:
-	sub	ax, bx
-	mov	[DOS_mem_pages], ax
-	shl	ebx, 12			;pages to size
-	mov	eax, [DOS_mem_ladr]
-	add	[DOS_mem_ladr], ebx	;renew ladr
-
-	mov	[page_table_in_dos_memory_ladr],eax	; liner address
-	mov	[page_table_in_dos_memory_size],ebx	; size
-
-	; prepare loop
-	add	eax, 0fffh		; for align 4KB
-	shr	eax, 12
-	mov	cx, ax
-	mov	bx, [page_dir]
+	push	es
+	push	fs
+	mov	fs, [page_dir_seg]
+	xor	bx, bx
 .loop:
+	; cx = target linear adddress/4KB
 	mov	ax,0de06h		; get Phisical address
 	int	67h			; VCPI call
 	mov	dl,07h			; address to table entry
 	add	bx, 4
-	mov	[bx], edx		; entry to page directory
+	mov	[fs:bx], edx		; entry to page directory
 
 	; clear page table
-	push	cx
+	mov	dx, cx
 	shl	cx, 12-4		; PAGE to para
 	mov	es, cx
 	xor	di, di
 	mov	cx, 1000h / 4		; 4KB/4
 	xor	eax, eax
 	rep	stosd
-	pop	cx
 
 	inc	cx			; for loop
 	dec	bp
 	jnz	.loop
 
-	push	ds
+	pop	fs
 	pop	es
 .not_need:
 
+
 ;------------------------------------------------------------------------------
-;●VCPI用セレクタの初期化
+; [VCPI] get protected mode interface
 ;------------------------------------------------------------------------------
-proc get_VCPI_statas
-	;///////////////////////////////////////////////////
-	;VCPI 呼び出し  01h
-	;///////////////////////////////////////////////////
-	xor	edi,edi			;edi の上位16bit クリア
-	mov	si,[GDT_adr]		;GDT へのオフセットロード
-	add	si,VCPI_sel		;VCPI のセグメント配置アドレスへ
-	mov	di,[page_table0]	;ページテーブル0 先頭オフセット保存
-	mov	ax,0de01h		;
-	int	67h			;VCPI Function
+proc get_VCPI_interface
+	push	es
+
+	mov	ax, [page_dir_seg]	;page directory segment
+	add	ax, 100h		;page0 table segment
+	mov	es, ax
+	xor	edi,edi			;es:di = first page table address
+
+	mov	si,[GDT_adr]		;GDT offset
+	add	si,VCPI_sel		;ds:si = Descriptor table entries in GDT
+	mov	ax,0de01h
+	int	67h
+
+	pop	es
 
 	test	ah,ah			;戻り値 check
-	jz	.save		;問題なければ jmp
+	jz	.save			;問題なければ jmp
 
 	call		free_EMB	; 拡張メモリの開放
-	PRINT86		err_02		; 'VCPI not find'
+	PRINT86		err_02		; 'VCPI error'
 	call_4ch	F386ERR		; 終了
 
-	align	4
 .save:
-	mov	[VCPI_entry],ebx	;VCPI サービスエントリ
-	sub	 di,[page_table0]	;ユーザ用offset - 先頭offset
-	shl	edi,(12-2)		;edi ユーザー用リニアアドレス開始位置
-	mov	[free_liner_adr],edi	;未定義のリニアアドレス最低位番地
-
+	mov	[VCPI_entry],ebx
+	shl	edi,(12-2)		; di = first unused page table entry in buffer
+	mov	[free_liner_adr],edi	;edi = free linear address
 
 ;------------------------------------------------------------------------------
 ;●DOS-Extender 環境の構築と変数の準備（V86 側）
@@ -817,7 +722,7 @@ proc get_VCPI_statas
 ;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え準備
 ;------------------------------------------------------------------------------
-	mov	eax,[top_adr]		;プログラム先頭リニアアドレス
+	mov	eax,[top_ladr]		;プログラム先頭リニアアドレス
 	mov	ecx,[GDT_adr]		;GDT オフセット
 	mov	edx,[IDT_adr]		;IDT オフセット
 	add	ecx,eax			;リニアアドレス
@@ -843,12 +748,12 @@ proc get_VCPI_statas
 ;GDT 内の LDT / IDT / TSS / DOSメモリ セレクタの設定
 ;
 	mov	 di,[GDT_adr]	;GDT のオフセット
-	mov	ebx,[top_adr]	;このプログラムの先頭リニアアドレス(bit 31-0)
+	mov	ebx,[top_ladr]	;このプログラムの先頭リニアアドレス(bit 31-0)
 
 	;/// Free386用 CS/DS 設定 ///////////////////////////////////
 
-	mov	dl,[top_adr +2]	;bit 16-23
-	mov	ax,0ffffh	;リミット値
+	mov	dl,[top_ladr +2]	;bit 16-23
+	mov	ax,0ffffh		;リミット値
 
 	mov	cl,40h			;386形式
 	mov	dh,9ah			;R/X 386
@@ -1016,7 +921,7 @@ setup_IDT:
 ;●ＣＰＵモード切替え
 ;------------------------------------------------------------------------------
 	mov	ax,0de0ch		;VCPI function  0Ch
-	mov	esi,[top_adr]		;プログラム先頭リニアアドレス
+	mov	esi,[top_ladr]		;プログラム先頭リニアアドレス
 	add	esi,offset to_PM_data	;切替え用構造体アドレス
 	mov	[to_PM_data_ladr],esi	;上記リニアアドレス記録
 
@@ -1051,6 +956,7 @@ free_EMB:
 	mov	dx,[EMB_handle]	;dx = EMBハンドル
 	test	dx,dx		;ハンドルの値確認
 	jz	.ret		;0 ならば ret
+	mov	w [EMB_handle], 0
 
 	mov	ah,0dh		;EMB のロック解除
 	XMS_function
@@ -1060,8 +966,8 @@ free_EMB:
 	test	ax,ax		;ax = 0 ?
 	jnz	.ret		;non 0 なら jmp
 	PRINT86	err_06		;「メモリ開放失敗」
-
-.ret	ret
+.ret:
+	ret
 
 
 ;------------------------------------------------------------------------------
@@ -1131,6 +1037,7 @@ proc error_exit_16
 	mov	ah,09h			;メッセージ表示
 	int	21h			;DOS call
 
+	call		free_EMB	; メモリの開放
 	call_4ch	F386ERR		; 終了
 
 

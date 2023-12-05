@@ -47,7 +47,7 @@ proc memory_infomation
 	cmp	b [verbose], 0
 	jz	near .skip
 
-	mov	edi, offset msg_02
+	mov	edi, offset msg_01
 
 	; memory info
 	mov	eax, [all_mem_pages]
@@ -69,6 +69,22 @@ proc memory_infomation
 	shl	eax, 4			;seg to linear address
 	call	rewrite_next_hash_to_hex
 
+	; reserved dos memory
+	movzx	eax, b [resv_real_memKB]
+	call	rewrite_next_hash_to_deg
+
+	PRINT	msg_01
+.skip:
+
+;------------------------------------------------------------------------------
+; more memory infomation
+;------------------------------------------------------------------------------
+proc more_memory_infomation
+	cmp	b [verbose], 1
+	jbe	near .skip
+
+	mov	edi, offset msg_02
+
 	; program code offset
 	mov	eax, end_adr
 	dec	eax
@@ -77,26 +93,12 @@ proc memory_infomation
 	mov	eax, [V86_cs]
 	call	rewrite_next_hash_to_hex
 
+	; all heap memory
 	mov	eax, end_adr
 	call	rewrite_next_hash_to_hex
 
-	mov	eax, [page_dir]
-	dec	eax
-	call	rewrite_next_hash_to_hex
-
-	mov	eax, [frag_mem_size]
-	call	rewrite_next_hash_to_deg
-
-	mov	eax, [page_dir]
-	call	rewrite_next_hash_to_hex
-	add	eax, 1fffh
-	call	rewrite_next_hash_to_hex
-	inc	eax
-	call	rewrite_next_hash_to_hex
-
-	; all heap memory
 	mov	eax, 10000h
-	sub	eax, [page_dir]
+	sub	eax, end_adr
 	call	rewrite_next_hash_to_deg
 
 	; free heap memory
@@ -122,21 +124,13 @@ proc memory_infomation
 	; GDT/LDT/IDT/TSS
 	mov	eax, [GDT_adr]
 	call	rewrite_next_hash_to_hex
-	add	eax, GDTsize -1
-	call	rewrite_next_hash_to_hex
-
 	mov	eax, [LDT_adr]
 	call	rewrite_next_hash_to_hex
-	add	eax, LDTsize -1
-	call	rewrite_next_hash_to_hex
-
 	mov	eax, [IDT_adr]
 	call	rewrite_next_hash_to_hex
-	add	eax, IDTsize -1
-	call	rewrite_next_hash_to_hex
-
 	mov	eax, [TSS_adr]
 	call	rewrite_next_hash_to_hex
+
 	add	eax, TSSsize -1
 	call	rewrite_next_hash_to_hex
 
@@ -165,6 +159,8 @@ proc memory_infomation
 	; stack info
 	mov	eax, [sw_stack_bottom_orig]
 	sub	eax,  SW_stack_size * SW_max_nest
+	call	rewrite_next_hash_to_hex
+	add	eax,  SW_stack_size * SW_max_nest -1
 	call	rewrite_next_hash_to_hex
 	mov	eax,  SW_stack_size
 	call	rewrite_next_hash_to_deg
@@ -241,7 +237,7 @@ patch_for_386sx:
 	;★PSPセレクタの作成
 	;-------------------------------
 	mov	edi,[work_adr]		;ワークアドレスロード
-	mov	eax,[top_adr]		;プログラム先頭リニアアドレス
+	mov	eax,[top_ladr]		;プログラム先頭リニアアドレス
 	mov	d [edi+4],256 -1	;limit
 	mov	d [edi  ],eax		;base
 	mov	d [edi+8],0200h		;R/W タイプ / 特権レベル=0

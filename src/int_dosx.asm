@@ -494,7 +494,7 @@ proc set_V86_vector
 	mov	[ecx*4],ebx	;000h-3ffh の割り込みテーブルに設定
 
 	mov	ebx,offset RVects_flag_tbl	;ベクタ書き換えフラグテーブル
-	add	ebx,[cs:top_adr]		;Free 386 の先頭リニアアドレス
+	add	ebx,[cs:top_ladr]		;Free 386 の先頭リニアアドレス
 	bts	[ebx],ecx			;int 書き換えをフラグをセット
 	;↑ebx を先頭にメモリをビット列と見なし、
 	;　そのビット列の ecx bit を 1 にセットする命令。
@@ -589,36 +589,36 @@ DOS_Ext_fn_2509h:
 
 	push	d (F386_ds)
 	push	d (ALLMEM_sel)
-	pop	es		;全メモリアクセスセレクタ
-	pop	ds		;ds 設定
+	pop	es			;全メモリアクセスセレクタ
+	pop	ds			;ds 設定
 
-	mov	ecx,ebx		;ecx = リニアアドレス
-	shr	ecx,20		;bit 31-20 取り出し
-	and	 cl,0fch	;bit 21,20 を 0 クリア
-	add	ecx,[page_dir]	;ページディレクトリ
-	mov	edx,[ecx]	;テーブルからデータを引く
+	mov	ecx,ebx			;ecx = リニアアドレス
+	shr	ecx,20			;bit 31-20 取り出し
+	and	 cl,0fch		;bit 21,20 を 0 クリア
+	add	ecx,[page_dir_ladr]	;ページディレクトリ
+	mov	edx,[es:ecx]		;テーブルからデータを引く
 
-	test	edx,edx		;値チェック
-	jz	.error		;0 なら jmp
-	and	edx,0fffff000h	;bit 0-11 clear
+	test	edx,edx			;値チェック
+	jz	.error			;0 なら jmp
+	and	edx,0fffff000h		;bit 0-11 clear
 
-	mov	ecx,ebx		;ecx = リニアアドレス
-	shr	ecx,10		;bit 31-10 取り出し
-	and	ecx,0ffch	;bit 31-22,11,10 をクリア
+	mov	ecx,ebx			;ecx = リニアアドレス
+	shr	ecx,10			;bit 31-10 取り出し
+	and	ecx,0ffch		;bit 31-22,11,10 をクリア
 
-	mov	ecx,[es:edx+ecx] ;ページテーブから目的のページを引く
-	test	 cl,1		 ;bit 0 ?  (P:存在ビット)
-	jz	.error		 ;if 0 jmp
+	mov	ecx,[es:edx+ecx]	 ;ページテーブから目的のページを引く
+	test	 cl,1			 ;bit 0 ?  (P:存在ビット)
+	jz	.error			 ;if 0 jmp
 
-	mov	edx,ebx		;edx = リニアアドレス
-	and	ecx,0fffff000h	;bit 31-12 を取り出す
-	and	edx,     0fffh	;bit 11-0
-	or	ecx,edx		;値を混ぜる
+	mov	edx,ebx			;edx = リニアアドレス
+	and	ecx,0fffff000h		;bit 31-12 を取り出す
+	and	edx,     0fffh		;bit 11-0
+	or	ecx,edx			;値を混ぜる
 
 	pop	es
 	pop	ds
 	pop	edx
-	add	esp,byte 4	;ecx = 戻り値 なので pop しない
+	add	esp,byte 4		;ecx = 戻り値 なので pop しない
 	clear_cy
 	iret
 
