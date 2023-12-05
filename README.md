@@ -51,9 +51,8 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 ## Tool Files (redistributed)
 
 * tools/nasm.exp     - nasm-0.98.35.t03 (executable by free386.com)
-* tools/alink-p1.exp - ALINK-p1 Ver1.6 patch1 (executable by free386.com)
-* tools/alink-p1     - ALINK-p1 Ver1.6 patch1 (Linux ELF binary)
-* tools/exe2com.exe  - compatible to exe2bin
+* tools/alink-p1.exp - ALINK Ver1.6 patch1 (executable by free386.com)
+* tools/alink-p1     - ALINK Ver1.6 patch1 (Linux ELF binary)
 * tools/imake.exe    - "make" for MS-DOS
 
 ## Command Line Options
@@ -79,5 +78,5 @@ Please refer to the displayed command line help or [User's Manual](MANUAL.md).
 
 ## Japanese Memo
 
-[メモは移動しました。](doc-ja/memo.md)
+[メモという名の戯言は移動しました。](doc-ja/memo.md)
 
