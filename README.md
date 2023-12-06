@@ -1,8 +1,8 @@
 # Free386 (386|DOS-Extender - RUN386 compatible)
 
 This is **MS-DOS** application.
-This software is compatible to 386|DOS-Extender (Phar Lap RUN386.EXE).
-This is written in assembly language only.
+This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
+ and is written only in assembly language.
 
 ## Overview
 
