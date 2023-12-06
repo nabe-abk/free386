@@ -1,6 +1,12 @@
 #!/bin/sh
 
 cd `dirname $0`
+
+mkdir bin
+mkdir bin/TOWNS
+mkdir bin/PC-98
+mkdir bin/AT
+
 cd src
 
 mv f386def.inc f386def.org
