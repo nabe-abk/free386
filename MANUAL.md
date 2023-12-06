@@ -113,7 +113,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0ah	|  0	|  b | (Reserved) |
 | +0bh	|  0	|  b | (Reserved) |
 | +0ch	|  8	|  b | Reserved memory pages for paging table (unit is page). 1page=4KB. |
-| +0dh	| 16	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
+| +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
 | +0eh	| 32	|  w | Reserved minimum DOS memory(KB). |
 
 In addition, if you want to rewrite the default value of PharLap's DOS-Extender Version information,
@@ -130,7 +130,7 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 | +0ah	|  0	|  b | （予約済） |
 | +0bh	|  0	|  b | （予約済） |
 | +0ch	|  8	|  b | ページングテーブル用の予約済ページ数（単位ページ数）。1ページ=4KB。 |
-| +0dh	| 16	|  b | コールバッファサイズKB単位で設定します。最小は4KBです。 |
+| +0dh	| 32	|  b | コールバッファサイズKB単位で設定します。最小は4KBです。 |
 | +0eh	| 32	|  w | 空けておくDOSメモリの量をKB単位で設定します。 |
 
 その他、PharLapのDOS-Extender Version情報のデフォルト値を書き換えたいときは、
