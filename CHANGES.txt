@@ -4,6 +4,7 @@ Ver 0.81 - 2023-12-xx
 
 - Update: Internal error handling.
 - Fix: int 21h, ax=2501h is hang up.
+- Fix: int 21h, ax=250eh is hang up.
 
 ==============================================================================
 Ver 0.80 - 2023-12-05

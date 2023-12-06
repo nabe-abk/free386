@@ -22,9 +22,10 @@ PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
-INT_HOOK_RETV	equ	1	; with return value dump(only int 21h)
+INT_HOOK_RETV	equ	0	; with return value dump(only int 21h)
 INT_HOOK_AH	equ	0	; Interrupt hook int 21h only AH value
-INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS. ex) 0ch
+INT_HOOK_CS	equ	0	; Interrupt hook only match CS
+INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS
 INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
 PRINT_TO_FILE	equ	0	; int 21/ah=09h to DUMP_FILE file
 PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console

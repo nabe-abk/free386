@@ -58,7 +58,7 @@ BITS	32
 
 %if INT_HOOK
 ;------------------------------------------------
-register_dump_from_int:		;safe
+proc register_dump_from_int
 ;------------------------------------------------
 	push	ds
 	push	eax
@@ -78,28 +78,50 @@ register_dump_from_int:		;safe
 	push	d F386_ds
 	pop	ds
 	;
+	; target AH
+	;
+	%if INT_HOOK_AH
+		cmp	ah, INT_HOOK_AH
+		jne	short .no_dump
+	%endif
+	;
+	; target CS
+	;
+	%if INT_HOOK_CS
+		cmp	d [esp+14h], INT_HOOK_CS
+		jne	short .no_dump
+	%endif
+	;
 	; exclude CS
 	;
-%if INT_HOOK_EX_CS
-	cmp	d [esp+14h], INT_HOOK_EX_CS
-	je	short .no_dump
-%endif
+	%if INT_HOOK_EX_CS
+		cmp	d [esp+14h], INT_HOOK_EX_CS
+		je	short .no_dump
+	%endif
 	;
 	; Free386 internal call ignore
 	;
-%if !INT_HOOK_F386
-	cmp	d [esp+14h], F386_cs
-	je	short .no_dump
-%endif
+	%if !INT_HOOK_F386
+		cmp	d [esp+14h], F386_cs
+		je	short .no_dump
+	%endif
 	;
 	; int 21h, ah=09h は無視
 	;
-	cmp	b [esp+0ch], 21h
-	jnz	short .not_int21
+	%if INT_HOOK_RETV
+		cmp	b [esp+0ch], 21h
+		jz	short .is_int21
+		cmp	d [esp+0ch], -2
+		jnz	short .not_int21h
+		.is_int21:
+	%else
+		cmp	b [esp+0ch], 21h
+		jnz	short .not_int21h
+	%endif
 	cmp	ah, 09h
 	jz	short .no_dump
 
-.not_int21:
+.not_int21h:
 	; Int = に書き換え
 	mov	eax, [blue_int_str]
 	mov	[regdump_msg], eax
@@ -152,9 +174,12 @@ register_dump:		;safe
 	;	+04h	eax
 	align 4
 ;------------------------------------------------
-register_dump_fault:	;safe
 ;------------------------------------------------
+proc register_dump_fault
+	; in	stack +04h	eax
+	;
 	; レジスタ保存, ds設定済で呼び出すこと
+	;
 	push	edx
 	push	ecx
 	push	ebx

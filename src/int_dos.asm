@@ -144,26 +144,12 @@ int_21h_unknown:
 ;・int 21h / テーブルジャンプ処理
 ;==============================================================================
 proc PM_int_21h
-%if INT_HOOK
-	cmp	ah, 09h
-	je	short .skip
-    %if INT_HOOK_AH
-	cmp	ah, INT_HOOK_AH
-	jne	short .skip
-    %endif
-    %if !INT_HOOK_F386
-	cmp	d [esp + 04h], F386_cs	;caller CS
-	je	short .skip
-    %endif
-
 	call_RegisterDumpInt	21h
-.skip:
-%endif
 
-%if (int_21h_MAXF < 0ffh)
+    %if (int_21h_MAXF < 0ffh)
 	cmp	ah,int_21h_MAXF		;テーブル最大値
 	ja	int_21h_unknown		;それ以上なら jmp
-%endif
+    %endif
 	cld				;方向フラグクリア
 	push	eax			;
 
@@ -173,38 +159,25 @@ proc PM_int_21h
 	;------------------------------------------
 	;int 21h のみ戻り値も出力
 	;------------------------------------------
-%if INT_HOOK && INT_HOOK_RETV
-	;
-	; この時点で original eax が積まれている
-	;
-	cmp	b [esp + 01h], 09h	;AH=09 print string
-	je	short .normal_call
-    %if INT_HOOK_AH
- 	cmp	b [esp + 01h], INT_HOOK_AH
- 	jne	short .normal_call
-    %endif
-    %if !INT_HOOK_F386
-	cmp	d [esp + 08h], F386_cs	;呼び出し側 CS
-	je	short .normal_call
-    %endif
-	; この時点で original eax が積まれている
-	push	cs			; cs
-	push	d offset .call_retern	; EIP
-	pushf				; jump address
-	xchg	[esp], eax		;eax=eflags, [esp]=jump address
-	xchg	[esp+12], eax		;[esp+8]=eflags, eax=original eax
-	ret				; テーブルジャンプ
-.call_retern:
-	;save_cy
-	jc	.set_cy
-	clear_cy
-	jmp	short .saved
-.set_cy:
-	set_cy
-.saved:
-	call_RegisterDumpInt	-2
-	iret
-%endif
+	%if INT_HOOK && INT_HOOK_RETV
+		push	cs			; cs
+		push	d offset .call_retern	; EIP
+		pushf				; jump address
+		xchg	[esp], eax		;eax=eflags, [esp]=jump address
+		xchg	[esp+12], eax		;[esp+8]=eflags, eax=original eax
+		ret				; テーブルジャンプ
+	align 4
+	.call_retern:
+		;save_cy
+		jc	.set_cy
+		clear_cy
+		jmp	short .saved
+	.set_cy:
+		set_cy
+	.saved:
+		call_RegisterDumpInt	-2
+		iret
+	%endif
 
 .normal_call:
 	;------------------------------------------
