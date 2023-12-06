@@ -16,13 +16,14 @@ default_API	db	Free386_API,0	; API file name
 ;==============================================================================
 ; General variable
 ;==============================================================================
-pharlap_version	db	'12aJ'		;Ver 1.2aj
-
 err_level	db	0		;プログラムエラーレベル
 f386err		db	0		;F386 内部エラーレベル
 cpu_is_386sx	db	0		;CPU is 386SX
+init_machine32	db	0		;initalized machine
 
 	align	4
+pharlap_version	db	'12aJ'		;Ver 1.2aj
+
 ;==============================================================================
 ; Buffer information
 ;==============================================================================
@@ -145,8 +146,6 @@ P_title	db	'Free386(386|DOS-Extender) for '
 seg_msg	db	'Code segment: '
 seg_hex	db	'####',13,10,'$'
 
-EXE_err	db	'Do not execute free386.exe (Please run free386.com)',13,10,'$'
-
 end_mes	db	'Finish',13,10,'$'
 
 msg_01	db	"*** Free386 memroy information ***",13,10
@@ -187,40 +186,34 @@ msg_10	db	'Usage: free386 <target.exp>',13,10
 %endif
 	db	'$'
 
-err_01e	db	'EMS Device Header is not found',13,10,'$'
-err_01	db	'VCPI is not found',13,10,'$'
-err_02	db	'VCPI error',13,10,'$'
-err_03	db	'CPU mode not change',13,10,'$'
-err_04	db	'XMS: driver not found',13,10,'$'
-err_05	db	'XMS: XMS memory allocation failed',13,10,'$'
-err_06	db	'XMS: XMS memory release failed',13,10,'$'
-err_07	db	'XMS: XMS memory lock failed',13,10,'$'
-err_10	db	'Incompatible binary! This binary is for ',MACHINE_STRING,'.',13,10
-	db	'If you do not want to check the machine, ',
-	db	'please execute with the -i option.',13,10,'$'
-err_11	db	'CALL buufer (Real memory) allocate failed',13,10,'$'
-err_12	db	'Page table memory (Real memory) allocate failed',13,10,'$'
+err_head	db	'[F386] $'
+err_00		db	'Unknown error',13,10,'$'
+err_xms_free	db	'XMS: XMS memory release failed',13,10,'$'
 
-err_xxh	db	'F386: Unknown error',13,10,'$'
-err_21h	db	'F386: Protect memory is insufficient',13,10,'$'
-err_22h	db	'F386: Can not read executable file',13,10,'$'
-err_23h	db	'F386: Memory is insufficient to load executable file',13,10,'$'
-err_24h	db	'F386: Unknown EXP header (Compatible: P3-flat model, MZ-header)',13,10,'$'
-err_25h	db	'F386: Real memory heap overflow (*_malloc/*_calloc)',13,10,'$'
-err_26h	db	'F386: Not enough stack for switch CPU mode',13,10,'$'
-err_27h	db	'F386: Failure to free stack memory for switch CPU mode',13,10,'$'
-err_28h	db	'F386: File read error(int 21h fail)',13,10,'$'
-
-	align	4
 err_msg_table:
-	dw	offset err_xxh	;not use
-	dw	offset err_21h
-	dw	offset err_22h
-	dw	offset err_23h
-	dw	offset err_24h
-	dw	offset err_25h
-	dw	offset err_26h
-	dw	offset err_27h
-	dw	offset err_28h
+_e01	db	'Do not execute free386.exe (please run free386.com)',13,10,'$'
+_e02	db	'Incompatible binary! This binary is for ',MACHINE_STRING,'.',13,10
+	db	'If you do not want to check the machine, please execute with the -i option.',13,10,'$'
+_e03	db	'EMS Device Header not found',13,10,'$'
+_e04	db	'VCPI not found',13,10,'$'
+_e05	db	'XMS driver not found',13,10,'$'
+_e06	db	'XMS memory allocation failed',13,10,'$'
+_e07	db	'XMS memory lock failed',13,10,'$'
+_e08	db	'VCPI: Failed to get protected mode interface',13,10,'$'
+_e09	db	'VCPI: Failed to change CPU to protected mode',13,10,'$'
+_e10	db	'$'
 
+; error message for memory allocation
+_e11	db	'Memory allocation failed, not enough heap memory',13,10,'$'
+_e12	db	'CALL buufer allocation failed',13,10,'$'
+_e13	db	'Page table memory (real memory) allocation failed',13,10,'$'
+_e14	db	'Not enough stack for switch CPU mode',13,10,'$'
+_e15	db	'Failure to free stack memory for switch CPU mode',13,10,'$'
+_e16_20	db	'$$$$$'
+
+; error message for protect mode
+_e21	db	'Can not read executable file',13,10,'$'
+_e23	db	'File read error (int 21h failed)',13,10,'$'
+_e22	db	'Memory is insufficient to load executable file',13,10,'$'
+_e24	db	'Unknown EXP header (Compatible: P3-flat model, MZ-header)',13,10,'$'
 

@@ -6,9 +6,7 @@ BITS	32
 ;==============================================================================
 ;★プロテクトモード スタートラベル
 ;==============================================================================
-	align	4
-	global	start32
-start32:
+proc start32
 	mov	ebx,F386_ds		;ds セレクタ
 	mov	ds,ebx			;ds ロード
 	mov	es,ebx			;es
@@ -320,12 +318,15 @@ Debug_code:
 ;------------------------------------------------------------------------------
 ;●各機種対応ルーチン
 ;------------------------------------------------------------------------------
-%if TOWNS
-	call	init_TOWNS_32		;TOWNS 固有の設定
-%elif PC_98
-	call	init_PC98_32		;PC-98x1 固有の設定
-%elif PC_AT
-	call	init_AT_32		;PC/AT互換機 固有の設定
+%if TOWNS || PC_98 || PC_AT
+	mov	b [init_machine32], 1
+	%if TOWNS
+		call	init_TOWNS_32		;TOWNS 固有の設定
+	%elif PC_98
+		call	init_PC98_32		;PC-98x1 固有の設定
+	%elif PC_AT
+		call	init_AT_32		;PC/AT互換機 固有の設定
+	%endif
 %endif
 
 ;------------------------------------------------------------------------------
@@ -359,9 +360,9 @@ no_file:
 	mov	al, [show_title]
 	test	al, al
 	jz	.skip
-	PRINT		msg_10		;使い方表示
+	PRINT	msg_10			;使い方表示
 .skip:
-	call_4ch	00		;プログラム終了処理
+	jmp	exit_32			;プログラム終了処理
 
 
 	align	4
@@ -474,8 +475,8 @@ search_file:
 	mov	edx,[work_adr]		;検索したファイル名
 	call	string_print		;文字列表示 (null:終端)
 
-	mov	b [f386err], 22h
-	jmp	exit_32
+	mov	ah, 21			;'Can not read executable file'
+	jmp	error_exit_32
 
 	;
 	;ロードファイル名の表示
@@ -497,12 +498,7 @@ search_file:
 call_load_exp:
 	mov	esi,[work_adr]		;ワーク領域ロード
 	call	load_exp		;EXP ファイルのロード
-	jnc	.skip			;ロード成功なら EXP ファイルの実行
-
-	mov	[f386err],al		;エラー番号記録
-	xor	al,al
-	mov	ah,4ch
-	int	21h			;プログラム終了
+	jc	error_exit_32		;ah = internal error code
 .skip:
 
 ;------------------------------------------------------------------------------
@@ -515,6 +511,8 @@ call_load_exp:
 ;●プログラムの終了(32bit)
 ;------------------------------------------------------------------------------
 proc exit_32
+	mov	ah, 0
+proc error_exit_32
 	cli
 	mov	bx,F386_ds		;ds 復元
 	mov	ds,ebx			;
@@ -523,17 +521,32 @@ proc exit_32
 	mov	gs,ebx			;
 	lss	esp,[PM_stack_adr]	;スタックポインタロード
 
-	mov	[err_level],al		;エラーレベル記録
+	mov	[err_level],ax
+	;mov	[err_level],al		;save error level
+	;mov	[f386err],ah
+
+	;///////////////////////////////
+	;終了処理でエラーを発生させないためにバッファ関連クリア
+	;///////////////////////////////
+	call	clear_gp_buffer_32
+	call	clear_sw_stack_32
 
 	;///////////////////////////////
 	;各機種固有の終了処理
 	;///////////////////////////////
-	%if TOWNS
-		call	exit_TOWNS_32		;TOWNS の終了処理
-	%elif PC_98
-		call	exit_PC98_32		;PC-98x1 の終了処理
-	%elif PC_AT
-		call	exit_AT_32		;PC/AT互換機の終了処理
+	%if TOWNS || PC_98 || PC_AT
+		cmp	b [init_machine32], 0
+		je	.skip_exit_machine
+		mov	b [init_machine32], 0		;Re-entry prevention
+
+		%if TOWNS
+			call	exit_TOWNS_32		;TOWNS の終了処理
+		%elif PC_98
+			call	exit_PC98_32		;PC-98x1 の終了処理
+		%elif PC_AT
+			call	exit_AT_32		;PC/AT互換機の終了処理
+		%endif
+	.skip_exit_machine:
 	%endif
 
 	;///////////////////////////////

@@ -38,6 +38,7 @@ extern		call_buf_adr32
 ;--- other ----------------------------------------
 extern		error_exit_16
 extern		exit_32
+extern		error_exit_32
 
 extern		top_ladr
 extern		end_adr

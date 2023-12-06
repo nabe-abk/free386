@@ -1,8 +1,8 @@
 ;------------------------------------------------------------------------------
-;F386sub.asm	sub-routine for Free386
+;F386sub.asm	subroutine for Free386
 ;------------------------------------------------------------------------------
 ;[TAB=8]
-;	Author kattyo@abk / nabe@abk (ルーチンによる)
+;	Author kattyo@abk / nabe@abk
 ;
 ;------------------------------------------------------------------------------
 
@@ -15,8 +15,6 @@
 %include	"f386seg.inc"
 
 ;------------------------------------------------------------------------------
-
-	;レジスタダンプ
 	global	register_dump		;safe
 	global	register_dump_fault	;safe
 	global	dump_err_code
@@ -644,13 +642,12 @@ add_progname_:
 ;		ebp	ロードプログラム ESP
 ;
 ;		Carry = 1 / ロード失敗
-;		al	エラーコード (F386内部エラーコードと同一)
+;		ah	エラーコード (F386内部エラーコードと同一)
 ;
 ;------------------------------------------------------------------------------
 ;●EXP ファイルのロード
 ;------------------------------------------------------------------------------
-	align	4
-load_exp:
+proc load_exp
 	push	ds			;最後に積むこと
 	mov	es,[esp]		;es に設定
 
@@ -658,7 +655,7 @@ load_exp:
 	;mov	edx,[ファイル名]	;ファイル名 ASCIIz
 	mov	ax,3d00h		;file open(read only)
 	int	21h			;dos call
-	jc	NEAR error_exit0	;Cy=1 ならオープンエラー
+	jc	NEAR .file_open_error	;Cy=1 ならオープンエラー
 
 	mov	ebx,eax			;bx <- file handl番号
 	mov	[file_handle],eax	;同じくメモリにも記録
@@ -670,14 +667,14 @@ load_exp:
 	mov	ecx,200h		;読み込むバイト数
 	mov	ah,3fh			;file read ->ds:edx
 	int	21h			;dos call
-	jc	NEAR error_exit1	;Cy=1 ならリードエラー
+	jc	NEAR .file_read_error	;Cy=1 ならリードエラー
 
 	;
 	;ヘッダ部解析
 	;
 	mov	eax,[esi]
-	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
-	jne	NEAR check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
+	cmp	eax,00013350H		;P3 形式['P3']・フラットモデル[w (0001)]
+	jne	NEAR .load_MZ_exp	;P3 でなければ MZヘッダか確認 (jmp)
 
 	;
 	;必要なメモリ算出
@@ -700,16 +697,15 @@ load_exp:
 	mov	esi,[esi+5eh]		;ベースメモリアドレス
 	call	make_cs_ds		;cs/ds 作成とメモリ確保
 	pop	esi
-	jc	NEAR not_enough_memory	;エラーならメモリ不足
+	jc	NEAR .not_enough_memory	;エラーならメモリ不足
 
-check_memory:
 	;
 	;メモリ量チェック
 	;
 	mov	ebx,[60h]		;実際に割り当てたメモリ [byte]
 	mov	eax,[5ch]		;PSP に記録 / 最低限必要なメモリ [byte]
 	cmp	ebx,eax			;値比較
-	jb	NEAR not_enough_memory	;負数ならメモリ不足
+	jb	NEAR .not_enough_memory	;負数ならメモリ不足
 
 	sub	ebx,[esi+74h]		;ロードイメージの大きさを引く
 	mov	[64h],ebx		;ヒープメモリ総量を PSPに記録
@@ -730,7 +726,7 @@ check_memory:
 	mov	 cx,[esi + 28h]		; bit 31-16
 	mov	ax,4200h		;ファイル先頭からポインタ移動
 	int	21h			;dos call（file pointer = cx:dx）
-	jc	error_exit2		;Cy=1 なら エラー
+	jc	.file_read_error	;Cy=1 なら エラー
 
 	mov	ecx,[esi + 2ah]		;読む込むサイズ（プログラムサイズ）
 	mov	edx,[esi + 5eh]		;読み込む先頭メモリ(ds:edx)
@@ -743,24 +739,23 @@ check_memory:
 	mov	eax,[es:esi+72h]	;ヘッダの フラグ初期値
 	test	al,01h			;bit 0 を check
 
-	push  d (offset sl_un_pack_ret)	;call の戻りラベル
+	push  d offset .sl_un_pack_ret	;call の戻りラベル
 	jnz	NEAR exp_un_pack_fread	;PACK を解きながらファイル読み込み
-
 	add	esp,byte (4)		;スタック除去(戻りラベル)
 
 
-EXP_file_read:		;MZ ヘッダロードから呼ばれる
+.file_read:		;MZ ヘッダロードから呼ばれる
 	;
 	;ファイルリード
 	; ds:edx に ecx バイト読み込む
 	;
 	mov	ah,3fh			;file read
 	int	21h			;DOS コール
-	jc	error_exit2		;キャリーが 1 なら リードエラー
+	jc	.file_read_error	;キャリーが 1 なら リードエラー
 
 
 	align	4
-sl_un_pack_ret:
+.sl_un_pack_ret:
 	mov	ah,3eh			;ファイルクローズ
 	int	21h			;dos コール
 
@@ -772,64 +767,58 @@ sl_un_pack_ret:
 	clc				;キリャークリア
 	ret
 
-
-	align	4
-error_exit2:
-	mov	ds,[esp]		;スタックトップから DS 復元
-error_exit1:
+.file_read_error:
+	mov	ds, [esp]		;スタックトップから DS 復元
 	mov	ebx,[file_handle]	;ebx <- ファイルハンドル番号ロード
 	mov	ah,3eh			;ファイルクローズ
 	int	21h			;dos call
-error_exit0:
-	mov	al,28h			;File read error
+.file_open_error:
+	mov	ah,22			;'File read error'
 	pop	ds
 	stc				;キリャーセット
 	ret
 
-	align	4
-ftype_error:
-	mov	cl,24h			;未対応ファイル形式
-	jmp	short fclose_end	;ファイルをクローズしてから終了
-
-	align	4
-not_enough_memory:
-	mov	cl,23h			;メモリ不足
-fclose_end:
+.not_enough_memory:
+	mov	cl,23			;'Memory is insufficient'
+.fclose_end:
 	pop	ds
 
 	mov	ebx,[file_handle]	;ebx <- ファイルハンドル番号ロード
 	mov	ah,3eh			;ファイルクローズ
 	int	21h			;dos call
 
-	mov	al,cl			;al = エラーコード
+	mov	ah,cl			;ah = エラーコード
 	stc				;キリャーセット
 	ret
+
+.ftype_error:
+	mov	cl,24			;'Unknown EXP header'
+	jmp	short .fclose_end	;ファイルをクローズしてから終了
 
 
 
 ;----------------------------------------------------------------------
 ;○MZ ヘッダを持つ EXP ファイルのロード
 ;----------------------------------------------------------------------
-;;	mov	eax,[esi]
-;;	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
-;;	jne	NEAR check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
+;	mov	eax,[esi]
+;	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
+;	jne	NEAR check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
 ;
+	align	4
+.load_MZ_exp:
+
 	;////////////////////////////////////////////////////
 	;MZ(MP) ヘッダに対応しない場合
 	;////////////////////////////////////////////////////
 %if (USE_MZ_EXP = 0)
-	align	4
-check_MZ:
-	jmp	short ftype_error	;MZ ヘッダに対応しない
+	jmp	short .ftype_error	;MZ ヘッダに対応しない
 %else
 
 	;////////////////////////////////////////////////////
 	;MZ(MP) ヘッダロードルーチン
 	;////////////////////////////////////////////////////
-	align	4
-check_MZ:
-	cmp	ax,'MP'		;MZ(MP) ヘッダ?
-	jne	ftype_error	;違ったら 未対応形式
+	cmp	ax,'MP'			;MZ(MP) ヘッダ?
+	jne	.ftype_error		;違ったら 未対応形式
 
 	;
 	;必要なメモリ算出
@@ -848,10 +837,9 @@ check_MZ:
 
 	or	eax,ebp		;eax = (512 byteブロック数)*512 + 511以下の端数
 	test	ebp,ebp		;ebp = 0 ?
-	jz	.step		;0 なら jmp
+	jz	.step2		;0 なら jmp
 	sub	eax,512		;端数ありなら 512 byte 引く / eax = file size
-
-.step:
+.step2:
 	sub	eax,edx		;eax = プログラムイメージサイズ
 	mov	ebp,eax		;ロードイメージサイズを保存しておく
 	xchg	eax,ecx		;eax=最低限必要なメモリ ecx=プログラムサイズ
@@ -867,7 +855,7 @@ check_MZ:
 	xor	esi,esi			;ベースメモリアドレス = 0
 	call	make_cs_ds		;cs/ds 作成とメモリ確保
 	pop	esi
-	jc	not_enough_memory	;エラーならメモリ不足
+	jc	.not_enough_memory	;エラーならメモリ不足
 
 	;
 	;メモリ量チェック
@@ -875,7 +863,7 @@ check_MZ:
 	mov	ebx,[60h]		;実際に割り当てたメモリ [byte]
 	mov	[5ch],eax		;PSP に記録 / 最低限必要なメモリ [byte]
 	cmp	ebx,eax			;値比較
-	jb	not_enough_memory	;負数ならメモリ不足
+	jb	.not_enough_memory	;負数ならメモリ不足
 
 	sub	ebx,ebp			;ロードイメージの大きさを引く
 	mov	[64h],ebx		;PSPに記録 / ヒープメモリ総量 [byte]
@@ -896,7 +884,7 @@ check_MZ:
 	;mov	edx,---		;代入済	;edx = プログラムイメージまでの offset
 	mov	ax,4200h		;ファイル先頭からポインタ移動
 	int	21h			;DOS call（file pointer = cx:dx）
-	jc	NEAR error_exit2	;Cy=1 なら エラー
+	jc	NEAR .file_read_error	;Cy=1 なら エラー
 
 	mov	ecx,ebp			;読む込むサイズ（プログラムサイズ）
 	xor	edx,edx			;読み込む先頭メモリ(ds:edx)
@@ -904,7 +892,7 @@ check_MZ:
 	mov	edi,[Load_ds]		;ロード先セレクタ値ロード
 	mov	 ds,edi			;
 
-	jmp	EXP_file_read		;実際の読み込み処理 (P3 Header と共通)
+	jmp	.file_read		;実際の読み込み処理 (P3 Header と共通)
 %endif
 
 
@@ -1022,8 +1010,8 @@ exp_up_fread_eof:	;ファイルを最後まで読んで、処理しきった
 exp_up_fread_err:
 	pop	edi
 	pop	ebp
-	add	esp,4			;戻りラベル除去
-	jmp	error_exit2		;エラーによる脱出
+	add	esp,4				;戻りラベル除去
+	jmp	load_exp.file_read_error	;エラーによる脱出
 	;///////////////////////////////////////////////////////
 
 

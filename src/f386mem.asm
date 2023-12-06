@@ -14,11 +14,13 @@ segment	text align=4 class=CODE use16
 ; heap memory functions
 ;******************************************************************************
 ;	in	ax = size (byte). recommended in multiples of 16.
+;		cl = error code (for allocation failure)
 ;	out	di = offset
 ;
 proc heap_malloc
 	mov	di,[free_heap_top]	;è„à ãÛÇ´ÉÅÉÇÉääÑÇËìñÇƒ
 	add	[free_heap_top],ax	;ÉTÉCÉYï™â¡éZ
+	jc	heap_alloc_error
 	jmp	short check_heap_mem
 
 	align	4
@@ -37,10 +39,10 @@ check_heap_mem:
 	cmp	ax,bx
 	pop	bx
 	pop	ax
-	ja	.error
+	ja	heap_alloc_error
 	ret
-.error:
-	mov	ah, 25h			;error code
+heap_alloc_error:
+	mov	ah, cl			;error code
 	jmp	error_exit_16
 
 ;------------------------------------------------------------------------------
@@ -391,8 +393,8 @@ proc alloc_sw_stack_32
 	ret
 
 .error:
-	mov	b [f386err], 26h
-	jmp	exit_32
+	mov	ah, 14
+	jmp	error_exit_32
 
 ;==============================================================================
 ; free SW stack memory
@@ -414,8 +416,8 @@ proc free_sw_stack_32
 	ret
 
 .error:
-	mov	b [f386err], 27h
-	jmp	exit_32
+	mov	ah, 15
+	jmp	error_exit_32
 
 ;==============================================================================
 ; clear SW stack
@@ -426,6 +428,7 @@ proc clear_sw_stack_32
 	mov	[sw_stack_bottom], eax
 
 	mov	b [sw_cpumode_nest], 0
+	pop	eax
 	ret
 
 

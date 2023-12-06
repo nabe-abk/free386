@@ -54,6 +54,7 @@ global		call_buf_adr32
 ;--- other ----------------------------------------
 global		error_exit_16
 global		exit_32
+global		error_exit_32
 
 global		top_ladr
 global		end_adr
@@ -64,26 +65,28 @@ global		work_adr
 ;******************************************************************************
 segment	text public align=16 class=CODE use16
 ;------------------------------------------------------------------------------
-;●初期処理
+; start
 ;------------------------------------------------------------------------------
 	global	start
 start:
 	xor	eax,eax
-	mov	ax,cs
-	mov	bx,ds
-	cmp	ax,bx		;cs と ds を比較
-	je	.step		;等しければ（.com ﾌｧｲﾙ）処理継続
 
-	mov		ds,ax		; ds を cs からロード
-	PRINT86		EXE_err		;「com 形式で実行してください」
-	call_4ch	F386ERR		; プログラム終了
+	mov	ax,cs		; check ".exe" or ".com"
+	mov	bx,ds
+	cmp	ax,bx		; cs <=> ds
+	je	.step		; 
+
+	mov	ds,ax
+	mov	ah,01		;'please run free386.com'
+	jmp	error_exit_16
 
 .step:
 	shl	eax, 4		; seg to linear address
 	mov	[top_ladr], eax	; save
 
 	;///////////////////////////////
-	;未使用 DOS メモリの開放
+	;64KB以上のDOSメモリ開放
+	;///////////////////////////////
 	mov	bx,1000h		;64KB / 16
 	mov	ah,4ah			;メモリブロックサイズの変更
 	int	21h			;DOS call
@@ -247,8 +250,8 @@ machine_check:
 %endif
 
 	jnc	.check_safe		;Cy=0 なら該当機種
-	PRINT86		err_10		;機種判別失敗
-	call_4ch	F386ERR		;終了
+	mov	ah, 02			;機種判別失敗
+	jmp	error_exit_16		;終了
 
 .no_check:
 .check_safe:
@@ -257,11 +260,11 @@ machine_check:
 ;------------------------------------------------------------------------------
 ;●VCPI の存在確認
 ;------------------------------------------------------------------------------
-	;
-	;----- EMSの存在確認 -----
-	;
 %if CHECK_EMS
-check_ems_driver:
+proc check_ems_driver
+	;
+	; check EMS
+	;
 	mov	ax,3567h	;int 67h のベクタ取得
 	int	21h		;es:[bx] = ベクタ位置
 	mov	bx,000ah	;ドライバ確認用文字列開始位置 'EMMXXXX0'
@@ -280,11 +283,9 @@ check_ems_driver:
 	cmp	dx,'X0'
 	je	short .skip
 
-	align	2
-	;/// エラー処理 /////////
 .not_found:
-	PRINT86		err_01e		; 'EMS not found'
-	call_4ch	F386ERR		; 終了
+	mov	ah, 03		; 'EMS not found'
+	jmp	error_exit_16
 
 .skip:
 	push	ds
@@ -300,8 +301,8 @@ VCPI_check:
 	test	ah,ah		; 戻り値 check
 	jz	short .skip	; found VCPI
 
-	PRINT86		err_01		; 'VCPI not find'
-	call_4ch	F386ERR		; 終了
+	mov	ah, 04		; 'VCPI not found'
+	jmp	error_exit_16
 .skip:
 
 ;------------------------------------------------------------------------------
@@ -323,6 +324,8 @@ get_vcip_memory_size:
 ;------------------------------------------------------------------------------
 ;●スタックメモリの確保と設定
 ;------------------------------------------------------------------------------
+	mov	cl, 11			;error code for stack_malloc
+
 	mov	ax,V86_stack_size	;V86時 stack
 	call	stack_malloc		;下位メモリ割り当て
 	mov	sp,di			;スタック切替え
@@ -353,7 +356,8 @@ memory_setting:
 	; Save real mode interrupt table: 0000:0000-03ff
 	;//////////////////////////////////////////////////
 	xor	edi,edi
-	mov	ax,IntVectors *4
+	mov	ax, IntVectors *4
+	mov	cl, 11			; error code for heap_malloc
 	call	heap_malloc
 	mov	[RVects_save_adr],di	; save address
 
@@ -373,6 +377,8 @@ memory_setting:
 	;//////////////////////////////////////////////////
 	;GDT/LDT/TSS
 	;//////////////////////////////////////////////////
+	mov	cl, 11			;error code for heap_malloc
+
 	mov	ax,GDTsize		;Global Descriptor Table's size
 	call	heap_calloc
 	mov	[GDT_adr],di
@@ -398,6 +404,7 @@ memory_setting:
 	jb	.cb_skip
 	mov	eax, 0ffffh
 .cb_skip:
+	mov	cl, 12			;error code: 'CALL buufer allocation failed'
 	mov	[call_buf_size], eax
 	call	heap_malloc
 
@@ -408,6 +415,7 @@ memory_setting:
 	;//////////////////////////////////////////////////
 	; Universal buffer
 	;//////////////////////////////////////////////////
+	mov	cl, 12			;error code for heap_malloc
 	mov	ax, WORK_size
 	call	heap_malloc
 	mov	[work_adr],di
@@ -444,10 +452,9 @@ XMS_setup:
 	cmp	al,80h		;XMS install?
 	je	.found		;等しければ jmp
 
-	PRINT86		err_04		;「XMS が見つからない」
-	call_4ch	F386ERR		; 終了
+	mov	ah, 05		;'XMS not found'
+	jmp	error_exit_16
 
-	align	2
 .found:
 	push	es
 	mov	ax,4310h		;XMS エントリポイントの取得
@@ -470,11 +477,11 @@ XMS_setup:
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS2.0) / Max 64MB
 ;------------------------------------------------------------------------------
-get_EMB_XMS20:
 %if USE_XMS20
+proc get_EMB_XMS20
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
-	PRINT86	msg_06		;「XMS2.0 発見」
+	PRINT86	msg_06		;'Found XMS 2.0'
 
 .step:
 	mov	ah,08h		;EMB 空きメモリ問い合わせ
@@ -493,31 +500,29 @@ get_EMB_XMS20:
 	mov	[EMB_handle],dx		;EMBハンドルをセーブ
 
 	jmp	lock_EMB	;確保したメモリのロック
+%endif
 
-
-	align	4
 	;///////////////////////
 	;メモリ確保失敗
 	;///////////////////////
-%endif
 get_EMB_failed:
-	PRINT86		err_05
-	call_4ch	F386ERR		; 終了
+	mov	ah, 06		; 'XMS memory allocation failed'
+	jmp	error_exit_16
 
 
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS3.0)
 ;------------------------------------------------------------------------------
-get_EMB_XMS30:
+proc get_EMB_XMS30
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
-	PRINT86	msg_07		;「XMS3.0 発見」
+	PRINT86	msg_07		;'Found XMS 3.0'
 
 .step:
-	mov	ah,88h		;EMB 空きメモリ問い合わせ
-	XMS_function		;XMS call
-	test	bl,bl		;bl の値確認
-	jnz	get_EMB_failed	;non 0 なら jmp
+	mov	ah,88h			;EMB 空きメモリ問い合わせ
+	XMS_function			;XMS call
+	test	bl,bl			;bl の値確認
+	jnz	get_EMB_failed		;non 0 なら jmp
 
 	mov	[max_EMB_free]  ,eax	;最大長、空きメモリサイズ (KB)
 	mov	[total_EMB_free],edx	;総空きメモリサイズ (KB)
@@ -529,25 +534,20 @@ get_EMB_XMS30:
 	test	ax,ax			;ax = 0?
 	jz	get_EMB_failed		;0 なら確保失敗
 	mov	[EMB_handle],dx		;EMBハンドルをセーブ
-	jmp	short lock_EMB		;EMBのロック
-
 
 ;------------------------------------------------------------------------------
 ;●確保した拡張メモリのロック と 拡張メモリの初期情報設定
 ;------------------------------------------------------------------------------
-	align	4
-lock_failed:
-	call		free_EMB	;EMB の開放
-	PRINT86		err_07		;「ロック失敗」
-	call_4ch	F386ERR		;プログラム終了
-
-	align	4
-lock_EMB:
-	mov	ah,0ch		;EMB のロック
+proc lock_EMB
+	mov	ah,0ch		;EMB memory lock
 	XMS_function		;
 	test	ax,ax		;ax = 0?
-	jz	lock_failed	;0 ならロック失敗
+	jnz	.skip		;non 0 is success
 
+	mov	ah, 07		;'XMS memory lock failed'
+	jmp	error_exit_16
+
+.skip:
 	;
 	;DX:BX = メモリブロック先頭物理アドレス
 	;
@@ -575,8 +575,8 @@ lock_EMB:
 proc init_page_directory
 	call	init_dos_malloc
 
-	mov	ax, 2			;page dir + page table 0
-	mov	cl,12			;allocate error code
+	mov	ax,  2			;page dir + page table 0
+	mov	cl, 13			;error code: 'Page table allocation failed'
 	call	dos_malloc_page
 
 	mov	[page_dir_ladr],eax	;page directory linear address
@@ -625,7 +625,7 @@ proc alloc_page_table
 	add	[page_tables_in_dos],ax	; count up
 	mov	bp, ax			; bp = need tables
 
-	mov	cl, 12			; allocate error code
+	mov	cl, 13			;error code: 'Page table allocation failed'
 	call	dos_malloc_page
 	mov	ecx, eax		; ecx = linear address
 	shr	ecx, 12			; byte to page
@@ -681,9 +681,8 @@ proc get_VCPI_interface
 	test	ah,ah			;戻り値 check
 	jz	.save			;問題なければ jmp
 
-	call		free_EMB	; 拡張メモリの開放
-	PRINT86		err_02		; 'VCPI error'
-	call_4ch	F386ERR		; 終了
+	mov	ah,08			; 'VCPI: Failed to get protected mode interface'
+	jmp	error_exit_16
 
 .save:
 	mov	[VCPI_entry],ebx
@@ -927,9 +926,8 @@ setup_IDT:
 
 	int	67h			;プロテクトモードの start32 へ
 
-	call		free_EMB	; 拡張メモリの開放
-	PRINT86		err_03		; CPU 切替え失敗
-	call_4ch	F386ERR		; 終了
+	mov	ah, 09			;'VCPI: Failed to change CPU to protected mode'
+	jmp	error_exit_16
 
 
 ;==============================================================================
@@ -965,7 +963,8 @@ free_EMB:
 	XMS_function
 	test	ax,ax		;ax = 0 ?
 	jnz	.ret		;non 0 なら jmp
-	PRINT86	err_06		;「メモリ開放失敗」
+
+	PRINT86	err_xms_free	;「メモリ開放失敗」
 .ret:
 	ret
 
@@ -1026,19 +1025,44 @@ proc exit_16
 
 
 ;------------------------------------------------------------------------------
-;●内部エラー発生
+;error exit
 ;------------------------------------------------------------------------------
+; in	ah = Free386's internal error code
+;
 proc error_exit_16
-	sub	ah,20h			;内部エラーコード 00h～1fh は欠番
-	movzx	si,ah			;si にエラー番号を
-	add	si,si			;si*2
-	mov	dx,[err_msg_table + si]	;エラーメッセージのアドレス
+	;
+	; search error message
+	;
+	test	ah, ah
+	jz	.exit			;ah=0, no error message
 
-	mov	ah,09h			;メッセージ表示
-	int	21h			;DOS call
+	mov	bx, err_msg_table
+.loop0:
+	dec	ah
+	jz	.found
 
-	call		free_EMB	; メモリの開放
-	call_4ch	F386ERR		; 終了
+	mov	cx, 256			;safety
+.loop1:
+	mov	al, [bx]
+	inc	bx
+	cmp	al, '$'
+	je	.loop0
+	dec	cx
+	jnz	.loop1
+	;
+	; safety
+	;
+	mov	bx, err_00
+.found:
+	PRINT86	err_head
+	mov	dx,bx
+	mov	ah,09h			;output error message
+	int	21h
+.exit:
+	call	free_EMB
+	mov	al, F386ERR
+	mov	ah, 4ch
+	int	21h			;end
 
 
 ;******************************************************************************
