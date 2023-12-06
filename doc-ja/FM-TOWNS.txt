@@ -25,7 +25,7 @@
 		多くのソフトで、-n をつけると処理速度がアップします。
 
 
-●Free386 対応ソフトウェア  2023-12-05
+●Free386 対応ソフトウェア  2023-12-06
 
 　TBIOS, CoCo/NSD, SIDEWROK, SYSINT のすべてに対応しているので、
 すべてのTOWNS用プログラムが動くはずです。普通の単体アプリは問題な
@@ -34,11 +34,11 @@
 　うまく動かないもの。
 
 	・CONTROL.EXE, GSTART.EXP, TMENU/EIN, .EXGアプリ
-	・CoCo関連のもの（adddrv.exp, deldrv.exp）
 
 　動かなさそうに思えて動くもの。
 
 	・F-BASIC386 Ver2.1
+	・CoCo関連のもの（adddrv.exp, deldrv.exp）
 
 
 ●うんづ利用時の注意
