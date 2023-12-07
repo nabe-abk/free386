@@ -15,7 +15,7 @@ Ver 0.80 - 2023-12-05
 
 - Improved internal memory management method (for some buffers).
 - Improved dos memory management and increased call buffer size.
-- More real memory is now allocated than before.
+- More real memory is allocated than before.
 - Update functionality of "-m" option.
 - Change the timing of model-specific initialization.
 - int 21h/4ah, changed to ignore selector limit shrinkage.
