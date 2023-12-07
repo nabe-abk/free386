@@ -518,7 +518,7 @@ int_21h_1ch:
 	mov	esi,[cs:call_V86_ds]	;real ds
 	shl	esi, 4			;セグメントを16倍 (para -> byte)
 	add	ebx,esi			;ebx = FAT:ID ベースアドレス
-	push	d (DOSMEM_Lsel)		;DOSメモリアクセスセレクタ
+	push	d (DOSMEM_sel)		;DOSメモリアクセスセレクタ
 	pop	ds			;ds に設定
 
 	pop	esi
@@ -994,7 +994,7 @@ int_21h_ret_esbx:
 
 	push	eax
 
-	mov	eax,DOSMEM_Lsel
+	mov	eax,DOSMEM_sel
 	mov	es, eax
 
 	mov	eax, [cs:call_V86_es]

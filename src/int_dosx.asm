@@ -43,7 +43,7 @@ int_21h_30h:
 
 .fujitsu:
 	mov	eax, 'XDJF'	; 'FJDX'
-	mov	ebx, ' neK'	; 'Ken '
+	mov	ebx, 'neK '	; ' Ken'
 	mov	ecx, 40633300h	; '@c3', 0
 	iret
 
@@ -727,18 +727,22 @@ DOS_Ext_fn_250ch:
 ;------------------------------------------------------------------------------
 ;・リアルモードリンク情報の取得　AX=250dh
 ;------------------------------------------------------------------------------
-	align	4
-DOS_Ext_fn_250dh:
-	xor	ecx,ecx
+; out	   eax = CS:IP   - far call routine address
+;	   ecx = buffer size
+;	   ebx = Seg:Off - 16bit buffer address 
+;	es:edx = buffer protect mode address
+;
+proc DOS_Ext_fn_250dh
 	mov	ebx, d [cs:call_buf_adr16]
-	mov	 cl, b [cs:call_buf_sizeKB]
+	movzx	ecx, b [cs:call_buf_sizeKB]
 	shl	ecx, 10
-	mov	edx, d [cs:call_buf_adr32]
 
-	mov	eax, DOSMEM_Lsel
+	mov	eax, DOSMEM_sel
 	mov	 es, eax
+	mov	edx, d [cs:call_buf_adr32]
+	add	edx, d [cs:top_ladr]
 
-	mov	 ax, [V86_cs]
+	mov	 ax, [cs:V86_cs]
 	shl	eax, 16
 	mov	 ax, offset callf32_from_V86
 
@@ -927,11 +931,19 @@ DOS_Ext_fn_2510h:		;仮対応！！
 ;------------------------------------------------------------------------------
 ;・リアルモード割り込みの実行　AX=2511h
 ;------------------------------------------------------------------------------
-	align	4
-DOS_Ext_fn_2511h:
-	push	es
-	push	edx		;値保存用スタック領域確保
-	push	edx		;スタック参照に注意！！
+; in	ds:edx
+;	+00h w int number
+;	+02h w ds
+;	+04h w es
+;	+06h w fs
+;	+08h w gs
+;	+0ah d eax
+;	+0eh d edc
+;
+proc DOS_Ext_fn_2511h
+	push	edx
+	push	eax
+	push	edx	; work area
 
 %if INT_HOOK && PRINT_TSUGARU
 	push	ebx
@@ -948,8 +960,6 @@ DOS_Ext_fn_2511h:
 	pop	ecx
 	pop	ebx
 %endif
-
-	xor	eax,eax			;上位クリア
 	movzx	eax,w [edx + 8]
 	push	eax			;gs
 	movzx	eax,w [edx + 6]
@@ -959,40 +969,41 @@ DOS_Ext_fn_2511h:
 	movzx	eax,w [edx + 2]
 	push	eax			;ds
 
+	; save call entry point
+	push	es
 	mov	eax,DOSMEM_sel		;DOS メモリアクセスセレクタ
 	mov	 es,eax			;load
 	movzx	eax,b [edx]		;ds:edx から割り込み番号読み出し
-	push	d [es:eax*4]		;ベクタアドレス取得 = 呼び出しアドレス
+	mov	eax,[es:eax*4]		;ベクタアドレス取得 = 呼び出しアドレス
+	pop	es
+
+	push	eax			;CS:EIP
 
 	mov	eax,[edx + 0ah]		;パラメタブロックからロード
 	mov	edx,[edx + 0eh]		;
-
 	call	call_V86		;目的ルーチンの call
 	;*** フラグは設定されている ***
 
-	mov	[esp],edx		;スタックトップへ記録
-	mov	edx,[esp +14h]		;edx 復元 / スッタク参照！！
+	mov	[esp+14h], edx	;edx
+	mov	[esp+18h], eax		;rewrite pop eax value
 
-	mov	[esp +18h],eax		;eax 保存
-	pop	eax			;0 : edx
-	mov	[edx +14],eax
-	pop	eax			;1 : ds
-	mov	[edx + 2],ax
-	pop	eax			;2 : es
-	mov	[edx + 4],ax
-	pop	eax			;3 : fs
-	mov	[edx + 6],ax
-	pop	eax			;4 : gs
-	mov	[edx + 8],ax
+	mov	edx, [esp+1ch]		;edx recovery
 
-	;フラグセーブ
-	setc	al
-	and	b [esp + 14h],0feh	;Cy以外取り出し
-	or	b [esp + 14h],al	;Cyを混ぜる
+	pop	eax		;pop	;pop cs:esip
+	mov	eax, [esp+10h]	;edx
+	mov	[edx +0eh],eax		;save edx
+	pop	eax			;pop ds
+	mov	[edx +  2],ax
+	pop	eax			;pop es
+	mov	[edx +  4],ax
+	pop	eax			;pop fs
+	mov	[edx +  6],ax
+	pop	eax			;pop gs
+	mov	[edx +  8],ax
 
+	pop	eax
+	pop	eax			;書き換え済
 	pop	edx
-	pop	eax	;書き換えた領域。自動変数領域除去
-	pop	es
 	iret
 
 
