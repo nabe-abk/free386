@@ -175,6 +175,17 @@ proc more_memory_infomation
 	sub	eax, V86_stack_size
 	call	rewrite_next_hash_to_hex
 
+	; user call buffer
+	mov	ebx, [user_cbuf_adr16]
+	mov	eax, ebx
+	shr	eax, 16
+	call	rewrite_next_hash_to_hex
+	mov	 ax, bx
+	call	rewrite_next_hash_to_hex
+	movzx	eax, b [user_cbuf_pages]
+	shl	eax, 12
+	call	rewrite_next_hash_to_deg
+
 	PRINT	msg_02
 .skip:
 

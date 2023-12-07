@@ -22,7 +22,7 @@ PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
-INT_HOOK_RETV	equ	0	; with return value dump(only int 21h)
+INT_HOOK_RETV	equ	1	; with return value dump(only int 21h)
 INT_HOOK_AH	equ	0	; Interrupt hook int 21h only AH value
 INT_HOOK_CS	equ	0	; Interrupt hook only match CS
 INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS
@@ -77,6 +77,9 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 _call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function
 _pool_for_paging equ	8	; pool RAM pages for paging
 _resv_real_memKB equ	32	; reserved real memory (KB) for DOS
+
+_user_cbuf_pages equ	1	; call buffer for client (int 21, AX=250Dh)
+				; if set 0, user call buffer same internal
 
 ;==============================================================================
 ; General define

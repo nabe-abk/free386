@@ -51,6 +51,10 @@ global		call_buf_adr16
 global		call_buf_seg16
 global		call_buf_adr32
 
+global		user_cbuf_adr16
+global		user_cbuf_seg16
+global		user_cbuf_ladr
+
 ;--- other ----------------------------------------
 global		error_exit_16
 global		exit_32
@@ -570,11 +574,43 @@ proc lock_EMB
 .jp2:	mov	[EMB_pages],ecx		;使用可能なページ数として記録
 
 ;------------------------------------------------------------------------------
+; alloc dos memory
+;------------------------------------------------------------------------------
+	call	init_dos_malloc
+
+;------------------------------------------------------------------------------
+; alloc user call buffer
+;------------------------------------------------------------------------------
+proc alloc_user_call_buffer
+	movzx	ax, b [user_cbuf_pages]
+	test	ax, ax
+	jz	.use_internal_buffer
+
+	mov	cl, 16			;error code: 'User call buufer allocation failed'
+	call	dos_malloc_page
+
+	mov	[user_cbuf_ladr], eax	;linear address
+	shr	eax, 4
+	mov	[user_cbuf_seg16], ax	;dos segment
+	jmp	short .skip
+
+.use_internal_buffer:
+	mov	eax, [call_buf_adr16]
+	mov	ebx, [call_buf_adr32]
+	add	ebx, [top_ladr]
+	mov	[user_cbuf_adr16], eax	; Seg:Off
+	mov	[user_cbuf_ladr],  ebx	; linear address
+
+	; rewrite size
+	movzx	ax, [call_buf_sizeKB]
+	shr	ax, 2
+	mov	[user_cbuf_pages], al
+
+.skip:
+;------------------------------------------------------------------------------
 ; initalize page directory and first page table
 ;------------------------------------------------------------------------------
 proc init_page_directory
-	call	init_dos_malloc
-
 	mov	ax,  2			;page dir + page table 0
 	mov	cl, 13			;error code: 'Page table allocation failed'
 	call	dos_malloc_page
@@ -659,7 +695,6 @@ proc alloc_page_table
 	pop	es
 .not_need:
 
-
 ;------------------------------------------------------------------------------
 ; [VCPI] get protected mode interface
 ;------------------------------------------------------------------------------
@@ -688,6 +723,7 @@ proc get_VCPI_interface
 	mov	[VCPI_entry],ebx
 	shl	edi,(12-2)		; di = first unused page table entry in buffer
 	mov	[free_liner_adr],edi	;edi = free linear address
+
 
 ;------------------------------------------------------------------------------
 ;●DOS-Extender 環境の構築と変数の準備（V86 側）

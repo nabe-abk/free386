@@ -732,18 +732,17 @@ DOS_Ext_fn_250ch:
 ;------------------------------------------------------------------------------
 ; out	   eax = CS:IP   - far call routine address
 ;	   ecx = buffer size
-;	   ebx = Seg:Off - 16bit buffer address 
+;	   ebx = Seg:Off - 16bit buffer address
 ;	es:edx = buffer protect mode address
 ;
 proc DOS_Ext_fn_250dh
-	mov	ebx, d [cs:call_buf_adr16]
-	movzx	ecx, b [cs:call_buf_sizeKB]
-	shl	ecx, 10
+	mov	ebx, d [cs:user_cbuf_adr16]
+	movzx	ecx, b [cs:user_cbuf_pages]
+	shl	ecx, 12				; page to byte
 
 	mov	eax, DOSMEM_sel
-	mov	 es, eax
-	mov	edx, d [cs:call_buf_adr32]
-	add	edx, d [cs:top_ladr]
+	mov	 es, ax
+	mov	edx, d [cs:user_cbuf_ladr]
 
 	mov	 ax, [cs:V86_cs]
 	shl	eax, 16

@@ -37,6 +37,10 @@ call_buf_adr16	dw	0		; offset
 call_buf_seg16	dw	0		; segment
 call_buf_adr32	dd	0		; address
 
+user_cbuf_adr16	dw	0		; offset
+user_cbuf_seg16	dw	0		; segment
+user_cbuf_ladr	dd	0		; linear address
+
 ;--------------------------------------------------------------------
 ;----- ÉÅÉÇÉää÷òAèÓïÒ -----------------------------------------------
 ;
@@ -164,6 +168,7 @@ msg_02	db	'	program code	: 0100 - #### / cs=ds=####',13,10
 	db	'	general work mem: #### - ####',13,10
 	db	'	CPU switch stack: #### - #### / ##### byte * ','0' + SW_max_nest,13,10
 	db	'	VCPI,32,16 stack: #### - #### - #### - ffff',13,10
+	db	'	user call buffer: ####:#### - / ##### byte',13,10
 	db	'$'
 
 msg_05	db	'Load file name = $'
@@ -209,7 +214,9 @@ _e12	db	'CALL buufer allocation failed',13,10,'$'
 _e13	db	'Page table memory (real memory) allocation failed',13,10,'$'
 _e14	db	'Not enough stack for switch CPU mode',13,10,'$'
 _e15	db	'Failure to free stack memory for switch CPU mode',13,10,'$'
-_e16_20	db	'$$$$$'
+
+_e16	db	'User call buufer allocation failed',13,10,'$'
+_e17_20	db	'$$$$'
 
 ; error message for protect mode
 _e21	db	'Can not read executable file',13,10,'$'

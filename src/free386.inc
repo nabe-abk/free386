@@ -35,6 +35,10 @@ extern		call_buf_adr16
 extern		call_buf_seg16
 extern		call_buf_adr32
 
+extern		user_cbuf_adr16
+extern		user_cbuf_seg16
+extern		user_cbuf_ladr
+
 ;--- other ----------------------------------------
 extern		error_exit_16
 extern		exit_32
