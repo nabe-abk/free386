@@ -45,7 +45,7 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 	  allocate as much memory as possible for "EXP" file.
 	* Note) It is not completely 0 bytes due to 4KB fragmentation.
 * -2
-	* Set PharLap's DOS-Extender Version information to "2.2". Usually "1.2".
+	* Set Phar Lap's DOS-Extender Version information to "2.2". Usually "1.2".
 * -c0
 * -c1, -c
 * -c2
@@ -77,7 +77,7 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
     * DOS用に空けておくメモリを0バイトに設定し、可能な限り多くのメモリをEXP用に割り当てます。
     * ※メモリは4KBごとでしか使用できないため、空きDOSメモリは完全に0byteにはなりません。
 * -2
-	* PharLapのDOS-Extender Version情報を "2.2" に設定します。通常は "1.2" です。
+	* Phar Lap DOS-Extender Versionを "2.2" に設定します。通常は "1.2" です。
 * -c0
 * -c1
 * -c2
@@ -116,7 +116,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
 | +0eh	| 32	|  w | Reserved minimum DOS memory(KB). |
 
-In addition, if you want to rewrite the default value of PharLap's DOS-Extender Version information,
+In addition, if you want to rewrite the default value of Phar Lap's DOS-Extender Version information,
 search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20) or other.
 
 | 位置	| 標準	|size| 詳細l |
@@ -133,8 +133,8 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 | +0dh	| 32	|  b | コールバッファサイズKB単位で設定します。最小は4KBです。 |
 | +0eh	| 32	|  w | 空けておくDOSメモリの量をKB単位で設定します。 |
 
-その他、PharLapのDOS-Extender Version情報のデフォルト値を書き換えたいときは、
-"12aJ"(31 32 61 4A)の文字列検索し、"22d "(32 32 64 20)等に書き換えてください。
+その他、Phar Lap DOS-Extender Versionのデフォルト値を書き換えたいときは、
+"12aJ"(31 32 61 4A) を文字列検索し、"22d "(32 32 64 20) 等に書き換えてください。
 
 ## Known issues
 
