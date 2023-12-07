@@ -73,6 +73,7 @@ int_21h_4ch:
 	align	4
 int_21h_48h:
 	push	esi
+	push	edi
 	push	ecx
 	push	ebx
 	push	ds
@@ -100,6 +101,7 @@ int_21h_48h:
 	pop	ds
 	pop	ebx
 	pop	ecx
+	pop	edi
 	pop	esi
 	clear_cy
 	iret
@@ -112,6 +114,7 @@ int_21h_48h:
 	pop	ds
 	pop	ecx		;ebx 読み捨て
 	pop	ecx
+	pop	edi
 	pop	esi
 	set_cy
 	iret
@@ -1004,6 +1007,7 @@ proc DOS_Ext_fn_2511h
 	pop	eax
 	pop	eax			;書き換え済
 	pop	edx
+	set_cy
 	iret
 
 
@@ -1055,9 +1059,9 @@ DOS_Ext_fn_2513h:
 	mov	[edx+4],eax	;
 
 	pop	eax		;eax 位置のスタック読み捨て
-	pop	edx
-	pop	ecx
 	pop	ebx
+	pop	ecx
+	pop	edx
 	pop	ds
 	clear_cy
 	iret
