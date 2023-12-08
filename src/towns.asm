@@ -743,13 +743,9 @@ T_OS_memory_map:
 	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
 	dd	0	;end of data
 	;
-	; "11ch, 124h, 12ch" は1MBで良いはずだが、RUN386はなぜか16MB割り当ててあり、
-	; しかも TBIOS に 11ch の 0-512KB を zero fill したあとに、
-	; 8MB から 512KB を zero fill するという、
-	; 両方とも16進数で1桁間違えたクソバグがあるため、
-	; 11ch のみセレクタの長を 8.5MB にしている。
+	; "11ch" is separate VRAM mapped "0.0MB to 0.5MB" and "8.0MB to 8.5MB".
+	; RUN386.EXE is mapped 16MB for "11ch, 124h, 12ch" selector.
 	;
-
 	align	4
 T_OS_memory_map_386sx:
 		;sel, base     ,  pages -1, type/level
