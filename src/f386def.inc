@@ -228,7 +228,7 @@ VESA_B0		equ	170h	; VESA-BIOS selector B0000h (64kb)
 VESA_B8		equ	178h	; VESA-BIOS selector B8000h (32kb)
 
 VRAM_padr	equ 0e6000000h	; VRAM physical address
-VRAM_size	equ	200h	; size=8MB / [page unit] ex)100h=4MB
+VRAM_pages	equ	200h	; size=16MB / [page unit] ex)100h=8MB
 VRAM_sel	equ	120h	; VRAM selector (Change with at.asm)
 
 enable_INTR	equ	1	; Enable hardware interrrupt

@@ -82,6 +82,16 @@ proc init_CoCo
 	cmp	di, 656eh	; 'en'
 	jne	.fail
 
+	; int 8eh ax=c10ch
+	;	機能不明だが、何かを登録している。
+	;	この処理をしないと TMENU.EXG が起動しない。
+	;	仕方ないので、RUN386の値をコピーし定数で処理。
+	mov	ax, 0c10ch
+	mov	cx, 2
+	mov	si, 0
+	mov	dx, 0b107h
+	int	8eh
+
 %if NSDD_max*16+4 > GP_BUFFER_SIZE
 	%error NSDD_max is over "GP_BUFFER_SIZE/16 -1".
 %endif
@@ -728,6 +738,7 @@ nsdd_selectors:
 	align	4
 T_OS_memory_map:
 		;sel, base     ,  pages -1, type/level
+	;dd	 3ch,        0,       0   , 0000h	;dummy
 	dd	100h,0fffc0000h,  256/4 -1, 0a00h	;R/X : boot-ROM
 	;dd	108h,0fffc0000h,  256/4 -1, 0000h	;R   : boot-ROM
 	dd	120h, 80000000h,  512/4 -1, 0200h	;R/W : VRAM (16/32k)
@@ -740,7 +751,6 @@ T_OS_memory_map:
 	dd	11ch, 82000000h, 8704/4 -1, 0200h	;R/W : H-VRAM / 2 layer
 	dd	124h, 83000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 1 layer
 	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
-	dd	  3c,  0       , 0, 0000h
 	dd	0	;end of data
 	;
 	; "11ch" is separate VRAM mapped "0.0MB to 0.5MB" and "8.0MB to 8.5MB".
