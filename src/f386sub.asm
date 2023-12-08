@@ -124,8 +124,13 @@ proc register_dump_from_int
 	mov	[regdump_msg], eax	;"Err = "
 
 	%if INT_HOOK_RETV
+		cmp	b [esp+1],  4ch	; ah!=4ch
+		jne	.skip2
+		cmp	b [esp+0ch],21h	; int 21h
+		je	.no_dump
+	.skip2:
 		cmp	b [.in_dump], 0
-		jnz	.skip
+		jnz	.no_dump
 		mov	b [.in_dump], 1
 
 		mov	eax, [esp+10h]
