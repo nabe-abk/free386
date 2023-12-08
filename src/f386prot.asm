@@ -39,6 +39,50 @@ proc start32
 %endif
 
 ;------------------------------------------------------------------------------
+; Debug code
+;------------------------------------------------------------------------------
+Debug_code:
+%if PRINT_TO_FILE
+	xor	ecx, ecx
+	mov	edx, .file
+	mov	ah, 3ch
+	int	21h	; Debug file create
+
+	jmp	.skip
+.file	db	DUMP_FILE,0
+.skip:
+%endif
+
+%if PRINT_TSUGARU
+	; https://nabe.adiary.jp/0619
+	mov	dx, 2f10h
+	mov	al, 5dh
+	mov	ah, al
+	out	dx, al
+	in	al, dx
+	not	al
+	cmp	al, ah
+	je	.enable_tsugaru_api	; is Tsugaru
+
+	PRINT	.not_Tsugaru
+	jmp	.skip
+
+.not_Tsugaru	db	"This enviroment is not Tsugaru!",13,10,'$'
+.enable_tsugaru_api:
+	; Enable Tsugaru's VNDRV API
+	mov	dx, 2f12h
+	mov	al, 01h
+	out	dx, al
+
+	; Override int 21h ah=09h
+	mov	eax, offset int_21h_09h_output_tsugaru
+	mov	ebx, offset int21h_table
+	add	ebx, 09h * 4	; ah=09h
+	mov	[ebx], eax
+.skip:
+%endif
+
+;------------------------------------------------------------------------------
 ; Memory infomation
 ;------------------------------------------------------------------------------
 proc memory_infomation
@@ -281,50 +325,6 @@ patch_for_386sx:
 	;mov	d [edi+8],0200h			;R/W タイプ / 特権レベル=0
 	mov	eax,DOSMEM_Lsel			;DOS 環境変数セレクタ
 	call	make_mems_4k			;メモリセレクタ作成 edi=構造体
-
-;------------------------------------------------------------------------------
-; Debug code
-;------------------------------------------------------------------------------
-Debug_code:
-%if PRINT_TO_FILE
-	xor	ecx, ecx
-	mov	edx, .file
-	mov	ah, 3ch
-	int	21h	; Debug file create
-
-	jmp	.skip
-.file	db	DUMP_FILE,0
-.skip:
-%endif
-
-%if PRINT_TSUGARU
-	; https://nabe.adiary.jp/0619
-	mov	dx, 2f10h
-	mov	al, 5dh
-	mov	ah, al
-	out	dx, al
-	in	al, dx
-	not	al
-	cmp	al, ah
-	je	.enable_tsugaru_api	; is Tsugaru
-
-	PRINT	.not_Tsugaru
-	jmp	.skip
-
-.not_Tsugaru	db	"This enviroment is not Tsugaru!",13,10,'$'
-.enable_tsugaru_api:
-	; Enable Tsugaru's VNDRV API
-	mov	dx, 2f12h
-	mov	al, 01h
-	out	dx, al
-
-	; Override int 21h ah=09h
-	mov	eax, offset int_21h_09h_output_tsugaru
-	mov	ebx, offset int21h_table
-	add	ebx, 09h * 4	; ah=09h
-	mov	[ebx], eax
-.skip:
-%endif
 
 ;------------------------------------------------------------------------------
 ;●各機種対応ルーチン
