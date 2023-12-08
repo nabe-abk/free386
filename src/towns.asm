@@ -499,17 +499,6 @@ proc exit_TOWNS_32
 	pop	es
 .no_reset_VRAM:
 .no_reset:
-
-	;///////////////////////////////
-	;Key-BIOSÇÃèâä˙âª
-	;///////////////////////////////
-%if (INIT_KEY_BIOS)
-	mov	ah,90h
-	int	90h
-	mov	ax,0501h
-	int	90h
-%endif
-
 	ret
 
 ;------------------------------------------------------------------------------
@@ -682,6 +671,16 @@ proc exit_TOWNS_16
 	mov	ax, 0c207h
 	int	8eh
 .no_nsdd:
+	;///////////////////////////////
+	;reset key BIOS
+	;///////////////////////////////
+%if (INIT_KEY_BIOS)
+	mov	ah,90h
+	int	90h
+	mov	ax,0501h
+	int	90h
+%endif
+
 	ret
 
 
@@ -741,6 +740,7 @@ T_OS_memory_map:
 	dd	11ch, 82000000h, 8704/4 -1, 0200h	;R/W : H-VRAM / 2 layer
 	dd	124h, 83000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 1 layer
 	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
+	dd	  3c,  0       , 0, 0000h
 	dd	0	;end of data
 	;
 	; "11ch" is separate VRAM mapped "0.0MB to 0.5MB" and "8.0MB to 8.5MB".
