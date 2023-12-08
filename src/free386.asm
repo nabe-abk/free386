@@ -530,7 +530,7 @@ proc get_EMB_XMS30
 
 	mov	[max_EMB_free]  ,eax	;最大長、空きメモリサイズ (KB)
 	mov	[total_EMB_free],edx	;総空きメモリサイズ (KB)
-	mov	[EMB_top_adr]   ,ecx	;管理する最上位アドレス
+	mov	[EMB_top_adr]   ,ecx	;管理する最上位アドレス // ecx=0の模様
 
 	mov	edx,eax			;edx = 確保するメモリサイズ
 	mov	ah,89h			;最大連続空きメモリを全て確保

@@ -115,7 +115,7 @@ cy_clear:	;
 ;------------------------------------------------------------------------------
 %imacro call_RegisterDump_with_code	1
 	mov	d [dump_err_code], %1
-	call	register_dump		;safe
+	call	register_dump
 %endmacro
 
 ;------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ cy_clear:	;
 %imacro call_RegisterDumpInt	1
 %if INT_HOOK
 	push	d %1
-	call	register_dump_from_int	;safe
+	call	register_dump_from_int
 	mov	[esp], eax
 	pop	eax
 %endif

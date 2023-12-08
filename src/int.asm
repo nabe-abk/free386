@@ -50,7 +50,7 @@ PM_int_dummy:
 
 	xchg	[esp], ebx		;ebx復元
 %if INT_HOOK
-	call	register_dump_from_int	;safe
+	call	register_dump_from_int
 %endif
 	; stack top is int number
 	jmp	call_V86_int
@@ -240,9 +240,8 @@ stack_fault:
 	align	4
 cpu_int:
 cpu_int_with_error_code:
-	cld
 	push	ds
-	push	eax	; for register_dump_fault	;safe
+	push	eax	; for register_dump_fault
 	pushf
 
 	mov	eax, F386_ds
@@ -290,7 +289,7 @@ view_int:
 	sub	eax,offset PM_int_top	;int 00h との差
 	shr	eax,3			;1/8 すると eax = Int 番号
 	mov	[esp+8],eax		;int 番号保存
-	call	register_dump_fault	;ダンプ表示	;safe
+	call	register_dump_fault	;ダンプ表示
 
 	;スタックポインタロード
 	lss	esp,[cs:PM_stack_adr]

@@ -22,11 +22,11 @@ PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
-INT_HOOK_RETV	equ	1	; with return value dump(only int 21h)
-INT_HOOK_AH	equ	0	; Interrupt hook int 21h only AH value
-INT_HOOK_CS	equ	0	; Interrupt hook only match CS
-INT_HOOK_EX_CS	equ	0	; Interrupt hook exclude CS
-INT_HOOK_F386	equ	0	; (DANGER!) with F386 CS's INT
+INT_HOOK_RETV	equ	1	; 	with return value dump
+INT_HOOK_AH	equ	0	; 	only AH value
+INT_HOOK_CS	equ	0	; 	only CS value
+INT_HOOK_EX_CS	equ	0	; 	exclude CS value
+INT_HOOK_F386	equ	0	; (DANGER!) with Free386 CS's INT
 PRINT_TO_FILE	equ	0	; int 21/ah=09h to DUMP_FILE file
 PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 
@@ -34,6 +34,8 @@ PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
 		; for RELEASE
 INT_HOOK	equ	0
 INT_HOOK_RETV	equ	0
+INT_HOOK_AH	equ	0
+INT_HOOK_CS	equ	0
 INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
 PRINT_TO_FILE	equ	0
@@ -74,8 +76,8 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 				;	3 = auto
 				; Not support PC/AT machine.
 
+_pool_for_paging equ	8	; pool RAM pages for paging (1page=4KB)
 _call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function
-_pool_for_paging equ	8	; pool RAM pages for paging
 _resv_real_memKB equ	32	; reserved real memory (KB) for DOS
 
 _user_cbuf_pages equ	1	; call buffer for client (int 21, AX=250Dh)

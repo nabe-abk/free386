@@ -15,14 +15,12 @@
 %include	"f386seg.inc"
 
 ;------------------------------------------------------------------------------
-	global	register_dump		;safe
-	global	register_dump_fault	;safe
+	global	register_dump
+	global	register_dump_fault
 	global	dump_err_code
 	global	dump_orig_esp
 	global	dump_orig_ss
-%if INT_HOOK
-	global	register_dump_from_int	;safe
-%endif
+
 	global	eax2hex
 
 	global	searchpath		;ファイルのパスサーチ
@@ -106,42 +104,78 @@ proc register_dump_from_int
 		je	short .no_dump
 	%endif
 	;
-	; int 21h, ah=09h は無視
+	; int 21h, ah=09h は必ず無視
 	;
-	%if INT_HOOK_RETV
-		cmp	b [esp+0ch], 21h
-		jz	short .is_int21
-		cmp	d [esp+0ch], -2
-		jnz	short .not_int21h
-		.is_int21:
-	%else
-		cmp	b [esp+0ch], 21h
-		jnz	short .not_int21h
-	%endif
+	cmp	b [esp+0ch], 21h
+	jnz	short .skip
 	cmp	ah, 09h
 	jz	short .no_dump
+.skip:
 
-.not_int21h:
-	; Int = に書き換え
+	push	d [esp+18h]	; eflags
+	popf			; recovery
+
 	mov	eax, [blue_int_str]
-	mov	[regdump_msg], eax
+	mov	[regdump_msg], eax	;"Int = "
 
-	call	register_dump_fault	;safe
+	call	register_dump_fault
 
-	; Err = に戻す
 	mov	eax, [blue_err_str]
-	mov	[regdump_msg], eax
+	mov	[regdump_msg], eax	;"Err = "
+
+	%if INT_HOOK_RETV
+		cmp	b [.in_dump], 0
+		jnz	.skip
+		mov	b [.in_dump], 1
+
+		mov	eax, [esp+10h]
+		mov	[.orig_eip], eax
+		mov	eax, [esp+14h]
+		mov	[.orig_cs],  eax
+		mov	d [esp+10h], offset .int_retern
+		mov	  [esp+14h], cs
+	%endif
+
 .no_dump:
 	push	d [esp+18h]	; eflags
-	popf
+	popf			; recovery
+
 	pop	eax
 	pop	ds
 	ret
+
+%if INT_HOOK_RETV
+	align 4
+.int_retern:
+	pushf
+	push	d [cs:.orig_cs]
+	push	d [cs:.orig_eip]
+	push	d -2			; for return value dump
+	push	d 100h			; dummy
+	push	ds
+	push	eax
+
+	push	d F386_ds
+	pop	ds
+	mov	b [.in_dump], 0
+
+	call	register_dump_fault
+
+	pop	eax
+	pop	ds
+	add	esp, 8
+	iret
+
+	align	4
+.in_dump	dd	0
+.orig_eip	dd	0
+.orig_cs	dd	0
+%endif
 %endif
 
 	align	4
 ;------------------------------------------------
-register_dump:		;safe
+register_dump:
 ;------------------------------------------------
 	pushf
 	push	cs
@@ -156,7 +190,7 @@ register_dump:		;safe
 	mov	[esp+10h],eax
 	mov	d [dump_err_code], -1
 
-	call	register_dump_fault	;safe
+	call	register_dump_fault
 
 	pop	eax
 	pop	ds
@@ -180,6 +214,7 @@ proc register_dump_fault
 	;
 	; レジスタ保存, ds設定済で呼び出すこと
 	;
+	cld
 	push	edx
 	push	ecx
 	push	ebx
@@ -1313,7 +1348,7 @@ blue_flags	db "O  D  S  Z  C  ",13,10
 		db "--------------------------",13,10
 ;;		db 0x1b,"[40;0m"
 		db "$"
-string_return	db '*Ret:*'
+string_return	db 'Return:'
 string_crlf	db 13,10,'$'
 
 blue_err_str	db	"Err "

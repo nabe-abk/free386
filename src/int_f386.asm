@@ -215,6 +215,6 @@ F386fn_11h:
 ;******************************************************************************
 	align	4
 regdump_function:
-	call	register_dump		;safe
+	call	register_dump
 	iret
 

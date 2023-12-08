@@ -150,41 +150,12 @@ proc PM_int_21h
 	cmp	ah,int_21h_MAXF		;テーブル最大値
 	ja	int_21h_unknown		;それ以上なら jmp
     %endif
-	cld				;方向フラグクリア
-	push	eax			;
+	push	eax
+	movzx	eax,ah				;eax = AH
+	mov	eax,[cs:int21h_table + eax*4]	;function table
 
-	movzx	eax,ah				;機能番号
-	mov	eax,[cs:int21h_table + eax*4]	;ジャンプテーブル参照
-
-	;------------------------------------------
-	;int 21h のみ戻り値も出力
-	;------------------------------------------
-	%if INT_HOOK && INT_HOOK_RETV
-		push	cs			; cs
-		push	d offset .call_retern	; EIP
-		pushf				; jump address
-		xchg	[esp], eax		;eax=eflags, [esp]=jump address
-		xchg	[esp+12], eax		;[esp+8]=eflags, eax=original eax
-		ret				; テーブルジャンプ
-	align 4
-	.call_retern:
-		;save_cy
-		jc	.set_cy
-		clear_cy
-		jmp	short .saved
-	.set_cy:
-		set_cy
-	.saved:
-		call_RegisterDumpInt	-2
-		iret
-	%endif
-
-.normal_call:
-	;------------------------------------------
-	;通常呼び出し
-	;------------------------------------------
-	xchg	[esp],eax	;eax復元 & ジャンプ先記録
-	ret			; table jump
+	xchg	[esp],eax			;recovery eax
+	ret					; table jump
 
 
 ;------------------------------------------------------------------------------
