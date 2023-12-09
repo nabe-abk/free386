@@ -1238,7 +1238,7 @@ make_cs_ds:
 	shl	ecx, 12			;ecx = サイズ (byte)
 	sub	ecx, esi		;ベースオフセットを引く
 	mov	[60h],ecx		;PSP 領域に記録
-	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;ds 作成
 	call	search_free_LDTsel	;eax = 空きセレクタ

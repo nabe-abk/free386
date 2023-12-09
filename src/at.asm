@@ -114,7 +114,7 @@ AT_VESA30_alloc:
 	mov	d [edi+4],VESA_buf_size	;limit値
 	mov	d [edi+8],0200h		;R/X / 特権レベル=0
 	mov	eax,VESA_buf_sel	;VESA buffer segment
-	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;/// VESA Code Selector ////////
 	add	esi,(VESA_buf_size+1)*1000h	;4KB 余分にずらす
@@ -122,12 +122,12 @@ AT_VESA30_alloc:
 	mov	d [edi+4],0ffffh	;limit値 64KB (32KB ではダメ)
 	mov	d [edi+8],1a00h		;R/X 286 / 特権レベル=0
 	mov	eax,VESA_cs		;VESA code segment
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;/// VESA Data Selector ////////
 	mov	d [edi+8],1200h		;R/W 286 / 特権レベル=0
 	mov	eax,VESA_ds		;VESA data segment(cs alias)
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;/// VESA 環境 Selector ////////
 	sub	esi,1000h		;4KB戻す
@@ -136,7 +136,7 @@ AT_VESA30_alloc:
 	mov	d [edi+4],0		;limit値 (4KB)
 	mov	d [edi+8],0200h		;R/W / 特権レベル=0
 	mov	eax,VESA_ds2		;VESA data segment
-	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;/// VESA 環境データクリア /////
 	mov	eax,VESA_ds2		;環境データセレクタ

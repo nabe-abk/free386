@@ -254,7 +254,7 @@ proc make_all_mem_sel
 	mov	d [edi+8],0200h		;メモリタイプ / 特権レベル=0
 
 	mov	eax,ALLMEM_sel		;全メモリアクセスセレクタ
-	call	make_mems_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;
 	;全メモリセレクタ作成後に以下は実行
@@ -295,9 +295,9 @@ patch_for_386sx:
 	mov	d [edi  ],eax		;base
 	mov	d [edi+8],0200h		;R/W タイプ / 特権レベル=0
 	mov	eax,PSP_sel1		;PSP セレクタ1
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 	mov	eax,PSP_sel2		;PSP セレクタ2
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;-------------------------------
 	;★DOS環境変数セレクタの作成
@@ -315,7 +315,7 @@ patch_for_386sx:
 	mov	d [edi+4],eax		;limit / 32KB 固定
 	;mov	d [edi+8],0200h		;R/W タイプ / 特権レベル=0
 	mov	eax,DOSENV_sel		;DOS 環境変数セレクタ
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;-------------------------------
 	;★DOSメモリセレクタ(in LDT)
@@ -324,7 +324,7 @@ patch_for_386sx:
 	mov	d [edi+4],(DOSMEMsize / 4096)-1	;1MB空間
 	;mov	d [edi+8],0200h			;R/W タイプ / 特権レベル=0
 	mov	eax,DOSMEM_Lsel			;DOS 環境変数セレクタ
-	call	make_mems_4k			;メモリセレクタ作成 edi=構造体
+	call	make_selector_4k			;メモリセレクタ作成 edi=構造体
 
 ;------------------------------------------------------------------------------
 ;●各機種対応ルーチン

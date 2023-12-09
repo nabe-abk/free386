@@ -95,7 +95,7 @@ int_21h_48h:
 	mov	[edi+4],ebx	;limit
 	mov	d [edi+8],0200h	;R/W 386
 	push	eax
-	call	make_mems_4k	;セレクタ作成 / eax = セレクタ
+	call	make_selector_4k	;セレクタ作成 / eax = セレクタ
 	pop	eax
 
 	pop	ds

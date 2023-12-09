@@ -216,7 +216,7 @@ proc16 parameter_check
 	;///////////////////////////////
 .para_n:
 	and	al,01h			;al = -n?
-	mov	b [nsdd_load],al
+	mov	b [load_nsdd],al
 	jmp	short .loop
 %endif
 

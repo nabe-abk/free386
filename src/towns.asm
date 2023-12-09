@@ -92,111 +92,6 @@ proc init_CoCo
 	mov	dx, 0b107h
 	int	8eh
 
-%if NSDD_max*16+4 > GP_BUFFER_SIZE
-	%error NSDD_max is over "GP_BUFFER_SIZE/16 -1".
-%endif
-	; memory allocate
-	call	get_gp_buffer_16
-	test	ax, ax
-	jz	.fail
-
-	mov	[nsdd_info_adr], ax
-	mov	si, ax
-	mov	di, offset nsdd_selectors
-
-	xor	bp, bp			; counter
-.loop:
-	push	di
-	mov	cx, bp
-	mov	di, [work_adr]	  	; offset
-	mov	ax, 0c103h
-	int	8eh
-	pop	di
-
-	test	ah, ah
-	jnz	.end
-
-	; CS save to [nsdd_selectors]
-	mov	[di], bx
-	add	di, 2
-
-	; セグメント型データの形式変換
-	push	di
-	mov	di, [work_adr]		; offset
-	call	segdata_to_seglist
-	add	di, 8
-	mov	bx, dx
-	call	segdata_to_seglist
-	pop	di
-
-	inc	bp
-	cmp	bp, cx
-	jae	.end
-	cmp	bp, NSDD_max
-	jb	.loop
-.end:
-	xor	eax, eax
-	mov	[si], eax	; end mark
-	call	init2_CoCo
-.exit:
-	mov	ax, ds
-	mov	es, ax
-	ret
-.fail:
-	mov	b [nsdd_load], 0
-	jmp	.exit
-
-	align	4
-	;----------------------------------------------------
-	; セグメント形式のデータの加工
-	;----------------------------------------------------
-segdata_to_seglist:
-	; in  = [di]
-	;	 Seg-Reg形式 / ただし limit は byte
-	;	 FF 7F 00 80  21 9A 40 00 - FF 7F 00 80  21 92 40 00
-	;	 4C 00 00 00  00 00 00 00 - 44 00 00 00  00 00 00 00
-	; out = [si]
-	;	dd	selector
-	;	dd	physical address
-	;	dd	pages-1
-	;	dd	type/level
-	; ※最後に終了マークとして 00h(dword) を記録
-	;
-	xor	eax, eax
-	mov	 ax,  bx
-	mov	[si],eax	; selector
-
-	; di, dx非破壊
-
-	mov	ah, [di+6]	; type and limit - bit
-	test	ah, 40h		; 32bit seg?
-	jz	.skip		; if 16bit seg jump
-
-	and	ah, 00fh
-	shl	eax, 8
-	mov	ax, [di]	; limit
-	mov	[si+8],eax
-
-	mov	ah, [di+7]
-	mov	al, [di+4]
-	shl	eax, 16
-	mov	ax, [di+2]
-	mov	[si+4],eax	; base
-
-	xor	eax, eax
-	mov	al, [di+5]
-	mov	ah, al
-	and	al, 01100000b
-	and	ah, 00001110b
-	shr	al, 5
-	mov	[si+12],eax
-	add	si, 10h
-.skip:
-	ret
-
-
-	align	4
-init2_CoCo:
 	;
 	; [Regist] real mode to 32bit mode far call routine
 	;
@@ -204,6 +99,9 @@ init2_CoCo:
 	mov	bx, offset callf32_from_V86
 	mov	ax, 0c207h
 	int	8eh
+
+	mov	b [load_nsdd], 1
+.fail:
 	ret
 
 
@@ -212,7 +110,6 @@ BITS	32
 ;★T-OS のメモリ周り設定
 ;==============================================================================
 proc init_TOWNS_32
-	push	es
 	mov	ebx,offset T_OS_memory_map
 
 	mov	al, [cpu_is_386sx]
@@ -247,11 +144,11 @@ proc init_TOWNS_32
 
 	mov	d [edi+8],0a00h		;R/X / 特権レベル=0
 	mov	eax,TBIOS_cs		;全メモリアクセスセレクタ
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	mov	d [edi+8],0200h		;R/W / 特権レベル=0
 	mov	eax,TBIOS_ds		;全メモリアクセスセレクタ
-	call	make_mems		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;------------------------------------------
 	;VRAMの書き換えチェック用の値
@@ -261,79 +158,70 @@ proc init_TOWNS_32
 	test	 al,01
 	jnz	.not_emulator
 
+	push	es
 	mov	b [is_emulator], 1
 	mov	ebx, 128h
 	mov	es, bx
 	mov	d [es:07fffch], 011011011h
+	pop	es
 .not_emulator:
 
 	;------------------------------------------
 	;NSDD初期化
 	;------------------------------------------
-	cmp	b [nsdd_load], 0
+	cmp	b [load_nsdd], 0
 	jz	short .no_nsdd
 
-	call	setup_nsdd
 	call	wakeup_nsdd
 .no_nsdd:
-
-	pop	es
 	ret
 
 ;------------------------------------------------------------------------------
-;★NSDドライバのセレクタを作成する
-;------------------------------------------------------------------------------
-proc setup_nsdd
-	mov	edx, [nsdd_info_adr]
-	mov	edi, [work_adr]
-	; src [edx]
-	; des [edi]
-.loop:
-	mov	eax, [edx+00h]
-	test	eax, eax
-	jz	.exit
-
-	mov	ebx, [edx+04h]
-	mov	ecx, [edx+08h]
-	mov	esi, [edx+0ch]
-	mov	[edi+00h], ebx
-	mov	[edi+04h], ecx
-	mov	[edi+08h], esi
-
-	call	make_mems	; sel=eax, data=[edi]
-	add	edx, 10h
-
-	jmp	short .loop
-
-.error:
-	mov	b [nsdd_load], 0
-.exit:
-
-	mov	eax, [nsdd_info_adr]
-	call	free_gp_buffer_32
-	xor	eax, eax
-	mov	[nsdd_info_adr], eax
-	ret
-
-;------------------------------------------------------------------------------
-;★NSDドライバを wake up する
+; NSD driver setup and wakeup
 ;------------------------------------------------------------------------------
 proc wakeup_nsdd
-	mov	esi, offset nsdd_selectors
-	mov	edi, [work_adr]
-	lea	ebx, [edi + 10h]
-	mov	eax, F386_ds
-	mov	es, ax
+	mov	eax, LDT_sel
+	mov	 fs, eax
+
+	xor	ebx, ebx
+	xor	edx, edx
+	xor	ebp, ebp	; ebp = 0
 .loop:
-	movzx	ebx, w [esi]
-	test	ebx, ebx
-	jz	.exit
+	mov	 ax, 0c103h	; get NSD driver info
+	mov	ecx, ebp	; cx = driver number
+	mov	edi, [work_adr]
+	int	8eh
+	test	ah, ah
+	jnz	.exit
+
+	; cx = Num of drivers(n)
+	; bx = cs (LDT)
+	; dx = ds (LDT)
+	; [ds:edi]
+	;	 LDT Format, limit byte
+	;	 FF 7F 00 80  21 9A 40 00 - FF 7F 00 80  21 92 40 00
+	;	 4C 00 00 00  00 00 00 00 - 44 00 00 00  00 00 00 00
+	;
+	mov	esi, ebx
+	and	esi, 00000fff8h	; selector to offset
+	mov	eax, [edi]
+	mov	[fs:esi  ], eax
+	mov	eax, [edi+04h]
+	mov	[fs:esi+4], eax
+
+	mov	esi, edx
+	and	esi, 00000fff8h	; selector to offset
+	mov	eax, [edi+08h]
+	mov	[fs:esi  ], eax
+	mov	eax, [edi+0ch]
+	mov	[fs:esi+4], eax
 
 	mov	 al, NSDD_wakeup
 	call	send_command_to_nsdd
 
-	add	esi, 2
-	jmp	short .loop
+	inc	ebp
+	jmp	.loop
+
 .exit:
 	ret
 
@@ -343,6 +231,7 @@ proc send_command_to_nsdd
 	; ebx = code selector
 	push	gs
 	push	ebx
+	push	edi
 
 	mov	edi, [work_adr]
 	mov	gs, ebx
@@ -364,6 +253,7 @@ proc send_command_to_nsdd
 
 	call	far [edi]			; call interrupt
 
+	pop	edi
 	pop	ebx
 	pop	gs
 	ret
@@ -400,10 +290,10 @@ proc exit_TOWNS_32
 	;------------------------------------------
 	;NSDD 終了処理
 	;------------------------------------------
-	cmp	b [nsdd_load], 0
+	cmp	b [load_nsdd], 0
 	jz	short .no_nsdd
 
-	mov	b [nsdd_load], 0	;再入防止
+	mov	b [load_nsdd], 0	;再入防止
 	call	sleep_nsdd		;NSDドライバを停止させる
 .no_nsdd:
 
@@ -671,7 +561,7 @@ BITS	16
 ;exit process for TOWNS on 16bit mode
 ;==============================================================================
 proc exit_TOWNS_16
-	cmp	b [nsdd_load], 0
+	cmp	b [load_nsdd], 0
 	jz	short .no_nsdd
 	;
 	; [clear] real mode to 32bit mode far call routine
@@ -698,7 +588,7 @@ proc exit_TOWNS_16
 ;■データ領域
 ;==============================================================================
 is_emulator	db	0
-nsdd_load	db	1
+load_nsdd	db	0
 
 ;==============================================================================
 ;★CRTC 操作テーブル
@@ -718,19 +608,6 @@ TOWNS_PAL_layer0:	;グラフィック画面（手前）
 TOWNS_PAL_layer1:	;コンソール (文字) 画面
 	dw	0000h, 000bh, 00b0h, 00bbh, 0b00h, 0b0bh, 0bb0h, 0bbbh
 	dw	0888h, 000fh, 00f0h, 00ffh, 0f00h, 0f0fh, 0ff0h, 0fffh
-
-;==============================================================================
-;★CoCo/NSDD関連データ
-;==============================================================================
-	align	4
-nsdd_info_adr:
-	dd	0		; NSDDの情報保存用のbuffer
-
-
-nsdd_selectors:
-	times	(NSDD_max)	dw	0
-	dw	0		;終了マーク
-
 
 ;==============================================================================
 ;★T-OS のメモリ関連データ

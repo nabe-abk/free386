@@ -72,7 +72,7 @@ proc init_PC98_32
 	mov	d [edi  ],VRAM_16padr		;リニアアドレス
 	mov	d [edi+4],32-1			;32*4 = 128 KB
 	mov	d [edi+8],0200h			;R/W
-	call	make_mems_4k
+	call	make_selector_4k
 	
 	;; CG Window を e00a5000 に張り付け
 	mov	esi, VRAM_CGW		;張り付け先リニアアドレス = RGB GVRAM
@@ -85,7 +85,7 @@ proc init_PC98_32
 	mov	d [edi  ],VRAM_CGW		;リニアアドレス
 	mov	d [edi+4],1-0			;1*4 = 4 KB
 	mov	d [edi+8],0200h			;R/W
-	call	make_mems_4k
+	call	make_selector_4k
 	
 	
 	;; TVRAM を e00a0000 に張り付け
@@ -99,7 +99,7 @@ proc init_PC98_32
 	mov	d [edi  ],VRAM_TEXT		;リニアアドレス
 	mov	d [edi+4],4-1			;4*4 = 16 KB
 	mov	d [edi+8],0200h			;R/W
-	call	make_mems_4k
+	call	make_selector_4k
 	
 	
 	;; 物理メモリのマッピング

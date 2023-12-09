@@ -1,6 +1,6 @@
 
-extern	make_mems		;386形式メモリセレクタ作成
-extern	make_mems_4k		;386形式メモリセレクタ作成 (4KB 単位)
+extern	make_selector		;386形式メモリセレクタ作成
+extern	make_selector_4k		;386形式メモリセレクタ作成 (4KB 単位)
 extern	set_physical_mem	;物理メモリを指定リニアアドレスに配置する
 extern	alloc_DOS_mem		;DOSメモリを貼り付け
 extern	alloc_RAM		;RAM をリニアアドレスに配置する

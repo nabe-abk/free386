@@ -11,8 +11,8 @@
 
 ;------------------------------------------------------------------------------
 
-global	make_mems
-global	make_mems_4k
+global	make_selector
+global	make_selector_4k
 global	set_physical_mem
 global	alloc_DOS_mem
 global	alloc_RAM
@@ -33,7 +33,7 @@ BITS	32
 ;------------------------------------------------------------------------------
 ;●メモリセグメントを作成します
 ;------------------------------------------------------------------------------
-;void make_mems(int selctor,struct mem_descriptor *memd)
+;void make_selector(int selctor,struct mem_descriptor *memd)
 ;
 ;	selctor	＝ セレクタ値（作成するセレクタ値）
 ;
@@ -50,7 +50,7 @@ BITS	32
 ;
 ;mtask のものとは非互換！！
 	align	4
-make_mems:
+make_selector:
 	push	ebx
 	push	ecx
 	push	edx
@@ -106,7 +106,7 @@ make_mems:
 ;------------------------------------------------------------------------------
 ;●メモリセグメントを作成します（4KB 単位）
 ;------------------------------------------------------------------------------
-;void make_mems(int selctor,struct mem_descriptor *memd)
+;void make_selector(int selctor,struct mem_descriptor *memd)
 ;
 ;	selctor	＝ セレクタ値（作成するセレクタ値）
 ;
@@ -122,7 +122,7 @@ make_mems:
 ;	edi = 構造体 offset
 ;
 	align 4
-make_mems_4k:
+make_selector_4k:
 	push	ebx
 	push	ecx
 	push	edx
@@ -469,7 +469,7 @@ map_memory:
 	call	set_physical_mem	;物理メモリの配置
 
 	lea	edi,[ebx + 4]		;セレクタ作成構造体
-	call	make_mems_4k		;eax=作成するセレクタ  edi=構造体
+	call	make_selector_4k		;eax=作成するセレクタ  edi=構造体
 
 	add	ebx,byte 10h		;アドレス更新
 	jmp	short map_memory	;ループ
