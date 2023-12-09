@@ -6,8 +6,8 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 ## Overview
 
-* Version: 0.80
-* Date: **2023-12-05**
+* Version: 0.81
+* Date: **2023-12-10**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
@@ -28,9 +28,9 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 ## Document (Japanese)
 
-* [doc-ja/PC98.txt](doc-ja/PC98.txt)     - PC-98x1 Version's information
+* [doc-ja/ext_api.txt](doc-ja/ext_api.txt)   - Free386 function reference
+* [doc-ja/PC98.txt](doc-ja/PC98.txt)         - PC-98x1 Version's information
 * [doc-ja/FM-TOWNS.txt](doc-ja/FM-TOWNS.txt) - FM TOWNS Version's information
-* [doc-ja/ext_api.txt](doc-ja/ext_api.txt)       - DOS-Extenter functions reference
 
 Other Japanese documents in [doc-ja/](doc-ja/).
 

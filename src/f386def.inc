@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.81dev 2023-12-xx'
+%define	VER_STRING	'Ver0.81 2023-12-10'
 Major_ver	equ		00h
-Minor_ver	equ		80h
-F386_Date	equ		20231205h	;Release date
+Minor_ver	equ		81h
+F386_Date	equ		20231210h	;Release date
 
 ;==============================================================================
 ; RELEASE and DEBUG setting
