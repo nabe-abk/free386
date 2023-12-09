@@ -11,6 +11,7 @@ Ver 0.81 - 2023-12-xx
 - Fix: int 21h, ah=30h/ah=48h/ax=250Dh/ax=2511h/ax=2513h.
 - Fix: int 21h, ax=2517h. (Enbug in Ver0.80)
 - [TOWNS] Support TMENU.EXG and EIN.EXG
+- [TOWNS] Updated sleep instructions for NSD driver, fix COCO_MEM.EXE problem.
 
 ==============================================================================
 Ver 0.80 - 2023-12-05

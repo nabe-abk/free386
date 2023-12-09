@@ -325,86 +325,47 @@ proc wakeup_nsdd
 	mov	eax, F386_ds
 	mov	es, ax
 .loop:
-	movzx	eax, w [esi]
-	test	eax, eax
+	movzx	ebx, w [esi]
+	test	ebx, ebx
 	jz	.exit
 
-	mov	gs, eax
-	mov	[edi+04h], eax
-	mov	[edi+0ch], eax
-	movzx	eax, w [gs:NSDD_intr_adr]	; +06h  interrupt entry
-	movzx	ecx, w [gs:NSDD_stra_adr]	; +08h  strategy  entry
-	mov	[edi  ], eax
-	mov	[edi+8], ecx
-
-	; call strategy
-	;	es:ebx = nsd_data_regist
-	push	esi
-
-	push	ebx
-	push	edi
-	call	far [edi+8]
-	pop	edi
-	pop	ebx
-
-	; call interrupt /wakeup
-	mov	b [ebx+2], NSDD_wakeup
-	push	ebx
-	push	edi
-	call	far [edi]
-	pop	edi
-	pop	ebx
-
-	pop	esi
+	mov	 al, NSDD_wakeup
+	call	send_command_to_nsdd
 
 	add	esi, 2
 	jmp	short .loop
 .exit:
 	ret
 
-;------------------------------------------------------------------------------
-;★NSDドライバを sleep させる
-;------------------------------------------------------------------------------
-proc sleep_nsdd
-	mov	esi, offset nsdd_selectors
-	mov	edi, [work_adr]
-	lea	ebx, [edi + 10h]
 
-	;最後から順番にsleepさせる。
-	;※nsdd sleepでCPUエラーが起こり無限ループになることがあるので
-.find_end:
-	add	esi, byte 2
-	movzx	eax, w [esi]
-	test	eax, eax
-	jnz	.find_end
-
-.loop:
-	sub	esi, byte 2
-	movzx	eax, w [esi]
-	test	eax, eax
-	jz	.exit
-
-	mov	w [esi], 0	; 2度sleepさせない措置
-
-	push	es
-	mov	es, eax
-	mov	[edi+4], eax
-	movzx	ecx, w [es:NSDD_intr_adr]	; interrupt entry
-	mov	[edi], ecx
-	pop	es
-
-	; call init/wakeup
+proc send_command_to_nsdd
+	;  al = command
+	; ebx = code selector
+	push	gs
 	push	ebx
-	push	edi
-	push	esi
-	mov	b [ebx+2], NSDD_sleep
-	call	far [edi]
-	pop	esi
-	pop	edi
-	pop	ebx
 
-	jmp	short .loop
-.exit:
+	mov	edi, [work_adr]
+	mov	gs, ebx
+	mov	[edi+4], ebx
+
+	movzx	ebx, w [gs:NSDD_stra_adr]	; +06h  strategy  entry
+	mov	[edi], ebx
+
+	mov	ebx, edi
+	add	ebx, 10h
+	mov	w [ebx], 000dh
+	mov	[ebx+2], al			; save command code
+
+	call	far [edi]			; call strategy
+
+
+	movzx	eax, w [gs:NSDD_intr_adr]	; +08h  interrupt entry
+	mov	[edi], eax
+
+	call	far [edi]			; call interrupt
+
+	pop	ebx
+	pop	gs
 	ret
 
 ;------------------------------------------------------------------------------
@@ -442,6 +403,7 @@ proc exit_TOWNS_32
 	cmp	b [nsdd_load], 0
 	jz	short .no_nsdd
 
+	mov	b [nsdd_load], 0	;再入防止
 	call	sleep_nsdd		;NSDドライバを停止させる
 .no_nsdd:
 
@@ -510,6 +472,44 @@ proc exit_TOWNS_32
 .no_reset_VRAM:
 .no_reset:
 	ret
+
+;------------------------------------------------------------------------------
+;★NSDドライバを sleep させる
+;------------------------------------------------------------------------------
+proc sleep_nsdd
+	mov	ax, 0c003h
+	int	8eh
+	test	ah, ah
+	jnz	.exit
+
+	mov	ebp, ecx	; ebp=常駐ドライバの数
+	xor	ebx, ebx
+
+.loop:
+	test	ebp, ebp
+	jz	.exit
+	dec	ebp
+
+	mov	 ax, 0c103h	; 常駐ドライバの情報取得
+	mov	ecx, ebp	; cx = 常駐ドライバ番号
+	mov	edi, [work_adr]
+	int	8eh
+	test	ah, ah
+	jnz	.loop
+
+	; cx = Num of drivers(n)
+	; bx = cs (LDT)
+	; dx = ds (LDT)
+
+	mov	al, NSDD_sleep
+	call 	send_command_to_nsdd
+		;  al = command
+		; ebx = code selector
+
+	jmp	short .loop
+.exit:
+	ret
+
 
 ;------------------------------------------------------------------------------
 ;★CRTC 初期化
@@ -726,7 +726,7 @@ TOWNS_PAL_layer1:	;コンソール (文字) 画面
 nsdd_info_adr:
 	dd	0		; NSDDの情報保存用のbuffer
 
-	dw	0		; 逆順にたどることがあるのでその時の終了マーク
+
 nsdd_selectors:
 	times	(NSDD_max)	dw	0
 	dw	0		;終了マーク
