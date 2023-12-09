@@ -1158,19 +1158,21 @@ DOS_Ext_fn_2515h:
 
 
 ;------------------------------------------------------------------------------
-;・DOS仲介バッファのアドレス取得　AX=2517h
+;AX=2517h: GET INFO ON DOS DATA BUFFER, Phar Lap v2.1c+
 ;------------------------------------------------------------------------------
+;out es:ebx = protect mode buffer address
+;	ecx = real mode address, Seg:Off
+;	edx = size (byte)
+;
 	align	4
 DOS_Ext_fn_2517h:
-	mov	ecx,F386_ds
-	mov	 es,ecx
-	mov	ebx,[es:call_buf_adr32]
-	mov	ecx,[es:call_buf_adr16]
+	mov	eax, DOSMEM_sel
+	mov	 es, ax
+	mov	ebx, d [cs:user_cbuf_ladr]
 
-	; buffer size
-	xor	ecx, ecx
-	mov	 cl, b [es:call_buf_sizeKB]
-	shl	ecx, 10
+	mov	ecx, d [cs:user_cbuf_adr16]
+	movzx	edx, b [cs:user_cbuf_pages]
+	shl	edx, 12				; page to byte
 
 	clear_cy
 	iret

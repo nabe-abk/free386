@@ -8,6 +8,7 @@ Ver 0.81 - 2023-12-xx
 - Fix: int 21h, ax=2501h is hang up.
 - Fix: int 21h, ax=250eh is hang up.
 - Fix: int 21h, ah=30h/ah=48h/ax=250Dh/ax=2511h/ax=2513h.
+- Fix: int 21h, ax=2517h. (Enbug in Ver0.80)
 - [TOWNS] Support TMENU.EXG and EIN.EXG
 
 ==============================================================================
