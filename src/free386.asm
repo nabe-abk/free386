@@ -95,13 +95,15 @@ start:
 	mov	ah,4ah			;メモリブロックサイズの変更
 	int	21h			;DOS call
 
-	call	get_parameter		;パラメタ解析(sub.inc)
-
 ;------------------------------------------------------------------------------
 ;●パラメタ確認 (free386 への動作指定)
 ;------------------------------------------------------------------------------
-parameter_check:
-	jmp	short .check_start
+proc16 parameter_check
+	mov	si,  81h		;argument string pointer
+	mov	bp, 0ffh		;     max string pointer
+	xor	cx, cx
+
+	jmp	short .loop
 
 	;///////////////////////////////
 	; -m : Use memory maximum
@@ -109,28 +111,40 @@ parameter_check:
 .para_m:
 	mov	b [pool_for_paging], 1	;ページング用プールメモリ
 	mov	w [resv_real_memKB], 0	;reserved dos memory = 0
-	jmp	.loop
+	jmp	short .loop
 	;/// Move some parameters to this location. Because does not fit in jmp short.
 	;/// jmp short に収まらないので一部解析をここに記述
 
-.check_start:
-	mov	cx,[paras]		;パラメータ数
-	test	cx,cx			;値確認
-	jz	.end_paras		;0 ならば jmp
+.para_maxreal:
+.para_minreal:
+.para_callbuf:
+	add	si, cx
+	call	get_next_parameter	;skip next parameter
+	jmp	short .loop
 
-	inc	cx			;ループの関係上
-	mov	bx,offset paras_p	;dx = argv / パラメータへのポインタ
+.sp_param:
+	; RUN386 some parameters
+	cmp	eax, 'maxr'
+	je	.para_maxreal
+	cmp	eax, 'minr'
+	je	.para_minreal
+	cmp	eax, 'call'
+	je	.para_callbuf
+	jmp	short .sp_param_return
+
 .loop:
-	dec	cx
-	jz	.end_paras
+	add	si, cx
+	call	get_next_parameter	;si=string, cx=length
+	test	cx, cx
+	jz	.end_paras		;0
 
-	mov	si,[bx]			;si = argv[N] / パラメータへのポインタ
-	add	bx,byte 2		;argv++ / ポインタ加算
-	mov	ax,[si]			;先頭2文字ロード
-	cmp	al,'-'			;'-' で始まるパラメタ?
-	jne	.end_paras		;違ったらjmp (ロードファイル名と見なす)
+	cmp	b [si],'-'		;'-' parameter?
+	jne	.end_paras		;
 
-	mov	al,[si+2]		;ah's next char
+	mov	eax,[si+1]		;load 4 byte
+
+	jmp	short .sp_param		;for short jump
+	.sp_param_return:		;
 
 	cmp	ah,'v'
 	je	.para_v
@@ -214,12 +228,18 @@ parameter_check:
 	mov	b [check_MACHINE],al
 	jmp	short .loop
 
+	;///////////////////////////////
+	; save exp file name
+	;///////////////////////////////
 .end_paras:
+	mov	[exp_name_adr],  si
+	mov	[exp_name_size], cx
+
 
 ;------------------------------------------------------------------------------
 ;●タイトル表示
 ;------------------------------------------------------------------------------
-proc print_title
+proc16 print_title
 	mov	al,[show_title]	;タイトル表示する?
 	test	al,al		;値 check
 	jz	.no_title	;0 なら表示せず
@@ -265,7 +285,7 @@ machine_check:
 ;●VCPI の存在確認
 ;------------------------------------------------------------------------------
 %if CHECK_EMS
-proc check_ems_driver
+proc16 check_ems_driver
 	;
 	; check EMS
 	;
@@ -354,8 +374,7 @@ get_vcip_memory_size:
 ;------------------------------------------------------------------------------
 ; Memory setting
 ;------------------------------------------------------------------------------
-	global	memory_setting
-memory_setting:
+proc16 memory_setting
 	;//////////////////////////////////////////////////
 	; Save real mode interrupt table: 0000:0000-03ff
 	;//////////////////////////////////////////////////
@@ -482,7 +501,7 @@ XMS_setup:
 ;●拡張メモリの確保 (use XMS2.0) / Max 64MB
 ;------------------------------------------------------------------------------
 %if USE_XMS20
-proc get_EMB_XMS20
+proc16 get_EMB_XMS20
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
 	PRINT86	msg_06		;'Found XMS 2.0'
@@ -517,7 +536,7 @@ get_EMB_failed:
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS3.0)
 ;------------------------------------------------------------------------------
-proc get_EMB_XMS30
+proc16 get_EMB_XMS30
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
 	PRINT86	msg_07		;'Found XMS 3.0'
@@ -542,7 +561,7 @@ proc get_EMB_XMS30
 ;------------------------------------------------------------------------------
 ;●確保した拡張メモリのロック と 拡張メモリの初期情報設定
 ;------------------------------------------------------------------------------
-proc lock_EMB
+proc16 lock_EMB
 	mov	ah,0ch		;EMB memory lock
 	XMS_function		;
 	test	ax,ax		;ax = 0?
@@ -581,7 +600,7 @@ proc lock_EMB
 ;------------------------------------------------------------------------------
 ; alloc user call buffer
 ;------------------------------------------------------------------------------
-proc alloc_user_call_buffer
+proc16 alloc_user_call_buffer
 	movzx	ax, b [user_cbuf_pages]
 	test	ax, ax
 	jz	.use_internal_buffer
@@ -610,7 +629,7 @@ proc alloc_user_call_buffer
 ;------------------------------------------------------------------------------
 ; initalize page directory and first page table
 ;------------------------------------------------------------------------------
-proc init_page_directory
+proc16 init_page_directory
 	mov	ax,  2			;page dir + page table 0
 	mov	cl, 13			;error code: 'Page table allocation failed'
 	call	dos_malloc_page
@@ -652,7 +671,7 @@ proc init_page_directory
 ;	additional page tables are required in DOS memory.
 ;  拡張メモリが4MB以上使われている時、DOSメモリ内に追加ページテーブルが必要。
 ;
-proc alloc_page_table
+proc16 alloc_page_table
 	mov	eax, [EMB_physi_adr]	; free memory's phisical address
 	add	eax, 0fffh		; 4KB Unit
 	shr	eax, 22			; to need page tables
@@ -698,7 +717,7 @@ proc alloc_page_table
 ;------------------------------------------------------------------------------
 ; [VCPI] get protected mode interface
 ;------------------------------------------------------------------------------
-proc get_VCPI_interface
+proc16 get_VCPI_interface
 	push	es
 
 	mov	ax, [page_dir_seg]	;page directory segment

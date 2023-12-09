@@ -23,6 +23,8 @@ init_machine32	db	0		;initalized machine
 
 	align	4
 pharlap_version	db	'12aJ'		;Ver 1.2aj
+exp_name_adr	dd	0		;file name string pointer
+exp_name_size	dd	0
 
 ;==============================================================================
 ; Buffer information

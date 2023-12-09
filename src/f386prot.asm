@@ -341,33 +341,18 @@ patch_for_386sx:
 %endif
 
 ;------------------------------------------------------------------------------
-;●パラメータ解析
+; copy exp parameter
 ;------------------------------------------------------------------------------
-;[sub.asm]
-;paras		dw	0,0		;発見したパラメーターの数
-;paras_last	dw	0,0		;0dh の位置
-;paras_p	resw	max_paras	;ポインタ配列
-;
-	mov	ecx,[paras]		;パラメータ数
-	test	ecx,ecx			;値確認
-	jz	no_file			;0 ならば jmp
+proc copy_exp_pamameter
+	;
+	; copy exp file name to work
+	;
+	mov	esi,[exp_name_adr]	; file name
+	mov	ecx,[exp_name_size]	;
+	mov	edi,[work_adr]
+	test	ecx,ecx
+	jnz	.exists_file_name
 
-	mov	edi,[work_adr]		;作業領域offset ロード
-	xor	esi,esi			;MSBs (上位16ビット) 消去
-	mov	eax,offset paras_p	;パラメータへのポインタ eax = argv
-
-	align	4
-para_analyze_loop:
-	mov	si,[eax]		;パラメータへのポインタ esi = argv[N]
-	cmp	b [esi],'-'		;比較
-	jne	find_file		;'-' で始まらない文字列を file名とする
-
-	;*** パラメータ解析ルーチン ***
-	add	eax,byte (2)
-	loop	para_analyze_loop
-
-	align	4
-no_file:
 	mov	al, [show_title]
 	test	al, al
 	jz	.skip
@@ -376,46 +361,34 @@ no_file:
 	jmp	exit_32			;プログラム終了処理
 
 
-	align	4
-find_file:
-	mov	al,[esi]		;
-	mov	[edi],al		;ファイル名などを記録 -> work
+.exists_file_name:
+	rep	movsb			; copy [ds:esi] -> [ds:edi]
+	mov	b [edi], 0		; null terminate
+	;
+	; copy parameter PSP to PSP
+	;
+	mov	edi, 81h
+	mov	ecx, 7eh
+
+	cmp	b [esi], ' '
+	jnz	short .paramter_copy_loop
+	inc	esi			; skip first space
+
+.paramter_copy_loop:
+	mov	al, [esi]		; 1 byte load
+	mov	[edi], al
+	cmp	al, 0dh
+	jz	.copy_end
+
 	inc	esi
 	inc	edi
-	test	al,al
-	jnz	find_file		;実行ファイル名をひたすら複写
+	loop	.paramter_copy_loop
 
-	dec	esi			;最後の '0' の位置に戻す
-	mov	ecx,[paras_last]	;末尾の位置
-	mov	edi,81h			;PSP の引数先頭位置
-	sub	ecx,esi			;末尾 - 現在位置
-	mov	[80h],cl		;PSP に記録 / パラメタ長
-
-	test	ecx,ecx			;ecx = 0?
-	jz	para_copy_loop_exit
-
-	align	4
-para_copy_loop:
-	mov	al,[esi]		;1 byte load
-	inc	esi			;
-
-	test	al,al
-	jz	rec_space		;0 なら空白に復元
-
-	mov	[edi],al		;記録
-	inc	edi
-	loop	para_copy_loop
-	jmp	para_copy_loop_exit
-
-	align	4
-rec_space:
-	mov	byte [edi],' '		;空白記録
-	inc	edi
-	loop	para_copy_loop
-
-para_copy_loop_exit:
-	mov	byte [edi],0dh		;終端記号
-
+.copy_end:
+	mov	byte [edi], 0dh
+	mov	eax, edi
+	sub	al, 81h
+	mov	[80h], al	; parameter length
 
 ;------------------------------------------------------------------------------
 ;●EXP ファイル名の補完と検索

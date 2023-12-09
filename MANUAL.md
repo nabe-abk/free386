@@ -114,7 +114,8 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0bh	|  0	|  b | (Reserved) |
 | +0ch	|  8	|  b | Reserved memory pages for paging table (unit is page). 1page=4KB. |
 | +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
-| +0eh	| 32	|  w | Reserved minimum DOS memory(KB). |
+| +0eh	| 32	|  b | Reserved minimum DOS memory(KB). |
+| +10h	|  1	|  b | User's call buffer pages for ax=250Dh/ax=2517h. If set to 0, it will be the same as the internal call buffer. 1page=4KB. |
 
 In addition, if you want to rewrite the default value of Phar Lap's DOS-Extender Version information,
 search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20) or other.
@@ -132,6 +133,7 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 | +0ch	|  8	|  b | ページングテーブル用の予約済ページ数（単位ページ数）。1ページ=4KB。 |
 | +0dh	| 32	|  b | コールバッファサイズKB単位で設定します。最小は4KBです。 |
 | +0eh	| 32	|  w | 空けておくDOSメモリの量をKB単位で設定します。 |
+| +10h	|  1	|  b | ユーザー用コールバッファをページ単位で設定します。int 21h, ax=250Dh/ax=2517h で返されるバッファです。0に設定すると、内部コールバッファをユーザーに返すようになります。 |
 
 その他、Phar Lap DOS-Extender Versionのデフォルト値を書き換えたいときは、
 "12aJ"(31 32 61 4A) を文字列検索し、"22d "(32 32 64 20) 等に書き換えてください。

@@ -13,77 +13,45 @@
 
 segment	text align=4 class=CODE use16
 ;##############################################################################
-;●サブルーチン (16 bit)
+; 16bit subroutine
 ;##############################################################################
 ;------------------------------------------------------------------------------
-;○パラメーター解析
+; parse parameter
 ;------------------------------------------------------------------------------
+; in	si = string pointer
+;	bp = string pointer max
+; out	si = found parameter pointer
+;	cx = length of parameter
 ;
-	global	get_parameter
-
-max_paras	equ	20h	;最大パラメーター数
-
-	align	2
-get_parameter:
+proc16 get_next_parameter
 	push	ax
 	push	bx
-	push	dx
-	push	si
+	xor	cx, cx
 
-
-	mov	bx,081h	-1	;コマンドラインパラメタ･アドレス -1
-	mov 	dl,0		;文字列中かのフラグに使用　最初は off に
-				;  1:文字列中  0:文字列中でない
-	mov	si,offset paras_p	;各パラメタへのポインタ記録用配列ロード
-
-	align	2
 .loop:
-	inc	bx		;bx ステップ
-	mov	al,[bx]		;パラメタロード
+	mov	bx, si
+	add	bx, cx
+	cmp	bx, bp
+	ja	.last
 
+	mov	al,[bx]
 	cmp	al,' '  	;SPACE
-	jz	.kugiri		;区切り発見
+	jz	.separator
 	cmp	al,'	'	;TAB
-	jz	.kugiri		;区切り発見
+	jz	.separator
+	cmp	al,20h		;NULL or CR
+	jb	.last
 
-	cmp	al,0dh		;パメメーター終了コード
-	jz	.exit		;パラメーターの終わり(ループ脱出)
+	inc	cx
+	jmp	short .loop
 
-	;
-	;文字列中
-	;
-	cmp	dl,0			;文字列中フラグロード
-	jne	.loop			; 0でなければ文字列中なのでそのままﾙｰﾌﾟ
+.separator:
+	test	cx,cx
+	jnz	.last
+	inc	si
+	jmp	short .loop
 
-	;
-	;新規文字列発見
-	;
-	mov	[si],bx			;パラメタ文字列のポインタ記録
-	mov	dl,01			;文字列中 flag-on
-	add	si,2			;配列内アドレスステップ
-	inc	b [paras]		;現在のパラメータ数 +1
-	cmp	b [paras],max_paras	;現在のパラメーター数 と 解析最大値比較
-	je	.exit			;解析ループ脱出
-
-	jmp	.loop			;ループ
-
-
-	align	2
-.kugiri:
-	mov	byte [bx],0		;null に
-	mov 	dl,0			;文字列中かのフラグを off に
-	jmp	short .loop		;ループ
-
-
-
-	align	2
-	;パラメーター１文字解析ループ脱出
-.exit:
-	mov	byte [bx],00h		;0 に書換え
-	mov	[paras_last],bx		;末尾として記録
-
-	pop	si
-	pop	dx
+.last:
 	pop	bx
 	pop	ax
 	ret
@@ -450,17 +418,9 @@ count_num_of_hash:
 ;//////////////////////////////////////////////////////////////////////////////
 segment	data align=4 class=CODE use16
 group	comgroup text data
-;------------------------------------------------------------------------------
-global	paras
-global	paras_last
-global	paras_p
+
 global	hex_str
 ;------------------------------------------------------------------------------
-paras		dw	0,0		;発見したパラメーターの数
-paras_last	dw	0,0		;0dh の位置
-paras_p		resw	max_paras	;ポインタ配列
-
-	align	4
 deg_table:
 deg_00	dd	1
 deg_01	dd	10

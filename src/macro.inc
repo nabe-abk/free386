@@ -12,6 +12,11 @@
 	align	4
 %1:
 %endmacro
+%macro	proc16	1
+	global	%1
+	align	2
+%1:
+%endmacro
 
 %imacro	PRINT86	1
 	mov	dx,%1
