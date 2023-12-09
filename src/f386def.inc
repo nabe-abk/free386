@@ -80,7 +80,7 @@ _pool_for_paging equ	8	; pool RAM pages for paging (1page=4KB)
 _call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function
 _resv_real_memKB equ	32	; reserved real memory (KB) for DOS
 
-_user_cbuf_pages equ	8	; call buffer for client (int 21, AX=250Dh)
+_user_cbuf_pages equ	1	; call buffer for client (int 21, AX=250Dh)
 				; if set 0, user call buffer same internal
 
 ;==============================================================================
