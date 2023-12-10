@@ -2,11 +2,25 @@
 
 cd `dirname $0`
 
-mkdir bin
-mkdir bin/TOWNS
-mkdir bin/PC-98
-mkdir bin/AT
+DIRS="
+	bin
+	bin/TOWNS
+	bin/PC-98
+	bin/AT
+"
 
+for d in $DIRS; do
+	if [ ! -e "$d" ]; then
+		mkdir $d
+	fi
+	rm -f "$d/free386.com"
+done
+
+rm -f free386.com
+
+#--------------------------------------------------------------------
+# make
+#--------------------------------------------------------------------
 cd src
 
 mv f386def.inc f386def.org
@@ -72,3 +86,16 @@ echo ""
 rm f386def.inc
 mv f386def.org f386def.inc
 make -f makefile.lin clean
+
+cd ..
+#--------------------------------------------------------------------
+# check
+#--------------------------------------------------------------------
+
+echo ""
+for d in $DIRS; do
+	if [ ! -e "$d/free386.com" ]; then
+		echo "$d/free386.com does not exists!"
+	fi
+done
+
