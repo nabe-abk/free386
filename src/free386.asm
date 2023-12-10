@@ -790,8 +790,8 @@ proc16 get_VCPI_interface
 	mov	[to_PM_GDTR],esi	;GDT へのロード値のあるリニアアドレス
 	mov	[to_PM_IDTR],edi	;IDT へのロード値のあるリニアアドレス
 
-	;mov	w [to_PM_LDTR],LDT_sel		;LDTRの値（初期値定義済）
-	;mov	w [to_PM_TR]  ,TSS_sel		;TRの値（初期値定義済）
+	;mov	w [to_PM_LDTR],LDT_load_sel	;LDTRの値（初期値定義済）
+	;mov	w [to_PM_TR]  ,TSS_load_sel	;TRの値（初期値定義済）
 	mov	d [to_PM_EIP] ,offset start32	;EIP の値
 	;mov	w [to_PM_CS]  ,F386_cs		;CS の値（初期値定義済）
 
@@ -839,13 +839,12 @@ proc16 get_VCPI_interface
 	add	ecx,ebx				;先頭アドレス加算
 	mov	 ax,LDTsize -1			;LDT の大きさ -1
 
-	mov	[di + LDT_sel + 2],ecx		;ベースアドレス設定
-	mov	[di + LDT_RW  + 2],ecx		;
-	mov	[di + LDT_sel],ax		;リミット値設定
-	mov	[di + LDT_RW ],ax		;
-
-	mov	w [di + LDT_sel + 5],0082h	;属性設定 (LDT)
-	mov	w [di + LDT_RW  + 5],4092h	;属性設定 (Read/Write)
+	mov	[di + LDT_load_sel   + 2],ecx	;ベースアドレス設定
+	mov	[di + LDT_sel        + 2],ecx	;
+	mov	[di + LDT_load_sel      ],ax	;リミット値設定
+	mov	[di + LDT_sel           ],ax	;
+	mov	w [di + LDT_load_sel + 5],0082h	;属性設定 (LDT)
+	mov	w [di + LDT_sel      + 5],4092h	;属性設定 (Read/Write)
 
 	;/// GDT/IDT アクセス用セレクタの設定 ///////////////////////
 
@@ -853,12 +852,12 @@ proc16 get_VCPI_interface
 	mov	edx,[IDT_adr]			;IDT オフセット
 	add	ecx,ebx				;先頭アドレス加算
 	add	edx,ebx				;  〃
-	mov	[di + GDT_RW + 2],ecx		;ベースアドレス設定
-	mov	[di + IDT_RW + 2],edx		;  〃
-	mov	w [di + GDT_RW],GDTsize-1	;リミット値設定
-	mov	w [di + IDT_RW],IDTsize-1	;
-	mov	w [di + GDT_RW +5],4092h	;属性設定 (Read/Write)
-	mov	w [di + IDT_RW +5],4092h	;属性設定 (Read/Write)
+	mov	[di + GDT_sel   + 2],ecx	;ベースアドレス設定
+	mov	[di + IDT_sel   + 2],edx	;  〃
+	mov	w [di + GDT_sel    ],GDTsize-1	;リミット値設定
+	mov	w [di + IDT_sel    ],IDTsize-1	;
+	mov	w [di + GDT_sel + 5],4092h	;属性設定 (Read/Write)
+	mov	w [di + IDT_sel + 5],4092h	;属性設定 (Read/Write)
 
 	;/// TSS セレクタの設定 /////////////////////////////////////
 
@@ -866,13 +865,12 @@ proc16 get_VCPI_interface
 	add	ecx,ebx				;先頭アドレス加算
 	mov	ax,TSSsize -1			;TSS の大きさ -1
 
-	mov	[di + TSS_sel + 2],ecx		;ベースアドレス設定
-	mov	[di + TSS_RW  + 2],ecx		;
-	mov	[di + TSS_sel],ax		;リミット値設定
-	mov	[di + TSS_RW ],ax		;
-
-	mov	w [di + TSS_sel + 5],0089h	;属性設定 (利用可能/Avail TSS)
-	mov	w [di + TSS_RW  + 5],4092h	;属性設定 (Read/Write)
+	mov	[di + TSS_load_sel   + 2],ecx	;ベースアドレス設定
+	mov	[di + TSS_sel        + 2],ecx	;
+	mov	[di + TSS_load_sel      ],ax	;リミット値設定
+	mov	[di + TSS_sel           ],ax	;
+	mov	w [di + TSS_load_sel + 5],0089h	;属性設定 (利用可能/Avail TSS)
+	mov	w [di + TSS_sel      + 5],4092h	;属性設定 (Read/Write)
 
 	;/// DOSメモリ/全メモリアクセス用セレクタ ///////////////////
 	mov	edx, [all_mem_pages]		;総メモリページ数

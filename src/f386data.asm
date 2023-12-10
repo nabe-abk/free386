@@ -134,8 +134,8 @@ to_PM_data:			;V86 Å® PMç\ë¢ëÃ
 to_PM_CR3	dd	0
 to_PM_GDTR	dd	0
 to_PM_IDTR	dd	0
-to_PM_LDTR	dw	LDT_sel
-to_PM_TR	dw	TSS_sel
+to_PM_LDTR	dw	LDT_load_sel
+to_PM_TR	dw	TSS_load_sel
 to_PM_EIP	dd	0
 to_PM_CS	dw	F386_cs
 

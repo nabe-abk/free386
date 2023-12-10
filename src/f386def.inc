@@ -124,12 +124,12 @@ LDTsize		equ	200h	;LDT (004h to 1fch)
 IDTsize		equ	800h	;IDT (000h to 0ffh) / fixed
 TSSsize		equ	80h	;TSS (min 68h byte)
 
-LDT_sel		equ	28h	;LDT
-LDT_RW		equ	30h	;LDT access
-GDT_RW		equ	38h	;GDT access
-IDT_RW		equ	50h	;IDT access
-TSS_sel		equ	80h	;TSS
-TSS_RW		equ	88h	;TSS access
+LDT_load_sel	equ	28h	;LDT
+TSS_load_sel	equ	80h	;TSS
+LDT_sel		equ	30h	;LDT access
+GDT_sel		equ	38h	;GDT access
+IDT_sel		equ	50h	;IDT access
+TSS_sel		equ	88h	;TSS access
 
 ALLMEM_sel	equ	40h	;ALL RAM selector
 DOSMEM_sel	equ	60h	;DOS 1MB memory
@@ -165,7 +165,6 @@ INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する
 TBIOS_cs	equ	110h	;T-BIOS の code セレクタ
 TBIOS_ds	equ	118h	;T-BIOS の data セレクタ
 
-NSDD_max	equ	20	;NSD Driverの最大対応数
 NSDD_stra_adr	equ	06h	;strategy エントリーのあるオフセット
 NSDD_intr_adr	equ	08h	;interruptエントリーのあるオフセット
 NSDD_sleep	equ	0c0h	; intr/sleep  request

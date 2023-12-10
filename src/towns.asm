@@ -203,18 +203,16 @@ proc wakeup_nsdd
 	;	 4C 00 00 00  00 00 00 00 - 44 00 00 00  00 00 00 00
 	;
 	mov	esi, ebx
-	and	esi, 00000fff8h	; selector to offset
 	mov	eax, [edi]
-	mov	[fs:esi  ], eax
+	mov	[fs:esi-4], eax		; selector=44h, access to 40h
 	mov	eax, [edi+04h]
-	mov	[fs:esi+4], eax
+	mov	[fs:esi  ], eax		; selector=44h, access to 44h
 
 	mov	esi, edx
-	and	esi, 00000fff8h	; selector to offset
 	mov	eax, [edi+08h]
-	mov	[fs:esi  ], eax
+	mov	[fs:esi-4], eax		; selector=3Ch, access to 38h
 	mov	eax, [edi+0ch]
-	mov	[fs:esi+4], eax
+	mov	[fs:esi  ], eax		; selector=3Ch, access to 3Ch
 
 	mov	 al, NSDD_wakeup
 	call	send_command_to_nsdd
