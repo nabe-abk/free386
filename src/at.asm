@@ -296,12 +296,12 @@ VESA30_init	db	'VESA3.0 Protect Mode BIOS inisalized!!',13,10,'$'
 VESA_PMIB	dd	0		;VESA Protect-Mode-Info-Block (ç\ë¢ëÃ)
 
 AT_memory_map:
-		; sel  , base     ,   pages -1, type/level
-	dd	100h   ,0ffff0000h,    64/4 -1, 0a00h	;R/X : boot-ROM
-	dd	VESA_A0,   0a0000h,    64/4 -1, 0200h	;R/W : for VESA 3.0
-	dd	VESA_B0,   0b0000h,    64/4 -1, 0200h	;R/W : for VESA 3.0
-	dd	VESA_B8,   0b8000h,    32/4 -1, 0200h	;R/W : for VESA 3.0
-	dd	VRAM_sel,VRAM_padr,VRAM_size-1, 0200h	;R/W : VRAM
+		; sel  ,  base     ,     pages -1, type/level
+	dd	100h   , 0ffff0000h,      64/4 -1, 0a00h ;R/X boot-ROM
+	dd	VESA_A0,    0a0000h,      64/4 -1, 0200h ;R/W for VESA 3.0
+	dd	VESA_B0,    0b0000h,      64/4 -1, 0200h ;R/W for VESA 3.0
+	dd	VESA_B8,    0b8000h,      32/4 -1, 0200h ;R/W for VESA 3.0
+	dd	VRAM_sel, VRAM_padr, VRAM_pages-1, 0200h ;R/W VRAM
 	dd	0	;end of data
 
 	align	4
