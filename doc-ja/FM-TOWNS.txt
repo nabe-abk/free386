@@ -1,91 +1,91 @@
 ;******************************************************************************
-;Free386 を FM TOWNS で使う場合の追加情報
+;Free386 �� FM TOWNS �Ŏg���ꍇ�̒ǉ����
 ;******************************************************************************
-[TAB=8]
+[TAB=8][Shift-JIS]
 
-●FM TOWNS版バイナリ
+��FM TOWNS�Ńo�C�i��
 
-　以下が昔の開発環境です。
+�@�ȉ����̂̊J�����ł��B
 
 	Machine	FM TOWNS model HC
-	CPU	K6-233 (210MHz駆動)
+	CPU	K6-233 (210MHz�쓮)
 	RAM	80 MB
 	OS	DOS 6.2
-	OS	TOWNS-OS V2.1L51 (TOS.SYS Ver 未確認)
+	OS	TOWNS-OS V2.1L51 (TOS.SYS Ver ���m�F)
 	DRV	HIMEM.SYS (DOS 6)
 		EMM386.EXE(DOS 6)
 
-　ヤフオクみたらすごいプレミア付いているという……（もうない）。
+�@���t�I�N�݂��炷�����v���~�A�t���Ă���Ƃ����c�c�i�����Ȃ��j�B
 
 
-●TOWNS版のみの動作オプション
+��TOWNS�ł݂̂̓���I�v�V����
 
-	-n	CoCo/NSDドライバをロードしなくなります。
-		F-BASIC386製ソフトなどが動かなくなりますが、
-		多くのソフトで、-n をつけると処理速度がアップします。
-
-
-●Free386 対応ソフトウェア  2023-12-09
-
-　TBIOS, CoCo/NSD, SIDEWROK, SYSINT のすべてに対応しているので、
-すべてのTOWNS用プログラムが動くはずです。
-
-　Ver0.81より TMENU.EXG や EIN なども動くようになりました。
-　RUN386.EXE と置き換えてもほぼ問題ありません。
-
-【既知の問題】
-	・FGS.NSD（フルカラードライバ）を組み込むとやや不安定になります。
-	・PANIC BALL2でアイコンが出ません（原因特定済）。
-	・コンソールメインなアプリで、VSYNC割り込みの取りこぼしが起きる。
-	  ※test-asm.exp/vsync_*.exp にて確認。
+	-n	CoCo/NSD�h���C�o�����[�h���Ȃ��Ȃ�܂��B
+		F-BASIC386���\�t�g�Ȃǂ������Ȃ��Ȃ�܂����A
+		�����̃\�t�g�ŏ������x���A�b�v���܂��B
 
 
-●うんづ利用時の注意
+��Free386 �Ή��\�t�g�E�F�A  2023-12-09
 
-　FM TOWNSエミュレーター「うんづ」利用時、CPUエミュレーションは
-「リコンパイラ」を選択してください。「インタプリタ」では、うんづ
-のバグに当たることがあります。
+�@TBIOS, CoCo/NSD, SIDEWROK, SYSINT �̂��ׂĂɑΉ����Ă���̂ŁA
+���ׂĂ�TOWNS�p�v���O�����������͂��ł��B
 
+�@Ver0.81��� TMENU.EXG �� EIN �Ȃǂ������悤�ɂȂ�܂����B
+�@RUN386.EXE �ƒu�������Ă��قږ�肠��܂���B
 
-●Free386 正式対応ソフトウェア
-
-	・KOKPLAY				りうさん作
-	・J-7SYSTEM with Free386		長船さん作
-	・MSV PowerStation			僧侶の天使さん作
-
-
-●386SX搭載マシンについて
-
-　2023年12月、たけがみりう氏のご協力により、ついに対応しました。
+�y���m�̖��z
+	�EFGS.NSD�i�t���J���[�h���C�o�j��g�ݍ��ނƂ��s����ɂȂ�܂��B
+	�EPANIC BALL2�ŃA�C�R�����o�܂���i��������ρj�B
+	�E�R���\�[�����C���ȃA�v���ŁAVSYNC���荞�݂̎�肱�ڂ����N����B
+	  ��test-asm.exp/vsync_*.exp �ɂĊm�F�B
 
 
-●TOWNS専用のセレクタ一覧
+������×��p���̒���
 
-※同じものが GDT と LDT にある場合は、LDT を使うようにしてください。
+�@FM TOWNS�G�~�����[�^�[�u����Áv���p���ACPU�G�~�����[�V������
+�u���R���p�C���v��I�����Ă��������B�u�C���^�v���^�v�ł́A�����
+�̃o�O�ɓ����邱�Ƃ�����܂��B
 
-ＧＤＴ：
-　　セレクタ値	ベースアドレス	サイズ	属性
+
+��Free386 �����Ή��\�t�g�E�F�A
+
+	�EKOKPLAY				�肤�����
+	�EJ-7SYSTEM with Free386		���D�����
+	�EMSV PowerStation			�m���̓V�g�����
+
+
+��386SX���ڃ}�V���ɂ���
+
+�@2023�N12���A�������݂肤���̂����͂ɂ��A���ɑΉ����܂����B
+
+
+��TOWNS��p�̃Z���N�^�ꗗ
+
+���������̂� GDT �� LDT �ɂ���ꍇ�́ALDT ���g���悤�ɂ��Ă��������B
+
+�f�c�s�F
+�@�@�Z���N�^�l	�x�[�X�A�h���X	�T�C�Y	����
 	100h	fffc0000h	256KB	R/X	boot-ROM
 	108h	fffc0000h	256KB	R 	boot-ROM
-	110h	(C-MOSより取得)		R/X	T-BIOS
-	118h	(C-MOSより取得) 	R/W	T-BIOS
+	110h	(C-MOS���擾)		R/X	T-BIOS
+	118h	(C-MOS���擾) 	R/W	T-BIOS
 	120h	80000000h	512KB	R/W	VRAM (16/32k)
 	128h	80100000h	512KB	R/W	VRAM (256)
 	130h	81000000h	128KB	R/W	Sprite-RAM
-	138h	c2100000h	264KB	R/W	FONT-ROM,学習RAM
+	138h	c2100000h	264KB	R/W	FONT-ROM,�w�KRAM
 	140h	c2200000h	  4KB	R/W	Wave-RAM
 	148h	c2000000h	512KB	R	OS-ROM
 
-ＬＤＴ：
-　　セレクタ値	ベースアドレス	サイズ	属性
+�k�c�s�F
+�@�@�Z���N�^�l	�x�[�X�A�h���X	�T�C�Y	����
 	104h	80000000h	512KB	R/W	VRAM (16/32k)
 	10ch	80100000h	512KB	R/W	VRAM (256)
 	114h	81000000h	128KB	R/W	Sprite-RAM
-	11ch	82000000h	 16MB	R/W	1MB VRAM （2画面）
-	124h	83000000h	 16MB	R/W	1MB VRAM （1画面）
+	11ch	82000000h	 16MB	R/W	1MB VRAM �i2��ʁj
+	124h	83000000h	 16MB	R/W	1MB VRAM �i1��ʁj
 	12ch	84000000h	 16MB	R/W 	???
 
-その他：
-	NSDドライバが組み込まれている場合、そのセレクタが割り当てられます。
-	44h, 4ch, 54h, 5ch …… などがそれです。
+���̑��F
+	NSD�h���C�o���g�ݍ��܂�Ă���ꍇ�A���̃Z���N�^�����蓖�Ă��܂��B
+	44h, 4ch, 54h, 5ch �c�c �Ȃǂ�����ł��B
 

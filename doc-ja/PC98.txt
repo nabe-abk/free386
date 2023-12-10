@@ -1,15 +1,11 @@
 ;******************************************************************************
-;Free386 を PC-98x1シリーズ で使う場合の追加情報
+;Free386 �� PC-98x1�V���[�Y �Ŏg���ꍇ�̒ǉ����
 ;******************************************************************************
-[TAB=8]
+[TAB=8][Shift-JIS]
 
-文章作成  2001/02/06
-最終修正  2021/08/07
+��PC-98�Ńo�C�i��
 
-
-●PC-98版バイナリ
-
-　当時の動作確認環境。
+�@�����̓���m�F���B
 
 	Machine	PC-9821 AP3
 	CPU	DX4-100MHz
@@ -17,85 +13,85 @@
 	OS	DOS 6.2
 	DRV	VEM486.SYS (free soft)
 
-　PC-98 においても割り込み処理に対応しています。
+�@PC-98 �ɂ����Ă����荞�ݏ����ɑΉ����Ă��܂��B
 
 
-●PC-98 DOS標準ドライバでの VCPI の有効化
+��PC-98 DOS�W���h���C�o�ł� VCPI �̗L����
 
-　文献から転記した情報です。責任は取りません（無保証です）。
-（VEM486.SYS などの公開メモリドライバを使用する方がいいと思われます）
+�@��������]�L�������ł��B�ӔC�͎��܂���i���ۏ؂ł��j�B
+�iVEM486.SYS �Ȃǂ̌��J�������h���C�o���g�p������������Ǝv���܂��j
 
-・MS-DOS Ver5
+�EMS-DOS Ver5
 
-　EMM386.EXE にパッチを充てる必要があります。
+�@EMM386.EXE �Ƀp�b�`���[�Ă�K�v������܂��B
 
 	Ver 5.0 / 89694 byte / 91-11-18
-		+C666h	00h → 0dh
+		+C666h	00h �� 0dh
 
 	Ver 5.0A / 91742 byte / 92-11-11
-		+CDEAh	00h → 0dh
+		+CDEAh	00h �� 0dh
 
 	Ver 5.0A-H / 92254 byte / 93-10-30
-		+CEEAh	00h → 0dh
+		+CEEAh	00h �� 0dh
 
-・MS-DOS Ver6
+�EMS-DOS Ver6
 
-　オプションスイッチとして
+�@�I�v�V�����X�C�b�`�Ƃ���
 
 	EMM386.EXE /DPMI
 
-　を付加します。変な話ですが、これで VCPI が利用できます。
-　（おそらく、DOS 6 付属の DPMIサーバ DPMI.EXE がVCPI 汎用に作られてるため
-　　だと思われます）
+�@��t�����܂��B�ςȘb�ł����A����� VCPI �����p�ł��܂��B
+�@�i�����炭�ADOS 6 �t���� DPMI�T�[�o DPMI.EXE ��VCPI �ėp�ɍ���Ă邽��
+�@�@���Ǝv���܂��j
 
-※確認はしてませんが、Windows 3.1/95 に付属の EMM386.EXE ならば
-　VCPI に対応しているのではないかと思います。
-
-
-●vem486.sys を使用して、16MB システム空間を使用すると設定している方へ
-
-　vem486 が内部でどうしているのか分かりませんが、XMS alloc などではXMSメモリ
-確保->XMSメモリロックをすると、システム空間をまたいでメモリ確保してしまうよう
-です。
-
-　PC-98の起動メニューで「システム空間を使用する」と設定していると、15MB-16MB
-の間には RAM が現れていないハズなので、間違ってその部分のメモリを使用してしま
-うと不具合が発生すると思われます。
-
-　他のメモリマネージャを使用するか「システム空間を使用しない」に設定してく
-ださい。
+���m�F�͂��Ă܂��񂪁AWindows 3.1/95 �ɕt���� EMM386.EXE �Ȃ��
+�@VCPI �ɑΉ����Ă���̂ł͂Ȃ����Ǝv���܂��B
 
 
-●PC-98版情報
+��vem486.sys ���g�p���āA16MB �V�X�e����Ԃ��g�p����Ɛݒ肵�Ă������
 
-　PC-98 には .EXP 実行環境として、これまで EXE386 しかありませんでしたので、
-Free386 はかなりの有効であると思われます。
+�@vem486 �������łǂ����Ă���̂�������܂��񂪁AXMS alloc �Ȃǂł�XMS������
+�m��->XMS���������b�N������ƁA�V�X�e����Ԃ��܂����Ń������m�ۂ��Ă��܂��悤
+�ł��B
 
-　現在のところ、ハードウェア割り込みや BIOS call の一部が利用できませんが、
-近く対応致します。
+�@PC-98�̋N�����j���[�Łu�V�X�e����Ԃ��g�p����v�Ɛݒ肵�Ă���ƁA15MB-16MB
+�̊Ԃɂ� RAM ������Ă��Ȃ��n�Y�Ȃ̂ŁA�Ԉ���Ă��̕����̃��������g�p���Ă���
+���ƕs�����������Ǝv���܂��B
 
-　簡易なグラフィックドライバを作成すれば、TOWNS用のグラフィカルな binary が
-結構簡単に PC-98 や AT互換機 で動きそうな予感です。
-
-
-●ソフトウェア開発について
-
-　PC-98 や AT の32bitで使えるライブラリがないので少し残念なところですか、
-DOS-Extender 汎用のプログラムなら TOWNS に移植された GCC がそのまま動きま
-す。
-　TOWNS用GCC は、事実上 DOS-Extender(RUN386)用 GCC でして、別に TOWNS で
-あることを問いません。DJGPP の EXP 版と思えば分かりやすいでしょうか？
-
-　High-C という、EXP 開発用のＣ言語もあるのですが、売り物の上、いかんせん
-入手困難ですので難しいところです。元 TOWNS 関係の知人が入れば、要らなくなっ
-たものを貰えるとは思いますが。
+�@���̃������}�l�[�W�����g�p���邩�u�V�X�e����Ԃ��g�p���Ȃ��v�ɐݒ肵�Ă�
+�������B
 
 
-●余談
+��PC-98�ŏ��
 
-　PC-98 で割り込みに対応したとき、最初はベクタを直接書き換えていたのですが、
-これでは CPU 割り込みが起こってもハードウェア割り込みルーチンに飛んでしまう！
-ということで、細々と修正したのですが案の定遅くなりました……（汗）
+�@PC-98 �ɂ� .EXP ���s���Ƃ��āA����܂� EXE386 ��������܂���ł����̂ŁA
+Free386 �͂��Ȃ�̗L���ł���Ǝv���܂��B
 
-　明らかに分かるほど……ではありませんが、mpegdec で mp3 を再生したとき、
-前はバッファが 1% ずつ減っていたものが、2% ずつ減るような感じです。
+�@���݂̂Ƃ���A�n�[�h�E�F�A���荞�݂� BIOS call �̈ꕔ�����p�ł��܂��񂪁A
+�߂��Ή��v���܂��B
+
+�@�ȈՂȃO���t�B�b�N�h���C�o���쐬����΁ATOWNS�p�̃O���t�B�J���� binary ��
+���\�ȒP�� PC-98 �� AT�݊��@ �œ��������ȗ\���ł��B
+
+
+���\�t�g�E�F�A�J���ɂ���
+
+�@PC-98 �� AT ��32bit�Ŏg���郉�C�u�������Ȃ��̂ŏ����c�O�ȂƂ���ł����A
+DOS-Extender �ėp�̃v���O�����Ȃ� TOWNS �ɈڐA���ꂽ GCC �����̂܂ܓ�����
+���B
+�@TOWNS�pGCC �́A������ DOS-Extender(RUN386)�p GCC �ł��āA�ʂ� TOWNS ��
+���邱�Ƃ�₢�܂���BDJGPP �� EXP �łƎv���Ε�����₷���ł��傤���H
+
+�@High-C �Ƃ����AEXP �J���p�̂b���������̂ł����A���蕨�̏�A�����񂹂�
+���荢��ł��̂œ���Ƃ���ł��B�� TOWNS �֌W�̒m�l������΁A�v��Ȃ��Ȃ�
+�����̂�Ⴆ��Ƃ͎v���܂����B
+
+
+���]�k
+
+�@PC-98 �Ŋ��荞�݂ɑΉ������Ƃ��A�ŏ��̓x�N�^�𒼐ڏ��������Ă����̂ł����A
+����ł� CPU ���荞�݂��N�����Ă��n�[�h�E�F�A���荞�݃��[�`���ɔ��ł��܂��I
+�Ƃ������ƂŁA�ׁX�ƏC�������̂ł����Ă̒�x���Ȃ�܂����c�c�i���j
+
+�@���炩�ɕ�����قǁc�c�ł͂���܂��񂪁Ampegdec �� mp3 ���Đ������Ƃ��A
+�O�̓o�b�t�@�� 1% �������Ă������̂��A2% ������悤�Ȋ����ł��B
