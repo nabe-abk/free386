@@ -7,7 +7,7 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 ## Overview
 
 * Version: 0.81
-* Date: **2023-12-10**
+* Date: **2023-12-11**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821

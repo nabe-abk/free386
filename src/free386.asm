@@ -106,6 +106,13 @@ proc16 parameter_check
 	jmp	short .loop
 
 	;///////////////////////////////
+	; set PharLap version to 2.2 (compatible EXE386)
+	;///////////////////////////////
+.para_2:
+	mov	d [pharlap_version], 20643232h	; ' d22'
+	jmp	short .loop
+
+	;///////////////////////////////
 	; -m : Use memory maximum
 	;///////////////////////////////
 .para_m:
@@ -146,23 +153,23 @@ proc16 parameter_check
 	jmp	short .sp_param		;for short jump
 	.sp_param_return:		;
 
-	cmp	ah,'v'
+	cmp	al,'v'
 	je	.para_v
-	cmp	ah,'q'
+	cmp	al,'q'
 	je	.para_q
-	cmp	ah,'p'
+	cmp	al,'p'
 	je	.para_p
-	cmp	ah,'c'
+	cmp	al,'c'
 	je	.para_c
-	cmp	ah,'m'
+	cmp	al,'m'
 	je	.para_m
-	cmp	ah,'2'
+	cmp	al,'2'
 	je	.para_2
 %if TOWNS
-	cmp	ah,'n'
+	cmp	al,'n'
 	je	.para_n
 %endif
-	cmp	ah,'i'
+	cmp	al,'i'
 	je	.para_i
 	jmp	short .loop
 
@@ -170,11 +177,11 @@ proc16 parameter_check
 	; -v
 	;///////////////////////////////
 .para_v:
-	cmp	al,'v'			; -vv?
+	cmp	ah,'v'			; -vv?
 	je	.v0
-	mov	al,01
+	mov	ah,01
 .v0:
-	mov	b [verbose],al
+	mov	b [verbose],ah
 	jmp	short .loop
 
 	;///////////////////////////////
@@ -188,26 +195,19 @@ proc16 parameter_check
 	; -p?
 	;///////////////////////////////
 .para_p:
-	and	al,01			;-p? / al = ?
-	mov	[search_PATH],al	;search PATH flag
+	and	ah,01			;-p? / al = ?
+	mov	[search_PATH],ah	;search PATH flag
 	jmp	short .loop
 
 	;///////////////////////////////
 	; -c?
 	;///////////////////////////////
 .para_c:
-	test	al,al			;-c? / al = ?
+	test	ah,ah			;-c? / al = ?
 	jnz	.c0			
-	mov	al,01			;指定なしなら -c1 と解釈
-.c0:	and	al,03			;bit 1,0 取り出し
-	mov	[reset_CRTC],al
-	jmp	short .loop
-
-	;///////////////////////////////
-	; set PharLap version to 2.2 (compatible EXE386)
-	;///////////////////////////////
-.para_2:
-	mov	d [pharlap_version], 20643232h	; ' d22'
+	mov	ah,01			;指定なしなら -c1 と解釈
+.c0:	and	ah,03			;bit 1,0 取り出し
+	mov	[reset_CRTC],ah
 	jmp	short .loop
 
 %if TOWNS
@@ -215,8 +215,8 @@ proc16 parameter_check
 	; -n, do not load CoCo/NSD
 	;///////////////////////////////
 .para_n:
-	and	al,01h			;al = -n?
-	mov	b [load_nsdd],al
+	and	ah,01h			;al = -n?
+	mov	b [load_nsdd],ah
 	jmp	short .loop
 %endif
 
@@ -224,8 +224,8 @@ proc16 parameter_check
 	; -i?
 	;///////////////////////////////
 .para_i:
-	and	al,01			;-i? / al = ?
-	mov	b [check_MACHINE],al
+	and	ah,01			;-i? / al = ?
+	mov	b [check_MACHINE],ah
 	jmp	short .loop
 
 	;///////////////////////////////
