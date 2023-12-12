@@ -149,8 +149,13 @@ int_21h_49h:			;仮対応の機能 / メモリ解放をしていない
 ;------------------------------------------------------------------------------
 ;・セグメントの大きさ変更  AH=4ah
 ;------------------------------------------------------------------------------
-	align	4
-int_21h_4ah:			;メモリ解放機能なし
+;  in	 es = selector
+;	ebx = new page size
+;
+;	incompatible: not free memory
+;	非互換: メモリ解放機能なし
+;
+proc int_21h_4ah
 	push	eax
 	push	ebx
 	push	ecx
@@ -158,27 +163,56 @@ int_21h_4ah:			;メモリ解放機能なし
 	push	esi
 	push	edi
 	push	ds
+	push	fs
 
 	mov	eax,F386_ds
 	mov	 ds,eax
-	mov	edi,ebx			;edi = 変更後サイズ(値保存用)
+	mov	eax,ALLMEM_sel
+	mov	 fs,eax
 
+	mov	edi,ebx			;edi = 変更後サイズ(値保存)
 	mov	eax,es			;eax = 引数セレクタ
 	verr	ax			;読み込めるセレクタ？
-	jnz	.dont_exist
+	jnz	.not_exist
 
 	lsl	edx,eax			;現在のリミット値
 	inc	edx			;ebx = size
 	shr	edx,12			;size [page]
 	sub	ebx,edx			;変更後 - 変更前
-	jc	.decrease		;縮小なら jmp
+	jb	.decrease		;縮小なら jmp
 	je	.ret			;同じなら変更なし
 	mov	ecx,ebx			;ecx = 増加ページ数
 
 	mov	eax,es			;eax = セレクタ
-	call	get_selector_last	;セレクタの最終リニアアドレス
-	mov	esi,eax			;セレクタlimit
+	call	get_selector_last	;eax = セレクタの最終リニアアドレス
+	mov	esi,eax			;esi = eax
 
+	; 割当先にすでにページが存在すれば、
+	; その部分に物理メモリ割当済とみなす。
+	mov	edx, [page_dir_ladr]
+
+.check_page_table:
+	mov	ebx, esi
+	shr	ebx, 24 - 4
+	and	ebx, 0ffch
+	mov	ebx, [fs:edx + ebx]	; ebx = page table physical address
+	test	bl, 1			; check Present bit
+	jz	.check_end
+	and	ebx, 0fffff000h
+
+	mov	eax, esi
+	shr	eax, 12 - 2
+	and	eax, 0ffch
+	mov	eax, [fs:ebx + eax]
+	test	al, 1			; check Present bit
+	jz	.check_end
+
+	add	esi, 1000h		; Add 4KB
+	dec	ecx			; pgaes--
+	jnz	short .check_page_table
+	jmp	short .alloc_end
+
+.check_end:
 					;in  esi = 貼り付け先ベースアドレス
 	call	get_maxalloc_with_adr	;out eax = 割り当て可能数, ebx=テーブル用ページ数
 	cmp	eax,ecx			;空き - 必要量
@@ -187,8 +221,9 @@ int_21h_4ah:			;メモリ解放機能なし
 					;in  esi = 貼り付け先ベースアドレス
 					;    ecx = 貼り付けるページ数
 	call	alloc_RAM_with_ladr	;メモリ割り当て
-	jc	.fail
+	jc	.fail			;out esi = esi + ecx*4K
 
+.alloc_end:
 	dec	edi			;edi = 変更後リミット値
 	mov	eax,es			;
 	mov	edx,edi			;edx = 変更後リミット値
@@ -203,7 +238,8 @@ int_21h_4ah:			;メモリ解放機能なし
 
 	call	selector_reload		;全セレクタリロード
 
-.ret:	pop	ds
+.ret:	pop	fs
+	pop	ds
 	pop	edi
 	pop	esi
 	pop	edx
@@ -213,10 +249,15 @@ int_21h_4ah:			;メモリ解放機能なし
 	clear_cy
 	iret
 
+.not_exist:
+	mov	eax, 9
+	jmp	short .fail2
+
 .fail:	call	get_maxalloc_with_adr
 	mov	ebx, eax
 	mov	eax, 8
-.fail2:	pop	ds
+.fail2:	pop	fs
+	pop	ds
 	pop	edi
 	pop	esi
 	pop	edx
@@ -225,23 +266,15 @@ int_21h_4ah:			;メモリ解放機能なし
 	set_cy
 	iret
 
-.dont_exist:
-	mov	eax,9
-	jmp	short .fail2
-
-	align	4
 .decrease:
-%if 0
-	; メモリを開放することが難しいので、
-	; セレクタサイズもそのままにしておき、成功したことにする。
-	; セレクタサイズを減らしてしまうと、
-	; 再度4ahでメモリ拡張するときにメモリ不足でエラーになってしまう。
-	; ※High-Cコンパイラや386linkp等
-	;
+	; メモリは開放しないが、OpenWatcomにて
+	; セレクタサイズを参照してメモリ割当要求をしてくるので、
+	; セレクタサイズは減らしておく。
 
 	; セレクタサイズを減らす
-	mov	edi,ebx		;edi = 増加サイズ(page / 負数)
-	add	edx,ebx		;edx = 変更後サイズ(page)
+	mov	edi,ebx		;edi = 減少pageサイズ
+	add	edx,ebx		;edx = 変更後pageサイズ
+	dec	edx		;size to limit
 
 	mov	eax,es		;eax = セレクタ値
 	call	sel2adr		;ebx = ディスクリプタデータのアドレス
@@ -255,19 +288,7 @@ int_21h_4ah:			;メモリ解放機能なし
 	mov	[ebx+6],al	;値設定
 
 	call	selector_reload	;全セレクタのリロード
-
-	mov	eax,es			;eax = セレクタ
-	call	get_selector_last	;セレクタ最後尾リニアアドレス取得
-
-	mov	ebx,eax			;ebx = 戻り値
-
-	calli	DOS_Ext_fn_2509h	;物理アドレス取得 / ret ecx
-
-	mov	[free_RAM_padr] ,ecx	;物理アドレス
-	sub	[free_RAM_pages],edi	;空きメモリページ数加算 (= 負数を引く)
-%endif
 	jmp	.ret
-
 
 
 ;******************************************************************************
