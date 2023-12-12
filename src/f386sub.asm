@@ -869,8 +869,7 @@ proc load_exp
 ;	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
 ;	jne	NEAR check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
 ;
-	align	4
-.load_MZ_exp:
+proc .load_MZ_exp
 
 	;////////////////////////////////////////////////////
 	;MZ(MP) ヘッダに対応しない場合
@@ -895,29 +894,32 @@ proc load_exp
 	shr	ebp,16		;+02 w "ファイルサイズ / 512" の余り
 	movzx	eax,w [esi+04h]	;+04 w "512 byte 単位のブロック数"
 	movzx	edx,w [esi+08h]	;+08 w "ヘッダ  サイズ / 16"
-	movzx	ecx,w [esi+0ah]	;+0A w "ヒープの最小量 / 4KB"
-	shl	eax,9		;512倍
-	shl	edx,4 		; 16倍
-	shl	ecx,12		;4K(4096)倍
 
-	or	eax,ebp		;eax = (512 byteブロック数)*512 + 511以下の端数
 	test	ebp,ebp		;ebp = 0 ?
 	jz	.step2		;0 なら jmp
-	sub	eax,512		;端数ありなら 512 byte 引く / eax = file size
+	dec	eax		;端数あり?
 .step2:
-	sub	eax,edx		;eax = プログラムイメージサイズ
-	mov	ebp,eax		;ロードイメージサイズを保存しておく
-	xchg	eax,ecx		;eax=最低限必要なメモリ ecx=プログラムサイズ
+	shl	eax,9		;512倍
+	shl	edx,4 		; 16倍
 
-	;注：以下、ファイルポインタ移動まで edx,ebp を破壊しないこと
+	; *** edx, ebp を下の方まで保存すること
 
-	movzx	ebx,w [esi+0ch]	;+0C w "ヒープの最大要求量 / 4KB"
-	add	ecx,0fffh	;4KB未満切上げ
-	shr	ecx,12		;/4KB
-	add	ecx,ebx		;ecx = 最大要求メモリ量
-	;/// ecx = 最大要求メモリ
-	push	esi
-	xor	esi,esi			;ベースメモリアドレス = 0
+	or	eax, ebp	;eax = (512 byteブロック数)*512 + 511以下の端数
+	sub	eax, edx	;eax = ヘッダサイズを引く
+	mov	ebp, eax	;edi = load image size
+	add	eax, 000000fffh	;
+	and	eax, 0fffff000h	;eax = load image size (4KB unit)
+
+	movzx	ebx,w [esi+0ah]	;+0A w "ヒープの最小量 / 4KB"
+	movzx	ecx,w [esi+0ch]	;+0C w "ヒープの最大要求量 / 4KB"
+	shl	ebx,12
+	shl	ecx,12
+	add	ebx, eax	; minimum memory pages
+	add	ecx, eax	; maximum memory pages
+	mov	[5ch], ebx
+
+	push	esi			; ecx = pages
+	xor	esi,esi			; esi = base offset address
 	call	make_cs_ds		;cs/ds 作成とメモリ確保
 	pop	esi
 	jc	.not_enough_memory	;エラーならメモリ不足
@@ -925,13 +927,12 @@ proc load_exp
 	;
 	;メモリ量チェック
 	;
-	mov	ebx,[60h]		;実際に割り当てたメモリ [byte]
-	mov	[5ch],eax		;PSP に記録 / 最低限必要なメモリ [byte]
-	cmp	ebx,eax			;値比較
+	mov	eax, [60h]		;実際に割り当てたメモリ [byte]
+	cmp	eax, ebx		;値比較
 	jb	.not_enough_memory	;負数ならメモリ不足
 
-	sub	ebx,ebp			;ロードイメージの大きさを引く
-	mov	[64h],ebx		;PSPに記録 / ヒープメモリ総量 [byte]
+	sub	eax, ebp		;ロードイメージの大きさを引く
+	mov	[64h], eax		;PSPに記録 / ヒープメモリ総量 [byte]
 
 	;
 	;スタックを exp のものに変更
@@ -951,8 +952,8 @@ proc load_exp
 	int	21h			;DOS call（file pointer = cx:dx）
 	jc	NEAR .file_read_error	;Cy=1 なら エラー
 
-	mov	ecx,ebp			;読む込むサイズ（プログラムサイズ）
-	xor	edx,edx			;読み込む先頭メモリ(ds:edx)
+	mov	ecx, ebp		;読む込むサイズ（プログラムサイズ）
+	xor	edx, edx		;読み込む先頭メモリ(ds:edx)
 
 	mov	edi,[Load_ds]		;ロード先セレクタ値ロード
 	mov	 ds,edi			;
@@ -1168,6 +1169,7 @@ strl_lp_offsetc:	;ebx の 0 にループさせる
 	global	make_cs_ds
 make_cs_ds:
 	push	eax
+	push	ebx
 	push	ecx
 	push	edx
 	push	esi
@@ -1238,7 +1240,7 @@ make_cs_ds:
 	shl	ecx, 12			;ecx = サイズ (byte)
 	sub	ecx, esi		;ベースオフセットを引く
 	mov	[60h],ecx		;PSP 領域に記録
-	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector_4k	;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;ds 作成
 	call	search_free_LDTsel	;eax = 空きセレクタ
@@ -1256,6 +1258,7 @@ make_cs_ds:
 	pop	esi
 	pop	edx
 	pop	ecx
+	pop	ebx
 	pop	eax
 	ret
 
