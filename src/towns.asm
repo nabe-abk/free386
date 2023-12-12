@@ -58,7 +58,14 @@ proc init_TOWNS_16
 	shl	eax, 8			; MB to pages
 	mov	[all_mem_pages], eax
 .skip:
+	;------------------------------------------
+	;init NSDD
+	;------------------------------------------
+	cmp	b [load_nsdd], 0
+	je	short .no_nsdd
+
 	call	init_CoCo
+.no_nsdd:
 	ret
 
 ;==============================================================================
@@ -100,8 +107,10 @@ proc init_CoCo
 	mov	ax, 0c207h
 	int	8eh
 
-	mov	b [load_nsdd], 1
+	ret
+
 .fail:
+	mov	b [load_nsdd], 0
 	ret
 
 
@@ -167,10 +176,10 @@ proc init_TOWNS_32
 .not_emulator:
 
 	;------------------------------------------
-	;NSDD初期化
+	;wakeup NSDD
 	;------------------------------------------
 	cmp	b [load_nsdd], 0
-	jz	short .no_nsdd
+	je	short .no_nsdd
 
 	call	wakeup_nsdd
 .no_nsdd:
@@ -289,7 +298,7 @@ proc exit_TOWNS_32
 	;NSDD 終了処理
 	;------------------------------------------
 	cmp	b [load_nsdd], 0
-	jz	short .no_nsdd
+	je	short .no_nsdd
 
 	mov	b [load_nsdd], 0	;再入防止
 	call	sleep_nsdd		;NSDドライバを停止させる
@@ -586,7 +595,7 @@ proc exit_TOWNS_16
 ;■データ領域
 ;==============================================================================
 is_emulator	db	0
-load_nsdd	db	0
+load_nsdd	db	1
 
 ;==============================================================================
 ;★CRTC 操作テーブル
