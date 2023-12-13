@@ -39,6 +39,11 @@ extern		user_cbuf_adr16
 extern		user_cbuf_seg16
 extern		user_cbuf_ladr
 
+%ifdef USE_VCPI_8259A_API
+extern		vcpi_8259m
+extern		vcpi_8259s
+%endif
+
 ;--- other ----------------------------------------
 extern		error_exit_16
 extern		exit_32

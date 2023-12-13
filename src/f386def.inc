@@ -170,7 +170,6 @@ NSDD_intr_adr	equ	08h	;interruptエントリーのあるオフセット
 NSDD_sleep	equ	0c0h	; intr/sleep  request
 NSDD_wakeup	equ	0c1h	; intr/wakeup request
 
-enable_INTR	equ	1	;プロテクトモードでの割り込みを許可する
 HW_INT_MASTER	equ	40h	;マスタ：ハードウェア割り込み先頭
 HW_INT_SLAVE	equ	48h	;スレーブ
 I8259A_ISR_M	equ	00h	;サービスレジスタ
@@ -195,7 +194,6 @@ VRAM_CGW	equ 0E00A4000h	;CGW を配置するリニアアドレス
 VRAM_TEXT	equ 0E00A0000h	;CGW を配置するリニアアドレス
 STOP_GVRAM	equ	0	;終了処理でグラフィック画面の表示をoffする
 
-enable_INTR	equ	1	;プロテクトモードでの割り込みを許可する
 HW_INT_MASTER	equ	08h	;マスタ：ハードウェア割り込み先頭
 HW_INT_SLAVE	equ	10h	;スレーブ
 I8259A_ISR_M	equ	00h	;サービスレジスタ
@@ -230,7 +228,6 @@ VRAM_padr	equ 0e6000000h	; VRAM physical address
 VRAM_pages	equ	200h	; size=16MB / [page unit] ex)100h=8MB
 VRAM_sel	equ	120h	; VRAM selector (Change with at.asm)
 
-enable_INTR	equ	1	; Enable hardware interrrupt
 HW_INT_MASTER	equ	 08h	; master
 HW_INT_SLAVE	equ	 70h	; slave
 I8259A_ISR_M	equ	 20h	; service register
@@ -258,9 +255,11 @@ MACHINE_CODE	equ	00h
 %define	MACHINE_STRING	'MS-DOS'
 %define	Free386_API	'f386_all.api'	; dummy
 
-enable_INTR	equ	0	; Do not use hardware interrupt
+%define USE_VCPI_8259A_API
+
 HW_INT_MASTER	equ	0f0h	; dummy
 HW_INT_SLAVE	equ	0f0h	; dummy
+I8259A_IMR_M	equ	0	; dummy
+I8259A_IMR_S	equ	0	; dummy
 
 %endif
-

@@ -21,6 +21,11 @@ f386err		db	0		;F386 “à•”ƒGƒ‰[ƒŒƒxƒ‹
 cpu_is_386sx	db	0		;CPU is 386SX
 init_machine32	db	0		;initalized machine
 
+%ifdef USE_VCPI_8259A_API
+vcpi_8259m	db	0		;8259A Master interrupt number
+vcpi_8259s	db	0		;8259A Slave  interrupt number
+%endif
+
 	align	4
 pharlap_version	db	'12aJ'		;Ver 1.2aj
 exp_name_adr	dd	0		;file name string pointer

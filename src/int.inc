@@ -9,11 +9,9 @@ extern		int21h_table
 
 extern		setup_F386_int
 
+extern		HW_INT_TABLE_M
+extern		HW_INT_TABLE_S
 
-%if enable_INTR
-	extern	HW_INT_TABLE_M
-	extern	HW_INT_TABLE_S
-%endif
 
 %if PRINT_TSUGARU
 	extern	int_21h_09h_output_tsugaru

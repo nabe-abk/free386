@@ -23,10 +23,8 @@ global		PM_int_dummy
 global		DOS_int_list
 global		int21h_table
 
-%if enable_INTR
-	global	HW_INT_TABLE_M
-	global	HW_INT_TABLE_S
-%endif
+global		HW_INT_TABLE_M
+global		HW_INT_TABLE_S
 
 ;//////////////////////////////////////////////////////////////////////////////
 ;■割り込み処理ルーチン
@@ -301,8 +299,6 @@ view_int:
 ;------------------------------------------------------------------------------
 ;★ハードウェア割り込み (INTR)
 ;------------------------------------------------------------------------------
-%if enable_INTR
-
 	align	4
 HW_INT_TABLE_M:	push	byte 0
 		jmp	short INTR_intM
@@ -325,9 +321,16 @@ HW_INT_TABLE_M:	push	byte 0
 	;ハードウェア割り込み（マスタ側）
 	;///////////////////////////////////////////////
 INTR_intM:
-%if (HW_INT_MASTER > 1fh)
-	add	d [esp], HW_INT_MASTER
-	jmp	call_V86_HARD_int	;V86 ルーチンコール
+%ifdef USE_VCPI_8259A_API
+	push	eax
+	mov	al, [cs:vcpi_8259m]
+	add	[esp+4], al
+	pop	eax
+	jmp	call_V86_HARD_int
+
+%elif (HW_INT_MASTER > 1fh)
+	add	b [esp], HW_INT_MASTER
+	jmp	call_V86_HARD_int
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	edx
@@ -395,9 +398,16 @@ HW_INT_TABLE_S:	push	byte 0
 		; jmp	short INTR_intS
 
 INTR_intS:
-%if (HW_INT_SLAVE > 1fh)
-	add	d [esp], HW_INT_SLAVE
-	jmp	call_V86_HARD_int	;V86 ルーチンコール
+%ifdef USE_VCPI_8259A_API
+	push	eax
+	mov	al, [cs:vcpi_8259s]
+	add	[esp+4], al
+	pop	eax
+	jmp	call_V86_HARD_int
+
+%elif (HW_INT_SLAVE > 1fh)
+	add	b [esp], HW_INT_SLAVE
+	jmp	call_V86_HARD_int
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	edx
@@ -442,7 +452,7 @@ INTR_intS:
 	pop	edx
 	ret				;CPU 例外呼び出し
 %endif
-%endif
+
 
 ;//////////////////////////////////////////////////////////////////////////////
 ;■割り込みサービス

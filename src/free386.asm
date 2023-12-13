@@ -55,6 +55,11 @@ global		user_cbuf_adr16
 global		user_cbuf_seg16
 global		user_cbuf_ladr
 
+%ifdef USE_VCPI_8259A_API
+global		vcpi_8259m
+global		vcpi_8259s
+%endif
+
 ;--- other ----------------------------------------
 global		error_exit_16
 global		exit_32
@@ -757,7 +762,7 @@ proc16 get_VCPI_interface
 	;///////////////////////////////////////////////////
 	;割り込みマスク保存
 	;///////////////////////////////////////////////////
-%if Restore8259A && enable_INTR
+%if Restore8259A && I8259A_IMR_S
 	in	al,I8259A_IMR_S		;8259A スレーブ
 	mov	ah,al			;ah へ移動
 	in	al,I8259A_IMR_M		;8259A マスタ
@@ -896,7 +901,6 @@ proc16 get_VCPI_interface
 ;	dw	00000h		;offset  bit 16-31
 setup_IDT:
 	mov	 ax,F386_cs	;セレクタ
-	xor	edx,edx		;上位ビットクリア
 	shl	eax,16		;上位へ
 	mov	edx,0ee00h	;386割り込みゲート / 特権レベル3
 	mov	di,[IDT_adr]	;割り込みテーブル先頭
@@ -915,7 +919,7 @@ setup_IDT:
 .loop1:	mov	ax,[si]			;jmp 先読み出し
 	mov	[di  ],eax		;+00h
 	mov	[di+4],edx		;+04h
-	add	si,byte 4		;次の割り込みリスト項目
+	add	si,byte 2		;次の割り込みリスト項目
 	add	di,bp			;セレクタオフセット更新
 	loop	.loop1
 
@@ -930,22 +934,38 @@ setup_IDT:
 	loop	.loop2
 
 
-	;/// ハードウェア割り込み /////////////////////////
-%if enable_INTR
-	mov	bp,4	; テーブルオフセット加算値
+;------------------------------------------------------------------------------
+; Hardware interrupt IDT setup
+;------------------------------------------------------------------------------
+%ifdef USE_VCPI_8259A_API
+	mov	ax,0de0ah		;VCPI function  0Ah
+	int	67h			;get 8259 interrupt vector
+
+	mov	[vcpi_8259m], bl
+	mov	[vcpi_8259s], cl
+	mov	si, cx
+	shl	bx, 3
+	shl	si, 3
+%else
+	mov	bx, HW_INT_MASTER *8
+	mov	si, HW_INT_SLAVE  *8
+%endif
+	mov	di, [IDT_adr]		;IDT table offset
+	add	si, di			;si = slave  start offset
+	add	di, bx			;di = master start offset
+
+	mov	bp, 4	; テーブルオフセット加算値
 
 	mov	ax,HW_INT_TABLE_M	;割り込みマスタ側 #00
-	mov	di,[IDT_adr]		;割り込みテーブル先頭
 	mov	cx,8			;ループ数
-	add	di,HW_INT_MASTER *8	;マスタ側割り込み番号 *8
+	;mov	di, di			;マスタ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
 
 	mov	ax,HW_INT_TABLE_S	;割り込みスレーブ側 #00
-	mov	di,[IDT_adr]		;割り込みテーブル先頭
 	mov	cx,8			;ループ数
-	add	di,HW_INT_SLAVE *8	;スレーブ側割り込み番号 *8
+	mov	di, si			;スレーブ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
-%endif
+
 
 ;------------------------------------------------------------------------------
 ;●hook int 24h
@@ -1035,7 +1055,7 @@ proc hook_int_24h
 proc exit_16
 	;////////////////////////////////////////////////////////////
 	;/// 割り込みマスク復元 /////////////////////////////////////
-	%if Restore8259A && enable_INTR
+	%if Restore8259A && I8259A_IMR_S
 		mov	ax,[intr_mask_org]	;復元情報
 		out	I8259A_IMR_M, al	;マスタ側
 		mov	al,ah			;

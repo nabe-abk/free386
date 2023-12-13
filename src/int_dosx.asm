@@ -389,7 +389,6 @@ DOS_Ext_fn_2502h:
 	push	d (F386_ds)	;
 	pop	ds		;ds load
 
-%if (enable_INTR)
 %if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE < 20h))
 	cmp	cl,20h		;
 	ja	.normal		;’Êí‚Ìˆ—
@@ -405,7 +404,6 @@ DOS_Ext_fn_2502h:
 
 	align	4
 .normal:
-%endif
 %endif
 
 	shl	ecx,3		;ecx = ecx*8
@@ -456,8 +454,7 @@ proc DOS_Ext_fn_2504h
 	mov	ax,F386_ds		;
 	mov	ds,eax			;ds load
 
-%if (enable_INTR)
-%if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE  < 20h))
+%if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE < 20h))
 	cmp	cl,20h		;
 	ja	.normal		;’Êí‚Ìˆ—
 
@@ -475,7 +472,6 @@ proc DOS_Ext_fn_2504h
 
 	align	4
 .normal:
-%endif
 %endif
 
 	shl	ecx,3			;ecx = ecx*8
@@ -742,8 +738,13 @@ DOS_Ext_fn_250ah:			;‰¼‘Î‰žII
 ;------------------------------------------------------------------------------
 	align	4
 DOS_Ext_fn_250ch:
+%ifdef USE_VCPI_8259A_API
+	mov	ax,[cs:vcpi_8259m]
+%else
 	mov	al,HW_INT_MASTER
 	mov	ah,HW_INT_SLAVE
+%endif
+
 	clear_cy
 	iret
 

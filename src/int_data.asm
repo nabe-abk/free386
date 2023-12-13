@@ -13,7 +13,7 @@ _esp	dd	0		;esp 保存用
 _ss	dd	0		;ss
 
 	;/// ハードウェア割り込み < 20h 時の退避領域 ///
-%if (enable_INTR)
+%if Restore8259A
 %if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE < 20h))
 intr_table	resb	8*20h		;8 byte *20h
 %endif
@@ -26,22 +26,22 @@ intr_table	resb	8*20h		;8 byte *20h
 	align	4
 DOS_int_list:
 	;##### DOS 割り込み ###############################
-	dd	offset	PM_int_20h
-	dd	offset	PM_int_21h
-	dd	offset	PM_int_22h
-	dd	offset	PM_int_23h
-	dd	offset	PM_int_24h
-	dd	offset	PM_int_25h
-	dd	offset	PM_int_26h
-	dd	offset	PM_int_27h
-	dd	offset	PM_int_28h
-	dd	offset	PM_int_29h
-	dd	offset	PM_int_2ah
-	dd	offset	PM_int_2bh
-	dd	offset	PM_int_2ch
-	dd	offset	PM_int_2dh
-	dd	offset	PM_int_2eh
-	dd	offset	PM_int_2fh
+	dw	offset	PM_int_20h
+	dw	offset	PM_int_21h
+	dw	offset	PM_int_22h
+	dw	offset	PM_int_23h
+	dw	offset	PM_int_24h
+	dw	offset	PM_int_25h
+	dw	offset	PM_int_26h
+	dw	offset	PM_int_27h
+	dw	offset	PM_int_28h
+	dw	offset	PM_int_29h
+	dw	offset	PM_int_2ah
+	dw	offset	PM_int_2bh
+	dw	offset	PM_int_2ch
+	dw	offset	PM_int_2dh
+	dw	offset	PM_int_2eh
+	dw	offset	PM_int_2fh
 
 
 ;/////////////////////////////////////////////////////////////////////////////
