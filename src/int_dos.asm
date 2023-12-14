@@ -146,8 +146,8 @@ int_21h_unknown:
 proc PM_int_21h
 	call_RegisterDumpInt	21h
 
-    %if (int_21h_MAXF < 0ffh)
-	cmp	ah,int_21h_MAXF		;テーブル最大値
+    %if (int_21h_fn_MAX < 0ffh)
+	cmp	ah,int_21h_fn_MAX		;テーブル最大値
 	ja	int_21h_unknown		;それ以上なら jmp
     %endif
 	push	eax
@@ -873,14 +873,6 @@ proc int_21h_47h
 	pop	edi
 	pop	edx
 	pop	ecx
-	set_cy
-	iret
-
-;------------------------------------------------------------------------------
-;・子プログラムの実行  AH=4bh
-;------------------------------------------------------------------------------
-	align	4
-int_21h_4bh:
 	set_cy
 	iret
 

@@ -39,7 +39,7 @@ setup_F386_int:
 Free386_function:
 	push	eax			;
 
-	cmp	ah,F386_INT_MAXF	;最大値
+	cmp	ah,F386_INT_fn_MAX	;最大値
 	ja	.no_func		;それ以上なら jmp
 
 	movzx	eax,ah				;機能番号

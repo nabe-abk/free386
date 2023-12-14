@@ -298,7 +298,7 @@ proc int_21h_4ah
 DOS_Extender_fn:
 	push	eax			;
 
-	cmp	al,DOS_Ext_MAXF		;テーブル最大値
+	cmp	al,DOSX_fn_MAX		;テーブル最大値
 	ja	.chk_02			;それ以上なら jmp
 
 	movzx	eax,al				;機能番号
@@ -331,8 +331,8 @@ DOS_Extender_fn:
 ;------------------------------------------------------------------------------
 ;・未対応リスト
 ;------------------------------------------------------------------------------
-DOS_Ext_fn_2512h:		;ディバグのためのプログラムロード
-DOS_Ext_fn_2516h:		;Ver2.2以降  自分自身のメモリをLDTから全て解放(?)
+DOSX_fn_2512h:		;ディバグのためのプログラムロード
+DOSX_fn_2516h:		;Ver2.2以降  自分自身のメモリをLDTから全て解放(?)
 	set_cy
 	iret
 
@@ -340,7 +340,7 @@ DOS_Ext_fn_2516h:		;Ver2.2以降  自分自身のメモリをLDTから全て解放(?)
 ;・未知のファンクション
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_unknown:
+DOSX_unknown:
 	mov	eax,0a5a5a5a5h		;DOS-Extender のマニュアルの記述どおり
 	set_cy
 	iret
@@ -350,7 +350,7 @@ DOS_Ext_unknown:
 ;・未知の機能  AX=2500h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2500h:
+DOSX_fn_2500h:
 	mov	eax,0a5a5a5a5h
 	iret
 	;
@@ -363,7 +363,7 @@ DOS_Ext_fn_2500h:
 ;・V86←→Protect データ構造体のリセット  AX=2501h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2501h:
+DOSX_fn_2501h:
 	push	ds
 
 	push	d (F386_ds)
@@ -381,7 +381,7 @@ DOS_Ext_fn_2501h:
 ;・Protect モードの割り込みベクタ取得  AX=2502h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2502h:
+DOSX_fn_2502h:
 	push	ecx
 	push	ds
 
@@ -423,7 +423,7 @@ DOS_Ext_fn_2502h:
 ;・リアル(V86) モードの割り込みベクタ取得  AX=2503h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2503h:
+DOSX_fn_2503h:
 	push	ds
 	push	ecx
 
@@ -445,7 +445,7 @@ DOS_Ext_fn_2503h:
 ; in 	cl     = interrupt number
 ;	ds:edx = entry point
 ;
-proc DOS_Ext_fn_2504h
+proc DOSX_fn_2504h
 	push	eax
 	push	ecx
 	push	ds
@@ -497,7 +497,7 @@ proc DOS_Ext_fn_2504h
 ;	ebx = handler address / SEG:OFF
 ;
 	align	4
-DOS_Ext_fn_2505h:
+DOSX_fn_2505h:
 	call	set_V86_vector
 	clear_cy
 	iret
@@ -528,7 +528,7 @@ proc set_V86_vector
 ;・常にプロテクトモードで発生する割り込みの設定  AX=2506h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2506h:
+DOSX_fn_2506h:
 	push	ebx
 	push	ecx
 	push	esi
@@ -548,20 +548,20 @@ DOS_Ext_fn_2506h:
 	pop	esi
 	pop	ecx
 	pop	ebx
-	jmp	DOS_Ext_fn_2504h		;プロテクトモードの割り込みベクタ設定
+	jmp	DOSX_fn_2504h		;プロテクトモードの割り込みベクタ設定
 
 
 ;------------------------------------------------------------------------------
 ;・リアル(V86)モードとプロテクトモードの割り込み設定　AX=2507h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2507h:
+DOSX_fn_2507h:
 	;call	set_V86_vector
-	;jmp	DOS_Ext_fn_2504h	;プロテクトモードの割り込み設定
+	;jmp	DOSX_fn_2504h	;プロテクトモードの割り込み設定
 
 		;↓
 
-	push	d (offset DOS_Ext_fn_2504h)
+	push	d (offset DOSX_fn_2504h)
 	jmp	set_V86_vector
 
 
@@ -569,7 +569,7 @@ DOS_Ext_fn_2507h:
 ;・セグメントセレクタのベースリニアアドレスを取得  AX=2508h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2508h:
+DOSX_fn_2508h:
 	verr	bx		;セレクタが有効か?
 	jnz	short .void	;無効
 
@@ -601,7 +601,7 @@ DOS_Ext_fn_2508h:
 ;・リニアアドレスから物理アドレスへの変換　AX=2509h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2509h:
+DOSX_fn_2509h:
 	push	ecx
 	push	edx
 	push	ds
@@ -657,7 +657,7 @@ DOS_Ext_fn_2509h:
 ;・物理アドレスのマッピング　AX=250ah
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_250ah:			;仮対応！！
+DOSX_fn_250ah:			;仮対応！！
 	push	ds
 	push	esi
 	push	edi
@@ -671,7 +671,7 @@ DOS_Ext_fn_250ah:			;仮対応！！
 	mov	ebx,es		;指定セレクタロード
 	pushf			;*
 	push	cs		;* セレクタベースアドレス取得
-	call	DOS_Ext_fn_2508h	;*
+	call	DOSX_fn_2508h	;*
 	mov	eax,ecx		;eax = ベースアドレス
 	lsl	ebx,ebx		;ebx = リミット値
 	inc	ebx		;ebx = サイズ
@@ -737,7 +737,7 @@ DOS_Ext_fn_250ah:			;仮対応！！
 ;・ハードウェア割り込みベクタの取得　AX=250ch
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_250ch:
+DOSX_fn_250ch:
 %ifdef USE_VCPI_8259A_API
 	mov	ax,[cs:vcpi_8259m]
 %else
@@ -757,7 +757,7 @@ DOS_Ext_fn_250ch:
 ;	   ebx = Seg:Off - 16bit buffer address
 ;	es:edx = buffer protect mode address
 ;
-proc DOS_Ext_fn_250dh
+proc DOSX_fn_250dh
 	mov	ebx, d [cs:user_cbuf_adr16]
 	movzx	ecx, b [cs:user_cbuf_pages]
 	shl	ecx, 12				; page to byte
@@ -782,7 +782,7 @@ proc DOS_Ext_fn_250dh
 ;
 ;	Ret:	ecx=seg:off
 ;
-DOS_Ext_fn_250fh:
+DOSX_fn_250fh:
 	push	eax
 	push	ebp
 	push	esi
@@ -793,7 +793,7 @@ DOS_Ext_fn_250fh:
 	ja	.fail		;
 
 	mov	ebx, es		;in : bx=selector
-	calli	DOS_Ext_fn_2508h	;セレクタベースアドレス取得
+	calli	DOSX_fn_2508h	;セレクタベースアドレス取得
 	jc	.fail		;out: ecx=base
 
 	mov	ebx, [esp]	;ebx = offset
@@ -807,7 +807,7 @@ DOS_Ext_fn_250fh:
 
 	xor	esi, esi
 .loop:				 ;in = ebx
-	calli	DOS_Ext_fn_2509h ;物理アドレスへの変換
+	calli	DOSX_fn_2509h ;物理アドレスへの変換
 				 ;out= ecx
 	cmp	ecx, 010ffefh	;リニアアドレス範囲
 	ja	.fail		;DOSメモリ範囲外 なら jmp
@@ -853,7 +853,7 @@ DOS_Ext_fn_250fh:
 ;------------------------------------------------------------------------------
 ;・リアルモードのルーチンfarコール　AX=250eh
 ;------------------------------------------------------------------------------
-proc DOS_Ext_fn_250eh
+proc DOSX_fn_250eh
 	test	ecx,ecx		;スタックコピー回数
 	jnz	.fail		;指定があれば失敗
 
@@ -884,7 +884,7 @@ proc DOS_Ext_fn_250eh
 ;・リアルモードのルーチンfarコール　AX=2510h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2510h:		;仮対応！！
+DOSX_fn_2510h:		;仮対応！！
 	test	ecx,ecx		;スタックコピー回数
 	jnz	.fail		;指定があれば失敗
 
@@ -964,7 +964,7 @@ DOS_Ext_fn_2510h:		;仮対応！！
 ;	+0ah d eax
 ;	+0eh d edc
 ;
-proc DOS_Ext_fn_2511h
+proc DOSX_fn_2511h
 	push	edx
 	push	eax
 	push	edx	; work area
@@ -1040,7 +1040,7 @@ proc DOS_Ext_fn_2511h
 ;	ch = bit 6 のみ意味を持ち、USE属性(16bit/32bit)を指定
 ;
 	align	4
-DOS_Ext_fn_2513h:
+DOSX_fn_2513h:
 	push	ds
 	push	edx
 	push	ecx
@@ -1108,7 +1108,7 @@ DOS_Ext_fn_2513h:
 ;・セグメント属性の変更　AX=2514h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2514h:
+DOSX_fn_2514h:
 	push	ecx
 	push	ebx
 	push	eax
@@ -1154,7 +1154,7 @@ DOS_Ext_fn_2514h:
 ;・セグメント属性の取得　AX=2515h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_2515h:
+DOSX_fn_2515h:
 	push	ebx
 	push	eax
 
@@ -1187,7 +1187,7 @@ DOS_Ext_fn_2515h:
 ;	edx = size (byte)
 ;
 	align	4
-DOS_Ext_fn_2517h:
+DOSX_fn_2517h:
 	mov	eax, DOSMEM_sel
 	mov	 es, ax
 	mov	ebx, d [cs:user_cbuf_ladr]
@@ -1204,7 +1204,7 @@ DOS_Ext_fn_2517h:
 ;・DOSメモリブロックアロケーション　AX=25c0h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_25c0h:
+DOSX_fn_25c0h:
 	mov	ah,48h			;メモリブロック取得
 	jmp	call_V86_int21		;DOS call
 
@@ -1216,13 +1216,13 @@ DOS_Ext_fn_25c0h:
 ;・MS-DOSメモリブロックのサイズ変更　AX=25c2h
 ;------------------------------------------------------------------------------
 	align	4
-DOS_Ext_fn_25c1h:
+DOSX_fn_25c1h:
 	push	eax
 	mov	ah,49h			;メモリブロック解放
 	jmp	short fn_Cxh_step
 
 	align	4
-DOS_Ext_fn_25c2h:			;メモリブロックのサイズ変更
+DOSX_fn_25c2h:			;メモリブロックのサイズ変更
 	push	eax
 	mov	ah,49h			;DOS function
 fn_Cxh_step:
@@ -1247,8 +1247,8 @@ fn_Cxh_step:
 ;------------------------------------------------------------------------------
 ;・DOSプログラムを子プロセスとして実行  AX=25c3h
 ;------------------------------------------------------------------------------
-	align	4
-DOS_Ext_fn_25c3h:
-	jmp	int_21h_4bh		;int 21h / 4bh と同じ
-
+;	align	4
+;DOSX_fn_25c3h:
+;	jmp	int_21h_4bh		;int 21h / 4bh と同じ
+;
 ;//////////////////////////////////////////////////////////////////////////////

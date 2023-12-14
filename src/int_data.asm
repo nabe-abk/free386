@@ -137,7 +137,7 @@ int21h_table:
 	dd	offset int_21h_48h	;Pメモリ:LDTセグメント作成とメモリ確保
 	dd	offset int_21h_49h	;Pメモリ:LDTセグメントとメモリの解放
 	dd	offset int_21h_4ah	;Pメモリ:セグメントメモリ割り当て変更
-	dd	offset int_21h_4bh	;子プログラムの実行
+	dd	offset int_21h_notsupp	;子プログラムの実行
 	dd	offset int_21h_4ch	;プログラム終了
 	dd	offset call_V86_int21	;子プログラムのリターンコード取得
 	dd	offset int_21h_ds_edx	;最初に一致するファイルの検索
@@ -173,7 +173,7 @@ int21h_table:
 	dd	offset int_21h_unknown	;unknown
 	dd	offset call_V86_int21	;オープン可能な最大ハンドル数の設定
 
-%rep	(int_21h_MAXF - 67h)
+%rep	(int_21h_fn_MAX - 67h)
 	dd	offset int_21h_unknown	;unknown
 %endrep
 
@@ -183,42 +183,42 @@ int21h_table:
 ;/////////////////////////////////////////////////////////////////////////////
 DOSExt_fn_table:
 	;### function 00h-07h ######
-	dd	offset DOS_Ext_unknown	;(不明)
-	dd	offset DOS_Ext_fn_2501h	;CPUモード切り換え構造体のリセット
-	dd	offset DOS_Ext_fn_2502h	;プロテクトモード割り込みベクタの取得
-	dd	offset DOS_Ext_fn_2503h	;リアルモード割り込みベクタの取得
-	dd	offset DOS_Ext_fn_2504h	;プロテクトモード割り込みベクタの設定
-	dd	offset DOS_Ext_fn_2505h	;リアルモード割り込みベクタの設定
-	dd	offset DOS_Ext_fn_2506h	;常にプロテクトモードで動作する割り込み
-	dd	offset DOS_Ext_fn_2507h	;リアル/プロテクトの割り込みベクタ設定
+	dd	offset DOSX_unknown	;(不明)
+	dd	offset DOSX_fn_2501h	;CPUモード切り換え構造体のリセット
+	dd	offset DOSX_fn_2502h	;プロテクトモード割り込みベクタの取得
+	dd	offset DOSX_fn_2503h	;リアルモード割り込みベクタの取得
+	dd	offset DOSX_fn_2504h	;プロテクトモード割り込みベクタの設定
+	dd	offset DOSX_fn_2505h	;リアルモード割り込みベクタの設定
+	dd	offset DOSX_fn_2506h	;常にプロテクトモードで動作する割り込み
+	dd	offset DOSX_fn_2507h	;リアル/プロテクトの割り込みベクタ設定
 
 	;### function 08h-0fh ######
-	dd	offset DOS_Ext_fn_2508h	;セレクタのベースリニアアドレス取得
-	dd	offset DOS_Ext_fn_2509h	;リニアアドレスから物理アドレスへの変換
-	dd	offset DOS_Ext_fn_250ah	;物理メモリのマッピング
-	dd	offset DOS_Ext_unknown	;(不明)
-	dd	offset DOS_Ext_fn_250ch	;ハードウェア割り込みのベクタ番号取得
-	dd	offset DOS_Ext_fn_250dh	;DOSメモリリンク情報の入手
-	dd	offset DOS_Ext_fn_250eh	;DOSルーチンのコール(no use セグメント)
-	dd	offset DOS_Ext_fn_250fh	;アドレスをDOSアドレスに変換
+	dd	offset DOSX_fn_2508h	;セレクタのベースリニアアドレス取得
+	dd	offset DOSX_fn_2509h	;リニアアドレスから物理アドレスへの変換
+	dd	offset DOSX_fn_250ah	;物理メモリのマッピング
+	dd	offset DOSX_unknown	;(不明)
+	dd	offset DOSX_fn_250ch	;ハードウェア割り込みのベクタ番号取得
+	dd	offset DOSX_fn_250dh	;DOSメモリリンク情報の入手
+	dd	offset DOSX_fn_250eh	;DOSルーチンのコール(no use セグメント)
+	dd	offset DOSX_fn_250fh	;アドレスをDOSアドレスに変換
 
 	;### function 10h-17h ######
-	dd	offset DOS_Ext_fn_2510h	;DOSルーチンのコール(far call)
-	dd	offset DOS_Ext_fn_2511h	;DOSルーチンのINTコール(int XXh)
-	dd	offset DOS_Ext_fn_2512h	;ディバクのためのプログラムロード
-	dd	offset DOS_Ext_fn_2513h	;セレクタのエイリアス作成
-	dd	offset DOS_Ext_fn_2514h	;セレクタの属性変更
-	dd	offset DOS_Ext_fn_2515h	;セレクタの属性取得
-	dd	offset DOS_Ext_unknown	;??
-	dd	offset DOS_Ext_fn_2517h	;DOS仲介バッファのアドレス取得
+	dd	offset DOSX_fn_2510h	;DOSルーチンのコール(far call)
+	dd	offset DOSX_fn_2511h	;DOSルーチンのINTコール(int XXh)
+	dd	offset DOSX_fn_2512h	;ディバクのためのプログラムロード
+	dd	offset DOSX_fn_2513h	;セレクタのエイリアス作成
+	dd	offset DOSX_fn_2514h	;セレクタの属性変更
+	dd	offset DOSX_fn_2515h	;セレクタの属性取得
+	dd	offset DOSX_unknown	;??
+	dd	offset DOSX_fn_2517h	;DOS仲介バッファのアドレス取得
 
 
 DOSExt_fn_table2:	;C0h～C3h
 	;### function 18h-1fh ######
-	dd	offset DOS_Ext_fn_25c0h	;
-	dd	offset DOS_Ext_fn_25c1h	;
-	dd	offset DOS_Ext_fn_25c2h	;
-	dd	offset DOS_Ext_fn_25c3h	;
+	dd	offset DOSX_fn_25c0h
+	dd	offset DOSX_fn_25c1h
+	dd	offset DOSX_fn_25c2h
+	dd	offset int_21h_notsupp
 
 
 ;/////////////////////////////////////////////////////////////////////////////
@@ -255,6 +255,6 @@ F386fn_table:
 	dd	offset F386fn_16h
 	dd	offset F386fn_17h
 
-%rep	(F386_INT_MAXF - 17h)
+%rep	(F386_INT_fn_MAX - 17h)
 	dd	offset F386fn_unknown	;ダミー
 %endrep

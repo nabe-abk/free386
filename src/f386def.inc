@@ -107,11 +107,11 @@ LADR_ROOM_size	equ	200000h	; Room for memory address expansion
 ;==============================================================================
 ; Function call setting
 ;==============================================================================
-int_21h_MAXF	equ	7fh	;int 21h function's maximum AH
-DOS_Ext_MAXF	equ	17h	;DOS-Extender function's maximum AL
+int_21h_fn_MAX	equ	7fh	;int 21h function's maximum AH
+DOSX_fn_MAX	equ	17h	;DOS-Extender function's maximum AL
 
 F386_INT	equ	9ch	;Free386's INT
-F386_INT_MAXF	equ	1fh	;Free386's INT maximum AH
+F386_INT_fn_MAX	equ	1fh	;Free386's INT maximum AH
 
 ;==============================================================================
 ; Selector setting
