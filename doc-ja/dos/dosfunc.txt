@@ -943,7 +943,7 @@
 □05H プログラムの実行準備
 	IN  AH 4BH
 	    AL 05H 新しいプログラムの実行準備
-	    DX:DX EXECSTATE*構造体のアドレス(AL=05H)
+	    DS:DX EXECSTATE*構造体のアドレス(AL=05H)
 	Ret CF 0 成功 AX 0
 	       1 失敗 AX エラーコード
 

@@ -2,7 +2,7 @@
 Ver 0.82 - 2023-12-xx
 ==============================================================================
 
-- Update: int 21, ah=4a for Open Watcom's EXP file.
+- Update: int 21h, ah=4ah for Open Watcom's EXP file.
 - [Universal] Enable hardware interrupt (required by Open Watcom).
 
 ==============================================================================

@@ -50,10 +50,10 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 
 ## Tool Files (redistributed)
 
-* tools/nasm.exp     - nasm-0.98.35.t03 (executable by free386.com)
+* tools/nasm.exp     - nasm-0.98towns2 (support 32bit OMF-386)
 * tools/alink-p1.exp - ALINK Ver1.6 patch1 (executable by free386.com)
 * tools/alink-p1     - ALINK Ver1.6 patch1 (Linux ELF binary)
-* tools/imake.exe    - "make" for MS-DOS
+* tools/imake.exe    - "make" for MS-DOS (KI-Make 1.68)
 
 ## Command Line Options
 
