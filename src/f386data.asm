@@ -187,7 +187,7 @@ msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	'	-vv	More verbose (internal memory information)',13,10
 	db	"	-q	Do not output Free386's title and this help",13,10
 	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
-	db	'	-m	Set reserved DOS memory to 0 byte for allocate more memory.',13,10
+	db	'	-m	Set reserved DOS memory to 0 byte for allocate more memory',13,10
 	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
 %if MACHINE_CODE
 	db	'	-c?     Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
@@ -230,4 +230,5 @@ _e21	db	'Can not read executable file',13,10,'$'
 _e23	db	'File read error (int 21h failed)',13,10,'$'
 _e22	db	'Memory is insufficient to load executable file',13,10,'$'
 _e24	db	'Unknown EXP header (Compatible: P3-flat model, MZ-header)',13,10,'$'
+_e25	db	0,'Abort!',13,10,'$'		; output only when verbose flag
 

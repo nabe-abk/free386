@@ -1117,6 +1117,12 @@ proc error_exit_16
 	;
 	mov	bx, err_00
 .found:
+	cmp	b [bx], 0		;output only when verbose flag
+	jnz	.print
+	cmp	b [verbose], 0
+	jz	.exit
+
+.print:
 	PRINT86	err_head
 	mov	dx,bx
 	mov	ah,09h			;output error message
