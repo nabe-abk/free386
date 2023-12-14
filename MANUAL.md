@@ -6,6 +6,7 @@ This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 * This software can run .EXP format (P3 or MP format) files on DOS.
 * This software required XMS and VCPI memory server.
 	* Most require HIMEM.SYS and EMM386.EXE for MS-DOS Version 5 or later.
+* Basically, it complies with Ver1.2, which is the version of RUN386 for FM TOWNS.
 
 このソフトは、Phar-Lap RUN386 ほぼ互換の DOS-Extender です。
 FM TOWNS / PC-98x1 / AT互換機で動作します。
@@ -13,6 +14,7 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 - このソフトは .EXP 形式（P3 or MP形式）のファイルを実行することができます。
 - 実行には XMS メモリサーバ、VCPI メモリサーバが必要です。
 	- 多くの場合、MS-DOS Ver5 以降の HIMEM.SYS と EMM386.EXE が必要です。
+- 基本的に、FM TOWNS用RUN386のバージョンである、Ver1.2に準拠しています。
 
 ## Usage
 
@@ -138,16 +140,63 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 その他、Phar Lap DOS-Extender Versionのデフォルト値を書き換えたいときは、
 "12aJ"(31 32 61 4A) を文字列検索し、"22d "(32 32 64 20) 等に書き換えてください。
 
+## Support Functions
+
+- int 21h, AH=25h
+	- AX=2501h-250Ah, 250Ch-2515h, 2517h, 25C0h-25C2h
+- int 21h (DOS and DOSX)
+	- AH=00h-0Eh, 19h-1Ch, 2Ah-31h, 33h, 34h, 36h, 38-4Ah, 4Ch-4Fh, 52h, 54h, 56h-5Ch, 62h, 67h
+- int 20h, int 29h
+- int 2fh (chain to DOS int 2fh)
+- Free386 original functions
+	- int 9ch: Free386 extend functions
+	- int ffh: Print Register dump
+
+If you have requests for implementation, please contact us.
+
+もし実装してほしいファンクションの要望がありましたらご連絡ください。
+
+## Unimplemented Functions (implemented in RUN386)
+
+- int 21h
+	- AX=2512h	- LOAD PROGRAM FOR DEBUGGING
+	- AH=32h	- GET DOS DRIVE PARAMETER BLOCK FOR SPECIFIC DRIVE
+	- AH=4Bh or AX=25C3h - EXEC - LOAD AND/OR EXECUTE PROGRAM
+
+未実装ファンクション。
+
+- int 21h
+	- AX=2512h	- デバッグ用のEXPファイルロード
+	- AH=32h	- 指定ドライブのディスクパラメーター(DPB)取得
+	- AH=4Bh or AX=25C3h - DOSの子プロセスを起動
+
+## Incompatible Functions
+
+- int 21h
+	- AX=250Dh	- Get real mode link info. EAX's procedure do not support stack copying.
+	- AX=250Eh	- Call real mode proc. Not support stack copying by ECX (fails when non-zero ECX).
+	- AX=2510h	- Same as AX=250Eh.
+	- AH=09h	- Print string. If the data size exceeds the "call buffer size", the excess data will be truncated.
+	- AH=44h	- IOCTRL. Not support buffer functions.
+	- AH=49h	- Free selector. Do not free memory, only disable the selector.
+	- AH=4Ah	- Resize selector. Shrinking does not free up memory. Do not manipulate alias selectors.
+- When issuing a DOS function, the carry flag may change even though it should originally be saved.
+
+非互換ファンクション。
+
+- int 21h
+	- AX=250Dh	- リアルモードリンク情報取得。EAXで返されるプロシジャは、スタックコピーをサポートしません。
+	- AX=250Eh	- リアルモードcall。ECXによるスタックコピー指定ができない（失敗する）。
+	- AX=2510h	- 同上。
+	- AH=09h	- 文字列出力。データがコールバッファサイズを越えた場合、超えたデータは無視される。
+	- AH=44h	- IOCTRL。バッファを使用するものは未サポート。
+	- AH=49h	- セレクタの開放。メモリを開放せず、セレクタを無効化するのみ。
+	- AH=4Ah	- セレクタのリサイズ。縮めてもメモリを開放しない。エイリアスセレクタは操作しない。
+- DOSファンクションにて、本来キャリーフラグが保存されるべき状況において、キャリーフラグが変化してしまうことがあります。
+
 ## Known issues
 
 * Usable memory is limited to a maximum of 1GB.
-* In the DOS function "Write string to STDOUT"(int 21h, AH=09),
-  if the data size exceeds the "call buffer size", the excess data will be truncated.
-* When issuing a DOS function, the carry flag may change even though it should originally be saved.
 
 - 使用できる最大メモリが1GBに制限されています。
-- DOS function の文字列出力（int 21h, AH=09h）において、
-  データサイズがコールバッファサイズを越えた場合、越えた分のデータが切捨てられます。
-- DOS function 発行時、本来キャリーフラグが保存されるべきものにおいて、
-  キャリーフラグが変化してしまうことがあります。
 
