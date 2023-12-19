@@ -9,17 +9,20 @@
 
 %include	"start.inc"
 %include	"sub.inc"
-%include	"f386sub.inc"
-%include	"f386mem.inc"
-%include	"f386seg.inc"
-%include	"f386cv86.inc"
+%include	"sub32.inc"
+%include	"memory.inc"
+%include	"selector.inc"
+%include	"call_v86.inc"
 %include	"int.inc"
+
+; PC model dependent
+%include	"pc.inc"
 
 ;******************************************************************************
 ; global symbols
 ;******************************************************************************
 
-;--- for f386seg.asm ------------------------------
+;--- for selector.asm ------------------------------
 global		GDT_adr
 global		LDT_adr
 global		page_dir_ladr
@@ -27,7 +30,7 @@ global		free_liner_adr
 global		free_RAM_padr
 global		free_RAM_pages
 
-;--- for f386cv86.asm -----------------------------
+;--- for call_v86.asm -----------------------------
 global		to_PM_EIP
 global		to_PM_data_ladr
 global		VCPI_entry
@@ -69,10 +72,14 @@ global		top_ladr
 global		end_adr
 global		work_adr
 
+global		all_mem_pages
+global		cpu_is_386sx
+
 ;******************************************************************************
 ;■コード(16 bit)
 ;******************************************************************************
-segment	text public align=16 class=CODE use16
+segment	text class=CODE align=4 use16
+;group	comgroup text text32 data heap
 ;------------------------------------------------------------------------------
 ; start
 ;------------------------------------------------------------------------------
@@ -400,7 +407,7 @@ proc16 memory_setting
 	;//////////////////////////////////////////////////
 	; alloc real mode int hook memory and other setup
 	;//////////////////////////////////////////////////
-	call	setup_cv86		;in f386cv86.asm
+	call	setup_cv86		;in call_v86.asm
 
 	;//////////////////////////////////////////////////
 	;GDT/LDT/TSS
@@ -1137,31 +1144,21 @@ proc error_exit_16
 ;******************************************************************************
 ; 32bit mode code
 ;******************************************************************************
-BITS	32
+segment	text32 class=CODE align=4 use32
 
-%include	"f386prot.asm"		;プロテクトモード・メインプログラム
-
-;******************************************************************************
-; Model dependent code
-;******************************************************************************
-
-%if TOWNS
-	%include "towns.asm"
-%elif PC_98
-	%include "pc98.asm"
-%elif PC_AT
-	%include "at.asm"
-%endif
+%include	"f386prot.asm"
 
 ;******************************************************************************
 ; DATA
 ;******************************************************************************
+segment	data class=DATA align=4
 
 %include	"f386data.asm"
 
-;------------------------------------------------------------------------------
-;------------------------------------------------------------------------------
-	align	16	;NEED!!
+;******************************************************************************
+;heap
+;******************************************************************************
+segment	heap class=DATA align=16
 end_adr:
 	;
 	; Below is the heap memory area.

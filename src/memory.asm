@@ -9,7 +9,8 @@
 %include	"start.inc"
 %include	"free386.inc"
 
-segment	text align=4 class=CODE use16
+;******************************************************************************
+segment	text class=CODE align=4 use16
 ;******************************************************************************
 ; heap memory functions
 ;******************************************************************************
@@ -434,8 +435,7 @@ proc clear_sw_stack_32
 ;******************************************************************************
 ; DATA
 ;******************************************************************************
-segment	data align=4 class=CODE use16
-group	comgroup text data
+segment	data class=DATA align=4
 
 global	free_heap_top
 global	free_heap_bottom

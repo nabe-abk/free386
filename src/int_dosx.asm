@@ -9,8 +9,7 @@
 ;------------------------------------------------------------------------------
 ;・Verison 情報取得  AH=30h
 ;------------------------------------------------------------------------------
-	align	4
-int_21h_30h:
+proc int_21h_30h
 	clear_cy	; stack eflags clear
 
 	;eax の上位16bit に 'DX' を入れる
@@ -19,11 +18,11 @@ int_21h_30h:
 	mov	 ax,4458h	;'DX' : Dos-Extender
 	rol	eax,16		;上位ビットと下位ビットを入れ換える
 
-	cmp	ebx,'RAHP'	;RUN386 funciton? / 'PHAR'
+	cmp	ebx,'RAHP'	;RUN386 funciton / 'PHAR'
 	je	.run386
-	cmp	ebx,'XDJF'	;FM TOWNS un-documented funciton? / 'FJDX'
+	cmp	ebx,'XDJF'	;FM TOWNS un-documented funciton / 'FJDX'
 	je	.fujitsu
-	cmp	ebx,'F386'	;Free386 funciton?
+	cmp	ebx,'F386'	;Free386 funciton
 	je	.free386
 
 	;DOS Version の取得
@@ -36,7 +35,7 @@ int_21h_30h:
 	;
 	;Phar Lap バージョン情報
 	;	テスト値：EAX=44581406  EBX=4A613231  ECX=56435049  EDX=0
-	mov	ebx, [cs:pharlap_version]	; 'Ja21' or ' d22'
+	mov	ebx, [cs:pharlap_version]	; '12Ja' or '22d '
 	mov	ecx, 'IPCV'			;="VCPI" / 他' DOS','DPMI' があるが対応してない
 	xor	edx, edx			;edx = 0
 	iret
@@ -52,7 +51,7 @@ int_21h_30h:
 	mov	ah,Minor_ver	;Free386 マイナーバージョン
 	mov	ebx,F386_Date	;日付
 	mov	ecx,0		;reserved
-	mov	edx,' ABK'	;for Free386 check
+	mov	edx,' ABK'	;for Free386 check, 4b424120h
 	iret
 
 ;------------------------------------------------------------------------------

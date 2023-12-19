@@ -22,7 +22,7 @@ global	resv_real_memKB
 global	user_cbuf_pages
 
 ;==============================================================================
-segment	text align=16 class=CODE use16
+segment	text class=CODE align=16
 ;==============================================================================
 	times	100h	db 0		;= ORG 100h
 ..start:

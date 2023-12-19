@@ -1,8 +1,8 @@
 #----------------------------------------------------------------------------
-# Free386 MAKEFILE for DOS
+# Free386 MAKEFILE for MS-DOS
 #----------------------------------------------------------------------------
 
-RM = del
+TARGET = ..\free386.com
 
 #///////////////////////////////////////////////////////////////////
 # PATH for NASM
@@ -11,19 +11,33 @@ ASM    = ..\bin\free386 -n -q ..\tools\nasm
 ASMOP  = -f obj
 
 #///////////////////////////////////////////////////////////////////
+# for flatlink.exp
+#///////////////////////////////////////////////////////////////////
+LINK   = ..\bin\free386 -n -q ..\tools\flatlink.exp
+LINKOP = -o $(TARGET)
+
+#///////////////////////////////////////////////////////////////////
 # for alink.exp
 #///////////////////////////////////////////////////////////////////
-LINK   = ..\bin\free386 -n -q ..\tools\alink-p1.exp
-LINKOP = -oCOM -o free386.com -m
+# LINK   = ..\bin\free386 -n -q ..\tools\alink-p1.exp
+# LINKOP = -oCOM -o $(TARGET) -m
+
+#==============================================================================
+# Microsoft LINK.EXE (Ver5.15) cannot be used to build Free386.
+# Using LINK.EXE requires a "one segment" declaration for all object files.
+# Segment groups are cumbersome to use in separate compilations.
+#==============================================================================
 
 #------------------------------------------------------------------------------
-all: free386.com
+RM = del
+
+all: $(TARGET)
 
 clean:
 	$(RM) *.obj
 	$(RM) objs
-	$(RM) free386.map
-	$(RM) free386.com
+#	$(RM) $(TARGET)
+#	$(RM) ..\free386.map
 
 #------------------------------------------------------------------------------
 base = macro.inc f386def.inc
@@ -35,25 +49,28 @@ start.obj: start.asm $(base)
 sub.obj: sub.asm $(base)
 	$(ASM) $(ASMOP) sub.asm
 
-f386mem.obj: f386mem.asm $(base) start.inc free386.inc
-	$(ASM) $(ASMOP) f386mem.asm
+memory.obj: memory.asm $(base) start.inc free386.inc
+	$(ASM) $(ASMOP) memory.asm
 
-f386seg.obj: f386seg.asm $(base) free386.inc f386mem.inc
-	$(ASM) $(ASMOP) f386seg.asm
+selector.obj: selector.asm $(base) free386.inc memory.inc
+	$(ASM) $(ASMOP) selector.asm
 
-f386sub.obj: f386sub.asm $(base) start.inc free386.inc f386mem.inc f386seg.inc
-	$(ASM) $(ASMOP) f386sub.asm
+sub32.obj: sub32.asm $(base) start.inc free386.inc memory.inc selector.inc
+	$(ASM) $(ASMOP) sub32.asm
 
-f386cv86.obj: f386cv86.asm $(base) free386.inc f386mem.inc
-	$(ASM) $(ASMOP) f386cv86.asm
+call_v86.obj: call_v86.asm $(base) free386.inc memory.inc
+	$(ASM) $(ASMOP) call_v86.asm
 
-int.obj: int.asm int_dos.asm int_dosx.asm int_f386.asm int_data.asm $(base) start.inc free386.inc f386sub.inc f386seg.inc f386cv86.inc
+int.obj: int.asm int_dos.asm int_dosx.asm int_f386.asm int_data.asm $(base) start.inc free386.inc sub32.inc selector.inc call_v86.inc
 	$(ASM) $(ASMOP) int.asm
 
-free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm towns.asm at.asm pc98.asm $(base) start.inc sub.inc f386sub.inc f386mem.inc f386seg.inc f386cv86.inc int.inc
+pc.obj: pc.asm pc_towns.asm pc_98.asm pc_at.asm $(base) start.inc memory.inc selector.inc call_v86.inc free386.inc
+	$(ASM) $(ASMOP) pc.asm
+
+free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc sub.inc sub32.inc memory.inc selector.inc call_v86.inc int.inc pc.inc
 	$(ASM) $(ASMOP) free386.asm
 
-free386.com: start.obj sub.obj f386mem.obj f386seg.obj f386sub.obj f386cv86.obj int.obj free386.obj
+$(TARGET): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
 	echo $< >objs
 	$(LINK) $(LINKOP) @objs
 	$(RM) objs

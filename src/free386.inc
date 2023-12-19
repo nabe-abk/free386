@@ -2,7 +2,7 @@
 ; extern variables
 ;******************************************************************************
 
-;--- for f386seg.asm ------------------------------
+;--- for selector.asm ------------------------------
 extern		GDT_adr
 extern		LDT_adr
 extern		IDT_adr
@@ -11,7 +11,7 @@ extern		free_liner_adr
 extern		free_RAM_padr
 extern		free_RAM_pages
 
-;--- for f386cv86.asm -----------------------------
+;--- for call_v86.asm -----------------------------
 extern		to_PM_EIP
 extern		to_PM_data_ladr
 extern		VCPI_entry
@@ -52,3 +52,7 @@ extern		error_exit_32
 extern		top_ladr
 extern		end_adr
 extern		work_adr
+
+; for towns.asm
+extern		all_mem_pages
+extern		cpu_is_386sx
