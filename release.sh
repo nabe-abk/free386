@@ -35,8 +35,8 @@ cat f386def.org >>f386def.inc
 make -f makefile.lin clean
 make -f makefile.lin 
 
-echo free386.com ../bin/TOWNS
-cp   free386.com ../bin/TOWNS
+echo mv ../free386.com ../bin/TOWNS
+     mv ../free386.com ../bin/TOWNS
 
 # for PC-98
 
@@ -49,8 +49,8 @@ cat f386def.org >>f386def.inc
 make -f makefile.lin clean
 make -f makefile.lin 
 
-echo free386.com ../bin/PC-98
-cp   free386.com ../bin/PC-98
+echo mv ../free386.com ../bin/PC-98
+     mv ../free386.com ../bin/PC-98
 
 # for PC/AT
 
@@ -63,8 +63,8 @@ cat f386def.org >>f386def.inc
 make -f makefile.lin clean
 make -f makefile.lin 
 
-echo free386.com ../bin/AT
-cp   free386.com ../bin/AT
+echo mv ../free386.com ../bin/AT
+     mv ../free386.com ../bin/AT
 
 # for DOS general
 
@@ -77,8 +77,8 @@ cat f386def.org >>f386def.inc
 make -f makefile.lin clean
 make -f makefile.lin 
 
-echo free386.com ../bin
-cp   free386.com ../bin
+echo mv ../free386.com ../bin
+     mv ../free386.com ../bin
 
 # cleanup
 
@@ -91,6 +91,7 @@ cd ..
 #--------------------------------------------------------------------
 # check
 #--------------------------------------------------------------------
+rm -f free386.map
 
 echo ""
 for d in $DIRS; do
