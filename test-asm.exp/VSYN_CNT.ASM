@@ -26,6 +26,8 @@
 %endmacro
 
 ;------------------------------------------------------------------------------
+segment	text align=4 class=CODE use32
+;------------------------------------------------------------------------------
 ..start:
 	PRINT	warning
 	mov	ah,08h			;push any key
@@ -50,8 +52,8 @@
 	int	21h
 	pop	ds
 
+	mov	[ds_selector], ds
 	call	start_vsync
-
 
 	xor	ebp, ebp	; loop counter
 
@@ -143,7 +145,10 @@ counter_handler:
 ;------------------------------------------------------------------------------
 	align	4
 counter_main:
+	push	ds
+	mov	ds, cs:[ds_selector]
 	inc	dword [count]
+	pop	ds
 	ret
 
 ;------------------------------------------------------------------------------
@@ -185,6 +190,7 @@ decimal_string:
 	ret
 
 ;------------------------------------------------------------------------------
+segment	data align=4 class=DATA use32
 ;------------------------------------------------------------------------------
 
 warning		db	'This binary for ',VSYNC_MACHINE,'.',13,10
@@ -201,3 +207,6 @@ loop_num	db	'12345678',13,'$'
 	align	4
 count		dd	0
 dos_vec		dd	0
+
+ds_selector	dd	0
+

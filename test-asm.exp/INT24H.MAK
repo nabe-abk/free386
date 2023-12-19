@@ -1,21 +1,14 @@
 
 ASM   = 00_nasm.bat
-ASMOP = -f pharlap
+ASMOP = -f obj
 LINK  = 00_link.bat
 LINKOP= -maxdata 1000h
 
-all: int24h_b.exp int24h_c.exp
+all: int24h.exp
 
+int24h.obj: int24h.asm
+	$(ASM) $(ASMOP) $<
 
-int24h_b.obj: int24h.asm
-	$(ASM) $(ASMOP) -o $@ -d DRIVE_B int24h.asm
+int24h.exp: int24h.obj
+	$(LINK) $(LINKOP) $<
 
-int24h_b.exp: int24h_b.obj
-	$(LINK) $(LINKOP) int24h_b.obj
-
-
-int24h_c.obj: int24h.asm
-	$(ASM) $(ASMOP) -o $@ -d DRIVE_C int24h.asm
-
-int24h_c.exp: int24h_c.obj
-	$(LINK) $(LINKOP) int24h_c.obj

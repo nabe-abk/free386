@@ -1,0 +1,2 @@
+[001000] vsync_fm.obj: text 'CODE' use32 align=4 size=256 entry=001000
+[001100] vsync_fm.obj: data 'DATA' use32 align=4 size=144

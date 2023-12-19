@@ -3,7 +3,9 @@ Ver 0.82 - 2023-12-xx
 ==============================================================================
 
 - Update: int 21h, ah=4ah for Open Watcom's EXP file.
+- Update: Source file names are now easier to understand.
 - [Universal] Enable hardware interrupt (required by Open Watcom).
+- [test-asm.exp] Fix: vsync_XX.exp, forgot to restore DS in interrupt.
 
 ==============================================================================
 Ver 0.81 - 2023-12-10
