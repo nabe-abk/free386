@@ -197,6 +197,7 @@ If you have requests for implementation, please contact us.
 ## Known issues
 
 * Usable memory is limited to a maximum of 1GB.
+* When setting the EXP file name to the ENV command name, it will be truncated if there is not enough space.
 
 - 使用できる最大メモリが1GBに制限されています。
-
+- ENV領域のコマンド名にEXPファイル名を設定する際、領域が足りないときはファイル名が途中で切り捨てられます。

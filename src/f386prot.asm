@@ -476,19 +476,76 @@ search_file:
 .no_verbose:
 
 ;------------------------------------------------------------------------------
-;●EXP ファイルのロード
+;rewrite argv[0] is command name
 ;------------------------------------------------------------------------------
-call_load_exp:
+;	ENV領域が足りず書ききれない場合は、途中で諦める。
+;
+proc rewrite_command_name
+	push	es
+	;push	edx
+	mov	eax, DOSMEM_sel
+	mov	 es, eax
+
+	movzx	edi, w [2CH]			; PSP:[2ch] is ENV segment
+	shl	edi, 4
+	movzx	ecx, w [es:edi - 10h + 3]	; ENV size (para)
+	shl	ecx, 4
+
+	mov	al, 1
+.loop:
+	mov	ah, al
+	mov	al, [es:edi]
+	inc	edi
+	test	eax, eax	; 00h 00h found?
+	jz	.found
+
+	dec	ecx
+	jnz	.loop
+	jmp	short .exit
+
+.found:
+	mov	ax, [es:edi]	; 01h 00h is start mark
+	dec	ax		; ax-1
+	jnz	.exit
+
+	add	edi, byte 2	; edi  = command name start offset
+	sub	ecx, byte 4	; ecx -= 4
+	jbe	.exit		; if ecx<=0 jump
+
+	;
+	; copy exp file name to ENV
+	;
+	mov	ebx, edx
+	mov	esi, edx
+.name_loop:
+	mov	al, [ebx]
+	test	al, al
+	jz	.name_end
+
+	inc	ebx
+	cmp	al, '\'
+	jne	.name_loop
+	mov	esi, ebx
+	jmp	short .name_loop
+.name_end:
+	;
+	; [esi] to [es:edi]
+	;
+	rep	movsb
+	mov	b [es:edi], 0
+.exit:
+	;pop	edx
+	pop	es
+
+;------------------------------------------------------------------------------
+;load and run EXP
+;------------------------------------------------------------------------------
+					;edx = load file PATH
 	mov	esi,[work_adr]		;ワーク領域ロード
 	call	load_exp		;EXP ファイルのロード
 	jc	error_exit_32		;ah = internal error code
-.skip:
 
-;------------------------------------------------------------------------------
-;●EXP ファイル実行
-;------------------------------------------------------------------------------
 	jmp	NEAR run_exp
-
 
 ;------------------------------------------------------------------------------
 ;●プログラムの終了(32bit)
