@@ -18,8 +18,8 @@ DOS-Extender RUN386
 	+04 w	head size
 	+06 d	file size
 	+0A w	check sum
-	+0C d	runtime paramater block offset (file 先頭から)	
-	+10 d	ランタイムパラメータブロックの大きさ
+	+0C d	ランタイムパラメータブロックの位置		/80h
+	+10 d	ランタイムパラメータブロックの大きさ		/100h
 	+14 d	relocation table offset				
 	+18 d	relocation table size				
 	+1c d	segment infomation table offset			
@@ -50,9 +50,24 @@ DOS-Extender RUN386
 	+74 d	load image file size	※注：pack の項、参照
 	+78-17E	＜予約＞
 ------------------------------------------------------------------------------
+ランタイムパラメーターブロック
+------------------------------------------------------------------------------
+	+00h w	'DX' (44h 58h)
+	+02h w	minimum number of real-mode params to leave free at run time
+ 	+04h w	maximum number of real-mode params to leave free at run time
+ 	+06h w	minimum interrupt buffer size (KB)
+	+08h w	maximum interrupt buffer size (KB)
+	+0ah w	interrupt stackの数
+	+0ch w	interrupt stackひとつあたりのサイズ (KB)
+	+0eh w	offset of byte past end of real-mode code and data
+	+12h w	コールバッファサイズ (KB)
+ 	+14h w	bit 0: file is virtual memory manager
+                bit 1: file is a debugger
+	+16h w	特権不要フラグ。0=特権レベル0, non 0=非特権レベル（リング1-3）
+------------------------------------------------------------------------------
 
 　実物(.exp)を見れば分かるが、かなりいい加減であり、
-　かなり多くの値が実際には使われていないと推測される。
+　かなり多くの値が実際には使われていない。
 
 
 ★'-pack' option とヘッダについて
