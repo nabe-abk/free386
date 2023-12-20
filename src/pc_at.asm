@@ -38,7 +38,7 @@ BITS	32
 ;==============================================================================
 ;★PC/AT互換機の初期設定
 ;==============================================================================
-proc init_AT_32
+proc32 init_AT_32
 	mov	ebx,offset AT_memory_map	;メモリのマップ
 	call	map_memory			;
 
@@ -140,7 +140,7 @@ AT_VESA30_alloc:
 
 	;/// VESA 環境データクリア /////
 	mov	eax,VESA_ds2		;環境データセレクタ
-	mov	es ,eax			;セレクタ設定
+	mov	 es,ax			;セレクタ設定
 	xor	edi,edi			;edi = 0
 	mov	ecx,600h / 4		;600h /4
 	xor	eax,eax			;0 クリア
@@ -149,8 +149,8 @@ AT_VESA30_alloc:
 	;/// VESA-BIOS のコピー ////////
 	mov	eax,VESA_ds		;VESA BIOS の書き込み先
 	mov	ebx,DOSMEM_sel		;VESA BIOS 転送元セレクタ
-	mov	es ,eax			;セレクタ設定
-	mov	ds ,ebx			;
+	mov	 es,ax			;セレクタ設定
+	mov	 ds,bx			;
 	xor	edi,edi			;edi = 0
 	mov	esi,0c0000h		;VESA BIOS
 	mov	ecx, 10000h / 4		;64KB /4
@@ -201,7 +201,7 @@ AT_VESA30_alloc:
 
 	push	es
 	mov	eax,VESA_ds			;VESAデータセグメント(cs alias)
-	mov	es ,eax				;es 設定
+	mov	 es,ax				;es 設定
 	mov	edi,VESA_call_adr		;call プログラム設定位置
 	mov	esi,offset VESA_call		;コピー元
 
@@ -220,7 +220,7 @@ AT_VESA30_alloc:
 	push	eax			;call-code アドレス
 
 	mov	ebx,VRAM_sel		;VRAM_sel
-	mov	 es,ebx			;es に VRAMセレクタ設定
+	mov	  es,bx			;es に VRAMセレクタ設定
 	mov	edx,VRAM_padr		;設定する物理アドレス
 	mov	 cx,dx			;cx = bit  0-15
 	shr	edx,16			;dx = bit 31-16
@@ -274,7 +274,7 @@ BITS	32
 ;==============================================================================
 ; exit process for PC/AT in 32bit
 ;==============================================================================
-proc exit_AT_32
+proc32 exit_AT_32
 	ret
 
 

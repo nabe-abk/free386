@@ -9,7 +9,7 @@ segment	text class=CODE align=4 use16
 ;Ret	Cy=0	TOWNS かもしれない
 ;	Cy=1	TOWNS でないかも?
 ;
-proc check_TOWNS_16
+proc32 check_TOWNS_16
 	in	al,30h		;CPU 識別レジスタ
 	test	al,al		;=and／値 check
 	jz	.not_fm		;0 なら FM シリーズでない
@@ -35,7 +35,7 @@ proc check_TOWNS_16
 ;==============================================================================
 ; ※CALLバッファに保存する
 ;
-proc init_TOWNS_16
+proc32 init_TOWNS_16
 	;
 	; 386SX判定
 	;
@@ -72,7 +72,7 @@ proc init_TOWNS_16
 ;★CoCo情報の保存
 ;==============================================================================
 ; ※CALLバッファに保存する
-proc init_CoCo
+proc32 init_CoCo
 	mov	ax, 0c000h	; CoCo存在確認
 	int	8eh
 	test	ah, ah
@@ -118,7 +118,7 @@ BITS	32
 ;==============================================================================
 ;★T-OS のメモリ周り設定
 ;==============================================================================
-proc init_TOWNS_32
+proc32 init_TOWNS_32
 	mov	ebx,offset T_OS_memory_map
 
 	mov	al, [cpu_is_386sx]
@@ -188,9 +188,9 @@ proc init_TOWNS_32
 ;------------------------------------------------------------------------------
 ; NSD driver setup and wakeup
 ;------------------------------------------------------------------------------
-proc wakeup_nsdd
+proc32 wakeup_nsdd
 	mov	eax, LDT_sel
-	mov	 fs, eax
+	mov	  fs,ax
 
 	xor	ebx, ebx
 	xor	edx, edx
@@ -233,7 +233,7 @@ proc wakeup_nsdd
 	ret
 
 
-proc send_command_to_nsdd
+proc32 send_command_to_nsdd
 	;  al = command
 	; ebx = code selector
 	push	gs
@@ -241,7 +241,7 @@ proc send_command_to_nsdd
 	push	edi
 
 	mov	edi, [work_adr]
-	mov	gs, ebx
+	mov	 gs,bx
 	mov	[edi+4], ebx
 
 	movzx	ebx, w [gs:NSDD_stra_adr]	; +06h  strategy  entry
@@ -293,7 +293,7 @@ TOWNS_CMOS_READ:
 ;==============================================================================
 ;★TOWNS の終了処理
 ;==============================================================================
-proc exit_TOWNS_32
+proc32 exit_TOWNS_32
 	;------------------------------------------
 	;NSDD 終了処理
 	;------------------------------------------
@@ -360,7 +360,7 @@ proc exit_TOWNS_32
 
 .res_v:	push	es
 	mov	eax,120h		;VRAM セレクタ
-	mov	 es,eax			;Load
+	mov	  es,ax			;Load
 	xor	edi,edi			;edi = 0
 	mov	ecx,512*1024 / 4	;512 KB
 	xor	eax,eax			;塗りつぶす値
@@ -373,7 +373,7 @@ proc exit_TOWNS_32
 ;------------------------------------------------------------------------------
 ;★NSDドライバを sleep させる
 ;------------------------------------------------------------------------------
-proc sleep_nsdd
+proc32 sleep_nsdd
 	mov	ax, 0c003h
 	int	8eh
 	test	ah, ah
@@ -567,7 +567,7 @@ BITS	16
 ;==============================================================================
 ;exit process for TOWNS on 16bit mode
 ;==============================================================================
-proc exit_TOWNS_16
+proc32 exit_TOWNS_16
 	cmp	b [load_nsdd], 0
 	jz	short .no_nsdd
 	;

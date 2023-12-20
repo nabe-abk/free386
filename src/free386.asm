@@ -111,9 +111,9 @@ start:
 ;●パラメタ確認 (free386 への動作指定)
 ;------------------------------------------------------------------------------
 proc16 parameter_check
-	mov	si,  81h		;argument string pointer
-	mov	bp, 0ffh		;     max string pointer
-	xor	cx, cx
+	mov	si, 81h			;argument string pointer
+	mov	bp, 7fh			;argument max length
+	xor	bx, bx
 
 	jmp	short .loop
 
@@ -137,7 +137,7 @@ proc16 parameter_check
 .para_maxreal:
 .para_minreal:
 .para_callbuf:
-	add	si, cx
+	add	si, bx
 	call	get_next_parameter	;skip next parameter
 	jmp	short .loop
 
@@ -152,9 +152,9 @@ proc16 parameter_check
 	jmp	short .sp_param_return
 
 .loop:
-	add	si, cx
-	call	get_next_parameter	;si=string, cx=length
-	test	cx, cx
+	add	si, bx
+	call	get_next_parameter	;si=string, bx=length
+	test	bx, bx
 	jz	.end_paras		;0
 
 	cmp	b [si],'-'		;'-' parameter?
@@ -244,8 +244,8 @@ proc16 parameter_check
 	; save exp file name
 	;///////////////////////////////
 .end_paras:
-	mov	[exp_name_adr],  si
-	mov	[exp_name_size], cx
+	mov	[exp_name_adr], si
+	mov	[exp_name_len], bx
 
 
 ;------------------------------------------------------------------------------
@@ -261,9 +261,10 @@ proc16 print_title
 	cmp	b [verbose], 2
 	jb	.skip
 
-	mov	dx, cs
-	mov	si, seg_hex
-	call	HEX_conv4
+	mov	ax, cs		; number
+	mov	cx, 4		; digits
+	mov	di, seg_hex	; store target
+	call	bin2hex_16
 	PRINT86	seg_msg
 .skip:
 
@@ -278,11 +279,11 @@ machine_check:
 	jz	.no_check		;0 ならチェックしない
 
 %if TOWNS
-	call	check_TOWNS_16		;TOWNSか判別
+	call	check_TOWNS_16
 %elif PC_98
-	call	check_PC98_16		;PC-98x1か判別
+	call	check_PC98_16
 %elif PC_AT
-	call	check_AT_16		;PC/AT互換機か判別
+	call	check_AT_16
 %endif
 
 	jnc	.check_safe		;Cy=0 なら該当機種
@@ -297,7 +298,7 @@ machine_check:
 ;●VCPI の存在確認
 ;------------------------------------------------------------------------------
 %if CHECK_EMS
-proc16 check_ems_driver
+proc8 check_ems_driver
 	;
 	; check EMS
 	;
@@ -386,7 +387,7 @@ get_vcip_memory_size:
 ;------------------------------------------------------------------------------
 ; Memory setting
 ;------------------------------------------------------------------------------
-proc16 memory_setting
+proc8 memory_setting
 	;//////////////////////////////////////////////////
 	; Save real mode interrupt table: 0000:0000-03ff
 	;//////////////////////////////////////////////////
@@ -513,7 +514,7 @@ XMS_setup:
 ;●拡張メモリの確保 (use XMS2.0) / Max 64MB
 ;------------------------------------------------------------------------------
 %if USE_XMS20
-proc16 get_EMB_XMS20
+proc8 get_EMB_XMS20
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
 	PRINT86	msg_06		;'Found XMS 2.0'
@@ -548,7 +549,7 @@ get_EMB_failed:
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS3.0)
 ;------------------------------------------------------------------------------
-proc16 get_EMB_XMS30
+proc8 get_EMB_XMS30
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
 	PRINT86	msg_07		;'Found XMS 3.0'
@@ -573,7 +574,7 @@ proc16 get_EMB_XMS30
 ;------------------------------------------------------------------------------
 ;●確保した拡張メモリのロック と 拡張メモリの初期情報設定
 ;------------------------------------------------------------------------------
-proc16 lock_EMB
+proc8 lock_EMB
 	mov	ah,0ch		;EMB memory lock
 	XMS_function		;
 	test	ax,ax		;ax = 0?
@@ -612,7 +613,7 @@ proc16 lock_EMB
 ;------------------------------------------------------------------------------
 ; alloc user call buffer
 ;------------------------------------------------------------------------------
-proc16 alloc_user_call_buffer
+proc8 alloc_user_call_buffer
 	movzx	ax, b [user_cbuf_pages]
 	test	ax, ax
 	jz	.use_internal_buffer
@@ -641,7 +642,7 @@ proc16 alloc_user_call_buffer
 ;------------------------------------------------------------------------------
 ; initalize page directory and first page table
 ;------------------------------------------------------------------------------
-proc16 init_page_directory
+proc8 init_page_directory
 	mov	ax,  2			;page dir + page table 0
 	mov	cl, 13			;error code: 'Page table allocation failed'
 	call	dos_malloc_page
@@ -683,7 +684,7 @@ proc16 init_page_directory
 ;	additional page tables are required in DOS memory.
 ;  拡張メモリが4MB以上使われている時、DOSメモリ内に追加ページテーブルが必要。
 ;
-proc16 alloc_page_table
+proc8 alloc_page_table
 	mov	eax, [EMB_physi_adr]	; free memory's phisical address
 	add	eax, 0fffh		; 4KB Unit
 	shr	eax, 22			; to need page tables
@@ -729,7 +730,7 @@ proc16 alloc_page_table
 ;------------------------------------------------------------------------------
 ; [VCPI] get protected mode interface
 ;------------------------------------------------------------------------------
-proc16 get_VCPI_interface
+proc8 get_VCPI_interface
 	push	es
 
 	mov	ax, [page_dir_seg]	;page directory segment
@@ -1042,7 +1043,7 @@ free_EMB:
 ;------------------------------------------------------------------------------
 ; hook for int 24
 ;------------------------------------------------------------------------------
-proc hook_int_24h
+proc16 hook_int_24h
 	pushf
 	call	far [cs:DOS_int24h_adr]
 
@@ -1059,7 +1060,7 @@ proc hook_int_24h
 ;==============================================================================
 ;■プログラムの終了 (16 bit)
 ;==============================================================================
-proc exit_16
+proc16 exit_16
 	;////////////////////////////////////////////////////////////
 	;/// 割り込みマスク復元 /////////////////////////////////////
 	%if Restore8259A && I8259A_IMR_S
@@ -1099,7 +1100,7 @@ proc exit_16
 ;------------------------------------------------------------------------------
 ; in	ah = Free386's internal error code
 ;
-proc error_exit_16
+proc16 error_exit_16
 	;
 	; search error message
 	;

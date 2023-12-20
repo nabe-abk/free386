@@ -14,22 +14,19 @@ segment	text class=CODE align=4 use16
 ; parse parameter
 ;------------------------------------------------------------------------------
 ; in	si = string pointer
-;	bp = string pointer max
+;	bp = length
 ; out	si = found parameter pointer
 ;	cx = length of parameter
+;	bp = remain length
 ;
 proc16 get_next_parameter
 	push	ax
-	push	bx
-	xor	cx, cx
-
+	xor	bx, bx
 .loop:
-	mov	bx, si
-	add	bx, cx
-	cmp	bx, bp
-	ja	.last
+	test	bp, bp
+	jz	.last
 
-	mov	al,[bx]
+	mov	al,[si + bx]
 	cmp	al,' '  	;SPACE
 	jz	.separator
 	cmp	al,'	'	;TAB
@@ -37,207 +34,94 @@ proc16 get_next_parameter
 	cmp	al,20h		;NULL or CR
 	jb	.last
 
-	inc	cx
+	inc	bx
+	dec	bp
 	jmp	short .loop
 
 .separator:
-	test	cx,cx
+	test	bx,bx
 	jnz	.last
 	inc	si
+	dec	bp
 	jmp	short .loop
 
 .last:
-	pop	bx
 	pop	ax
 	ret
 
-;------------------------------------------------------------------------------
-;○Ｈｅｘから二進数への変換
-;------------------------------------------------------------------------------
-;
-;	in	ds:di	…解析する文字列（null で終わる）
-;	ret	ax	…結果の数値
-;		Cy=1	…エラー
-;
-;
-	global	hex_to_bin
 
-	align	2
-hex_to_bin:
+;------------------------------------------------------------------------------
+; number to hex digits
+;------------------------------------------------------------------------------
+; in	eax = value
+;	 cx = number of digits
+;	 di = store string
+;
+; ret	 di = last store address +1
+;
+proc16 bin2hex_16
 	push	bx
-	push	si
-	push	di
+	push	cx
+	push	dx
 
-	xor	ax,ax
-	xor	bx,bx
-	mov	si,offset h2b	;数値変換テーブルロード
+	push	cx
+	mov	dx, cx
+	shl	dx, 2		; *4
+	mov	cl, 32
+	sub	cl, dl
+	rol	eax,cl
+	pop	cx
 
-	align	2
-hex_to_bin_loop:
-	mov	bl,[di]
+.loop:
+	rol	eax, 4
+	movzx	bx, al
+	and	bl, 0fh
+	mov	dl, [hex_str + ebx]
+
+	cmp	b [di], '_'
+	jne	.skip
 	inc	di
+.skip:
+	mov	[di], dl
+	inc	di
+	loop	.loop
 
-	cmp	bl,0		;null と比較
-	je	h2b_end		;ルーチン終了
-
-	;
-	;『h』は無視する
-	;
-	cmp	bl,'H'
-	je	hex_to_bin_loop
-	cmp	bl,'h'
-	je	hex_to_bin_loop
-
-	cmp	bl,'0'		;コード30h と比較
-	jb	h2b_error	;それより小さければエラー(=jmp)
-	cmp	bl,'f'		;コード66h と比較
-	ja	h2b_error	;それより大きければエラー(=jmp)
-
-	;
-	;テーブル検索
-	;
-	sub	bl,30h		;30h を引く（テーブル検索用）
-	mov	bl,[bx+si]	;テーブルの値をロード
-	cmp	bl,0ffh		;-1 と比較
-	je	h2b_error	;等しいとエラー
-
-	;
-	;数値加算
-	;
-	shl	ax,4		;結果ﾚｼﾞｽﾀ 4 ﾋﾞｯﾄｼﾌﾄ（×4）
-	add	ax,bx		;テーブルの値を足す
-
-	jmp	hex_to_bin_loop	;ループ
-
-
-	align	2
-h2b_error:
-	pop	di
-	pop	si
-	pop	bx
-	stc		;キャリーセット(エラー)
-	ret
-
-
-	align	2
-h2b_end:
-	pop	di
-	pop	si
-	pop	bx
-	clc		;キャリークリア(正常終了)
-	ret
-
-
-
-	align	2
-;------------------------------------------------------------------------------
-;○数値→Ｈｅｘ変換（４ケタ固定）
-;------------------------------------------------------------------------------
-;
-;	dx を16進数で、[si] に記録する
-;	si は ret 時 +4される。
-;
-	global	HEX_conv4
-HEX_conv4:
-	push	ax
-	push	bx
-	push	dx
-	push	di
-	mov	di,offset hex_str	;16進数文字列
-	xor	bx,bx
-
-	;１文字目記録
-	mov	bl,dh
-	and	bl,0f0h
-	shr	bx,4
-	mov	al,[di+bx]
-	mov	[si],al
-	inc	si
-
-	;２文字目記録
-	mov	bl,dh
-	and	bl,0fh
-	mov	al,[di+bx]
-	mov	[si],al
-	inc	si
-
-	;３文字目記録
-bin2Hex_2:			;２文字のみ変換時に使用（笑）
-	mov	bl,dl
-	and	bl,0f0h
-	shr	bx,4
-	mov	al,[di+bx]
-	mov	[si],al
-	inc	si
-
-	;４文字目記録
-	mov	bl,dl
-	and	bl,0fh
-	mov	al,[di+bx]
-	mov	[si],al
-	inc	si
-
-	pop	di
 	pop	dx
+	pop	cx
 	pop	bx
-	pop	ax
 	ret
-
-
-
-	align	2
-;------------------------------------------------------------------------------
-;○数値→Ｈｅｘ変換（２ケタ固定）
-;------------------------------------------------------------------------------
-;
-;	dl を16進数で、[si] に記録する
-;	si は ret 時 +4される。
-;
-	global	HEX_conv2
-HEX_conv2:
-	push	ax
-	push	bx
-	push	dx
-	push	di
-	mov	di,offset hex_str	;16進数文字列
-	xor	bx,bx
-
-	jmp	short	bin2Hex_2	;そんだけかい
 
 
 ;##############################################################################
-;●サブルーチン (32 bit)
+; 32bit subroutine
 ;##############################################################################
 BITS	32
-	align	4
 ;------------------------------------------------------------------------------
-;○NULL で終わる文字列の表示
+; output null terminate string
 ;------------------------------------------------------------------------------
 ;	ds:[edx]  strings (Null determinant)
 ;
-	global	string_print
-string_print:
+proc32 print_string_32
 	push	eax
 	push	ebx
 	push	edx
 
-	mov	ebx,edx		;ebx 文字列先頭
-	dec	ebx		;-1 する
-
-	align	4
+	mov	ebx,edx		; ebx = string point
+	xor	al, al		; al = 0
+	dec	ebx
 .loop:
-	inc	ebx		;ポインタ更新
-	cmp	byte [ebx],0	;NULL 文字と比較
+	inc	ebx
+	cmp	byte [ebx], al	; ==0
 	jne	short .loop
 
-	mov	byte [ebx],'$'	;文字列終端を一時的に置き換える
-	mov	ah,09h		;display string
-	int	21h		;DOS call
-	mov	byte [ebx],0	;NULL に復元
+	mov	byte [ebx],'$'
+	mov	ah,09h
+	int	21h
+	mov	byte [ebx],0
 
 	mov	ah,09h
-	mov	edx,offset cr_lf	;改行
-	int	21h			;表示
+	mov	edx,offset cr_lf
+	int	21h
 
 	pop	edx
 	pop	ebx
@@ -245,18 +129,15 @@ string_print:
 	ret
 
 
-	align	4
 ;------------------------------------------------------------------------------
-;○数値→１０進数変換（ｎケタ）
+; binary to decimal number
 ;------------------------------------------------------------------------------
+; in	eax = number
+;	edi = store buffer
+;	ecx = number of digits
+; ret	edi = last store address +1
 ;
-;	eax を 10進数 で、[edi] に記録する。
-;	変換するケタ数は ecx 桁（2～10桁 ／ 厳守！！）
-;
-;ret	edi = 最後の文字の次の byte
-;
-	global	bin2deg_32
-bin2deg_32:
+proc32 bin2dec_32
 	push	eax
 	push	ebx
 	push	ecx
@@ -264,40 +145,46 @@ bin2deg_32:
 	push	esi
 	push	ebp
 
-	mov	ebx,offset deg_table	;10^n 数値テーブル
-	mov	esi,offset hex_str	;10進 文字列変換テーブル
+	test	ecx, ecx		; safety check
+	jz	.exit
 
-	dec	ecx			;桁数 -1
-	mov	ebp,15			;危険防止のためのマスク値
-	mov	byte [esi],' '		;0 の部分に スペースを入れる
-	and	ecx,ebp			;危険防止のためのマスク
+	mov	esi, eax		; esi = number
 
-	align	4
+	mov	eax,   1
+	mov	ebx,  10
+	and	ecx, byte 0fh		; safety
+	mov	ebp, ecx		; backup loop counter
+.mul:
+	push	eax
+	mul	ebx			; edx:eax = eax*ebp
+	loop	.mul
+
+	mov	edx, esi		; edx = number
+	mov	esi, offset hex_str	; hex table
+
+	mov	byte [esi], ' '		; 0 to space
+	mov	ecx, ebp		; ecx = num of digits -1
 .loop:
-	;----------------loop---
-	xor	edx,edx			;edx = 0
-	div	dword [ebx + ecx*4]	;最上位のケタから割っていく
-					;edx.eax / 10^ecx = eax (余り=edx)
-	and	eax,ebp			;危険防止のため（for 最上位桁）
+	mov	eax, edx		; eax = current number
+	xor	edx, edx		; edx = 0
+	pop	ebp
+	div	ebp			; edx:eax / 10^ecx = eax mod edx
 
-	test	eax,eax			;値チェック
-	jz	short .skip		;0 だったら jmp
-	mov	byte [esi],'0'		;0 の位置に '0' を入れる
+	cmp	ecx, byte 1		; last digit
+	je	short .store0		; store '0' to table
+	test	eax, eax
+	jz	short .skip
+.store0:
+	mov	byte [esi], '0'		; if non zero, set '0'
 .skip:
+	and	eax, byte 0fh		; safety
+	mov	al,[esi + eax]		; al = char
+	mov	[edi],al		; save
 
-	mov	al,[esi + eax]		;該当文字コード (0～9)
-	mov	[edi],al		;記録
-	mov	eax,edx			;eax = 余り
-	inc	edi			;次の文字格納位置ヘ
-
-	loop	.loop			;ecx = 0 になるまで繰り返す
-	;--------------------loop end---
-
-	mov	b [esi],'0'		;0 の位置に '0' を入れる
-	mov	al,[esi + eax]		;最後の桁の文字コード (0～9)
-	mov	[edi],al
 	inc	edi
+	loop	.loop
 
+.exit:
 	pop	ebp
 	pop	esi
 	pop	edx
@@ -307,19 +194,16 @@ bin2deg_32:
 	ret
 
 
-	align	4
 ;------------------------------------------------------------------------------
-;○数値→１６進数変換（ｎケタ）
+; number to hex digits
 ;------------------------------------------------------------------------------
-;
-;	eax = value
+; in	eax = value
 ;	ecx = number of digits
+;	edi = store string
 ;
-;ret	edi = 最後の文字の次の byte
+; ret	edi = last store address +1
 ;
-	global	bin2hex_32
-bin2hex_32:
-	push	eax
+proc32 bin2hex_32
 	push	ebx
 	push	ecx
 	push	edx
@@ -329,7 +213,7 @@ bin2hex_32:
 	shl	edx,2		; *4
 	mov	cl, 32
 	sub	cl, dl
-	shl	eax,cl
+	rol	eax,cl
 	pop	ecx
 
 .loop:
@@ -349,18 +233,15 @@ bin2hex_32:
 	pop	edx
 	pop	ecx
 	pop	ebx
-	pop	eax
 	ret
 
 ;------------------------------------------------------------------------------
-;○次の # を書き換える
+; auto rewrite #### to digits
 ;------------------------------------------------------------------------------
-;	eax	value
+; in	eax	value
 ;	edi	target
 ;
-	align	4
-	global	rewrite_next_hash_to_hex
-rewrite_next_hash_to_hex:
+proc32 rewrite_next_hash_to_hex
 	push	ecx
 .loop:
 	inc	edi
@@ -372,21 +253,18 @@ rewrite_next_hash_to_hex:
 	ret
 
 
-	align	4
-	global	rewrite_next_hash_to_deg
-rewrite_next_hash_to_deg:
+proc32 rewrite_next_hash_to_dec
 	push	ecx
 .loop:
 	inc	edi
 	cmp	b [edi], '#'
 	jne	.loop
 	call	count_num_of_hash
-	call	bin2deg_32
+	call	bin2dec_32
 	pop	ecx
 	ret
 
-	align	4
-count_num_of_hash:
+proc32 count_num_of_hash
 	push	edi
 	xor	ecx, ecx
 	jmp	.loop
@@ -403,40 +281,16 @@ count_num_of_hash:
 	pop	edi
 	ret
 
-;------------------------------------------------------------------------------
-;------------------------------------------------------------------------------
-
-
-	align	4
-;//////////////////////////////////////////////////////////////////////////////
+;##############################################################################
 ; DATA
-;//////////////////////////////////////////////////////////////////////////////
+;##############################################################################
 segment	data class=DATA align=4
 
 global	hex_str
-;------------------------------------------------------------------------------
-deg_table:
-deg_00	dd	1
-deg_01	dd	10
-deg_02	dd	100
-deg_03	dd	1000
-deg_04	dd	10000
-deg_05	dd	100000
-deg_06	dd	1000000
-deg_07	dd	10000000
-deg_08	dd	100000000
-deg_09	dd	1000000000
+global	cr_lf
 
 hex_str	db	'0123456789abcdef'
-
-;*** 16 進数 数値変換用テーブル ***
-h2b	db	 0, 1, 2, 3, 4, 5, 6, 7,  8, 9,-1,-1,-1,-1,-1,-1
-	db	-1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1
-	db	-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1
-	db	-1,10,11,12,13,14,15,-1
-
 cr_lf	db	13,10,'$'
-
 
 ;------------------------------------------------------------------------------
 ;------------------------------------------------------------------------------

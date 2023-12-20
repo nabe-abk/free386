@@ -36,7 +36,7 @@ segment	text class=CODE align=4 use16
 ;==============================================================================
 ;■V86←→Protect連携ルーチンのセットアップ
 ;==============================================================================
-proc setup_cv86
+proc32 setup_cv86
 	;//////////////////////////////////////////////////
 	;リルアモード割り込みフックルーチン生成用メモリ取得
 	;//////////////////////////////////////////////////
@@ -100,7 +100,7 @@ call_V86_int:
 
 	cli
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
-	mov	 es,eax			;es にロード
+	mov	  es,ax			;es にロード
 	mov	eax,[esp + 4*7]		;引数（ベクタ番号*4）を取得
 	mov	eax,[es:eax*4]		;V86 割り込みベクタロード
 	mov	[call_V86_adr],eax	;呼び出しアドレスセーブ
@@ -150,7 +150,7 @@ call_V86_HARD_int:
 	push	eax			;ds
 
 	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
-	mov	 es,eax
+	mov	  es,ax
 	push	d [es:esi*4]		;V86割り込みベクタ
 
 	call	call_V86
@@ -267,7 +267,7 @@ BITS	32
 	align	4
 .retPM:
 	mov	eax,F386_ds		;ds
-	mov	 ds,eax			;gs にロード
+	mov	  ds,ax			;gs にロード
 
 	lss	esp,[save_esp]		;スタック復元
 	call	free_sw_stack_32
@@ -356,10 +356,10 @@ BITS	32
 	align	4
 .32:
 	mov	eax,F386_ds		;
-	mov	 ds,eax			;ds ロード
-	mov	 es,eax			;
-	mov	 fs,eax			;
-	mov	 gs,eax			;
+	mov	  ds,ax			;ds ロード
+	mov	  es,ax			;
+	mov	  fs,ax			;
+	mov	  gs,ax			;
 
 	lss	esp,[PM_stack_adr]	;専用スタックロード
 	;call	alloc_sw_stack_32	;スタック領域確保
@@ -442,10 +442,10 @@ callf32_from_V86:
 BITS	32
 .32:
 	mov	eax,F386_ds		;
-	mov	 ds,eax			;ds ロード
-	mov	 es,eax			;
-	mov	 fs,eax			;
-	mov	 gs,eax			;
+	mov	  ds,ax			;ds ロード
+	mov	  es,ax			;
+	mov	  fs,ax			;
+	mov	  gs,ax			;
 	lss	esp, [cf32_esp32]	;ss:esp を設定
 
 	pop	esi

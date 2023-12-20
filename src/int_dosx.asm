@@ -9,7 +9,7 @@
 ;------------------------------------------------------------------------------
 ;・Verison 情報取得  AH=30h
 ;------------------------------------------------------------------------------
-proc int_21h_30h
+proc32 int_21h_30h
 	clear_cy	; stack eflags clear
 
 	;eax の上位16bit に 'DX' を入れる
@@ -129,14 +129,14 @@ int_21h_49h:			;仮対応の機能 / メモリ解放をしていない
 	push	ds
 
 	mov	eax,F386_ds
-	mov	 ds,eax
+	mov	  ds,ax
 
 	mov	eax,es			;eax = 引数セレクタ
 	call	sel2adr			;アドレス変換
 	and	b [ebx + 5],7fh		;P(存在) bit を 0 クリア
 
 	xor	eax,eax			;eax = 0
-	mov	 es,eax			;es  = 0
+	mov	  es,ax			;es  = 0
 
 	pop	ds
 	pop	ebx
@@ -146,7 +146,7 @@ int_21h_49h:			;仮対応の機能 / メモリ解放をしていない
 
 
 ;------------------------------------------------------------------------------
-;・セグメントの大きさ変更  AH=4ah
+;・セレクタの大きさ変更  AH=4ah
 ;------------------------------------------------------------------------------
 ;  in	 es = selector
 ;	ebx = new page size
@@ -154,7 +154,7 @@ int_21h_49h:			;仮対応の機能 / メモリ解放をしていない
 ;	incompatible: not free memory
 ;	非互換: メモリ解放機能なし
 ;
-proc int_21h_4ah
+proc32 int_21h_4ah
 	push	eax
 	push	ebx
 	push	ecx
@@ -165,9 +165,9 @@ proc int_21h_4ah
 	push	fs
 
 	mov	eax,F386_ds
-	mov	 ds,eax
+	mov	  ds,ax
 	mov	eax,ALLMEM_sel
-	mov	 fs,eax
+	mov	  fs,ax
 
 	mov	edi,ebx			;edi = 変更後サイズ(値保存)
 	mov	eax,es			;eax = 引数セレクタ
@@ -444,14 +444,14 @@ DOSX_fn_2503h:
 ; in 	cl     = interrupt number
 ;	ds:edx = entry point
 ;
-proc DOSX_fn_2504h
+proc32 DOSX_fn_2504h
 	push	eax
 	push	ecx
 	push	ds
 
 	movzx	ecx,cl			;0 拡張ロード
 	mov	ax,F386_ds		;
-	mov	ds,eax			;ds load
+	mov	 ds,ax			;ds load
 
 %if ((HW_INT_MASTER < 20h) || (HW_INT_SLAVE < 20h))
 	cmp	cl,20h		;
@@ -501,7 +501,7 @@ DOSX_fn_2505h:
 	clear_cy
 	iret
 
-proc set_V86_vector
+proc32 set_V86_vector
 	push	ds
 	push	ebx
 	push	ecx
@@ -665,7 +665,7 @@ DOSX_fn_250ah:			;仮対応！！
 	push	ebx	;スタック順番変更不可！
 
 	mov	edx,F386_ds	;ds ロード
-	mov	 ds,edx		;ds に設定
+	mov	  ds,dx		;ds に設定
 
 	mov	ebx,es		;指定セレクタロード
 	pushf			;*
@@ -756,7 +756,7 @@ DOSX_fn_250ch:
 ;	   ebx = Seg:Off - 16bit buffer address
 ;	es:edx = buffer protect mode address
 ;
-proc DOSX_fn_250dh
+proc32 DOSX_fn_250dh
 	mov	ebx, d [cs:user_cbuf_adr16]
 	movzx	ecx, b [cs:user_cbuf_pages]
 	shl	ecx, 12				; page to byte
@@ -852,7 +852,7 @@ DOSX_fn_250fh:
 ;------------------------------------------------------------------------------
 ;・リアルモードのルーチンfarコール　AX=250eh
 ;------------------------------------------------------------------------------
-proc DOSX_fn_250eh
+proc32 DOSX_fn_250eh
 	test	ecx,ecx		;スタックコピー回数
 	jnz	.fail		;指定があれば失敗
 
@@ -963,7 +963,7 @@ DOSX_fn_2510h:		;仮対応！！
 ;	+0ah d eax
 ;	+0eh d edc
 ;
-proc DOSX_fn_2511h
+proc32 DOSX_fn_2511h
 	push	edx
 	push	eax
 	push	edx	; work area
@@ -995,7 +995,7 @@ proc DOSX_fn_2511h
 	; save call entry point
 	push	es
 	mov	eax,DOSMEM_sel		;DOS メモリアクセスセレクタ
-	mov	 es,eax			;load
+	mov	  es,ax			;load
 	movzx	eax,b [edx]		;ds:edx から割り込み番号読み出し
 	mov	eax,[es:eax*4]		;ベクタアドレス取得 = 呼び出しアドレス
 	pop	es

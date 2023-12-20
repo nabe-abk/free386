@@ -1,45 +1,31 @@
-;------------------------------------------------------------------------------
-;F386sub.asm	subroutine for Free386
-;------------------------------------------------------------------------------
+;******************************************************************************
+; subroutine for Free386
+;******************************************************************************
 ;[TAB=8]
-;	Author kattyo@abk / nabe@abk
 ;
 ;------------------------------------------------------------------------------
 
-%include	"macro.inc"
-%include	"f386def.inc"
+%include "macro.inc"
+%include "f386def.inc"
 
-%include	"start.inc"
-%include	"free386.inc"
-%include	"memory.inc"
-%include	"selector.inc"
+%include "start.inc"
+%include "sub.inc"
+%include "free386.inc"
+%include "memory.inc"
+%include "selector.inc"
 
 ;------------------------------------------------------------------------------
-	global	register_dump
-	global	register_dump_fault
-	global	dump_err_code
-	global	dump_orig_esp
-	global	dump_orig_ss
+global	dump_err_code
+global	dump_orig_esp
+global	dump_orig_ss
+;------------------------------------------------------------------------------
 
-	global	eax2hex
-
-	global	searchpath		;ファイルのパスサーチ
-	global	load_exp		;exp ファイルのロード
-	global	run_exp			;exp ファイルの実行
-
-;******************************************************************************
-; start of code
-;******************************************************************************
 segment	text32 class=CODE align=4 use32
 ;##############################################################################
 ;stack dump
 ;	This is PDS.
-;	made by 合著@ABK  2000/07/24
+;	original made by 合著@ABK  2000/07/24
 ;##############################################################################
-;
-; 2001/01/18	Free386 への組み込み		(by nabe@abk)
-; 2001/02/06	仕様の勘違いを訂正 & 改良	(by nabe@abk)
-;
 ;------------------------------------------------------------------------------
 ;●レジスタダンプ表示
 ;------------------------------------------------------------------------------
@@ -53,7 +39,7 @@ segment	text32 class=CODE align=4 use32
 
 %if INT_HOOK
 ;------------------------------------------------
-proc register_dump_from_int
+proc32 register_dump_from_int
 ;------------------------------------------------
 	push	ds
 	push	eax
@@ -175,9 +161,8 @@ proc register_dump_from_int
 %endif
 %endif
 
-	align	4
 ;------------------------------------------------
-register_dump:
+proc32 register_dump
 ;------------------------------------------------
 	pushf
 	push	cs
@@ -187,7 +172,7 @@ register_dump:
 	push	ds
 	push	eax
 	mov	eax, F386_ds
-	mov	 ds, eax
+	mov	  ds,ax
 	mov	eax,[esp+1ch]	; caller
 	mov	[esp+10h],eax
 	mov	d [dump_err_code], -1
@@ -211,7 +196,7 @@ register_dump:
 	align 4
 ;------------------------------------------------
 ;------------------------------------------------
-proc register_dump_fault
+proc32 register_dump_fault
 	; in	stack +04h	eax
 	;
 	; レジスタ保存, ds設定済で呼び出すこと
@@ -385,315 +370,202 @@ eax2hex:
 	ret
 
 ;##############################################################################
-;findpath  -  search PATH
-;	This is PDS.
-;	made by 合著@ABK  2000/07/24
+; search PATH/ENV
 ;##############################################################################
+;/////////////////////////////////////////////////////////////////////////////
+; get ENV pointer by ENV name
+;/////////////////////////////////////////////////////////////////////////////
+; in	[ebx]	env name
 ;
-; 2001/01/31	Free386 への組み込み (by nabe@abk)
+; ret	cy=0	fs:[edx] target env value
+;	cy=1	fs:[edx] env end after "00h 00h" or zero
 ;
-;------------------------------------------------------------------------------
-;●本体
-;------------------------------------------------------------------------------
-;
-; searchpath
-;
-;in:
-;	[esi]	プログラム名
-;	[ebx]	環境変数名
-;ret:
-;	eax	0=見つかった
-;		  [edi]	検索結果プログラム名
-;		1=プログラムファイルがない
-;		2=該当する名前の環境変数がない
-;
-	align	4
-searchpath:
-		;最初にカレントディレクトリを探す
-		mov	edx, esi		; ファイル名
-		call	is_file_exist
-		jc	.search_current_add_EXP
-		mov	edi, esi
-		mov	eax, 0
-		ret
+proc32 search_env
+	push	eax
+	push	ebx
+	push	ecx
+	push	esi
+	push	ebp
+
+	mov	eax, DOSENV_sel
+	mov	 fs, ax
+	lsl	ebp, eax		; ebp = env selector limit
+
+	xor	esi, esi
+	jmp	short .compare		; find start
+
+.next_env:
+	add	esi, ecx
+.next_env_loop:
+	cmp	byte fs:[esi-1], 0
+	je	.compare
+	inc	esi
+	dec	ebp
+	jz	.not_found
+	jmp	short .next_env_loop
+
+.compare:
+	xor	ecx, ecx		; need before "found_env_end"
+	cmp	byte fs:[esi], 0	; ENV first byte is 0
+	je	.found_env_end		; 
+.compare_loop:
+	mov	al, fs:[esi + ecx]	; ENV memory
+	mov	dl,    [ebx + ecx]	; ENV name
+	inc	ecx
+	dec	ebp
+	jz	.not_found
+
+	test	al, al			; found 0 in ENV
+	jz	.next_env
+
+	test	dl, dl			; dl==0
+	jnz	.skip
+	cmp	al, '='
+	je	.match
+.skip:
+	cmp	al, dl
+	jne	.next_env
+	jmp	.compare_loop
 
 
-	align	4
-.search_current_add_EXP:
-		push	esi
-		mov	ecx, 0
-.search_current_add_EXP_strcpy:
-		mov	al, [esi]
-		mov	[nowpath + ecx], al
-		inc	esi
-		inc	ecx
-		or	al, al
-		jnz	.search_current_add_EXP_strcpy
-		
-		pop	esi
-		
-		mov	d [nowpath + ecx - 1], '.EXP'
-		mov	b [nowpath + ecx + 3], 0
-		mov	edx, offset nowpath
-		call	is_file_exist
-		jc	.search_path
-		
-		mov	edi, offset nowpath
-		mov	eax, 0
-		ret
-		
-.search_path:
-		call	___getenv_2
-		or	eax, eax
-		jz	.ng_env_notfound
+.match:
+	mov	edx, esi
+	add	edx, ecx	; edx = found address
+	clc			; success
+.ret:
+	pop	ebp
+	pop	esi
+	pop	ecx
+	pop	ebx
+	pop	eax
+	ret
 
-.search_next:
-		call	getnextpath_
-		or	eax, eax
-		jz	.no_program
-
-		call	add_progname_
-		
-		mov	edx, offset nowpath	; ファイル名
-		call	is_file_exist		; 存在検査
-		
-		jc	.add_EXP
-		
-		mov	edi, offset nowpath
-		mov	eax, 0
-		ret
-		
-.add_EXP:
-		mov	edx, offset nowpath
-		mov	eax, [nowpath_len]
-		mov	byte [edx + eax], '.'
-		
-;	push	esi
-;	mov	esi, edx
-;	call	print_sz
-;	pop	esi
-		
-		call	is_file_exist
-		
-		jc	.not_found
-		
-		mov	edi, offset nowpath
-		mov	eax, 0
-		ret
 .not_found:
-		jmp	.search_next
+	xor	edx, edx
+	stc
+	jmp	short .ret
 
-.no_program:
-		mov	eax, 2
-		ret
-
-.ng_env_notfound:
-		mov	eax, 1
-		ret
-
-; 環境変数がない
-.ng_notfound:
-		mov	eax, 2
-		ret
+.found_env_end:
+	mov	edx, esi
+	inc	edx
+	stc
+	jmp	short .ret
 
 
-;ファイルが開けるか検査
+
+;/////////////////////////////////////////////////////////////////////////////
+; search PATH, find file from PATH
+;/////////////////////////////////////////////////////////////////////////////
+; in	[esi]	find file name
+;	[ebx]	env name
+;	 edi	work address (size:100h)
 ;
-;in:
-;	[edx]	ファイル名
-;ret:
-;	Cy	0 ファイルがある
-;		1 ファイルがない
+; ret	fs	destroy
+;	cy=0	found: store [edi] found file name
+;	cy=1	not found
 ;
-is_file_exist:
-		push	eax
-		push	ebx
-		
-		mov	ah, 03Dh		; File/Device open
-		mov	al, 000b		; 読み込みのみ
-		int	021h
-		jnc	.file_found
+proc32 search_path
+	pusha
 
-		jmp	.ret
+	call	search_env	; fs:[edx] = ENV string
+	jc	.fail
+	cmp	byte fs:[edx],'0'
+	je	.fail
 
-.file_found:
-		mov	bx, ax		; BX=ハンドル
-		mov	ah, 03Eh	; File/Device Close
-		int	21h
-		jmp	.ret
+	mov	ebp, edi	; ebp = save edi
+.copy_path_start:
+	mov	ecx, 0ffh -1	; ebp = file name limit, -1 for '\' mark
+
+.copy_path:
+	mov	al, fs:[edx]
+	mov	[edi], al
+	inc	edx
+	inc	edi
+
+	test	al, al
+	jz	.copy_fname
+	cmp	al, ';'
+	je	.copy_fname
+
+	loop	.copy_path
+	jmp	short .fail	; buffer over flow
+
+.copy_fname:			; copy file name
+	mov	byte [edi-1], '\'
+
+	xor	ebx, ebx
+.copy_fname_loop:
+	mov	al, [esi + ebx]
+	mov	[edi + ebx], al
+	test	al, al
+	jz	.copy_finish
+
+	inc	ebx
+	loop	.copy_fname_loop
+	jmp	short .fail	; buffer over flow
+
+.copy_finish:
+	;
+	; edx = PATH + "\" + filename
+	;
+%if 0
+	push	edx			; print path name for test
+	mov	edx, ebp
+	call	print_string_32
+	pop	edx
+%endif
+
+	mov	edi, ebp
+	call	check_readable_file
+	jnc	.success
+
+	cmp	byte fs:[edx-1], 0
+	jne	.copy_path_start
+
+.fail:
+	stc
+	popa
+	ret
+
+.success:
+	;clc
+	popa	; success
+	ret
+
+
+;/////////////////////////////////////////////////////////////////////////////
+; check readable file
+;/////////////////////////////////////////////////////////////////////////////
+; in	[edi]	file name
+; ret	cy=0	success
+;	cy=1	fail
+;
+proc32 check_readable_file
+	push	eax
+	push	ebx
+	push	edx
+
+	mov	ah, 3dh		; file open
+	mov	al, 100_000b	; 100=share, 000=read mode
+	mov	edx, edi
+	int	21h
+	jc	.ret
+
+	mov	ebx, eax	; ebx = file handle
+	mov	ah, 3eh		; file close
+	int	21h
+
+	clc
 .ret:
-		pop	ebx
-		pop	eax
-		ret
-
-;
-; 環境変数を取得
-;
-;in:
-;	[ebx]		取得すべき環境変数名
-;ret:
-;	eax		結果 (0=失敗、それ以外=成功)
-;	edi		結果の環境変数値 ('='より右側)
-;
-___getenv_2:
-		push	esi
-		push	edi
-		
-		mov	ax, 02Ch
-		mov	es, ax		; 02Ch = 環境変数へのセレクタ
-		mov	edi, 0		; 環境変数セレクタオフセットゼロ
-		
-		;環境変数文字列長さ取得
-		mov	ecx, -1
-		mov	esi, ebx
-.envlencnt:
-		inc	ecx
-		cmp	byte [esi + ecx], 00h
-		jnz	.envlencnt
-		mov	eax, ecx
-		
-
-	align	4
-.loop:
-		mov	ecx, eax		; ECX←EAX(環境変数長さ)
-		mov	esi, ebx		; ESI←EBX(環境変数名)
-		
-		cmp	byte [es:edi], 00h	; 環境変数リスト終端文字か？
-		jz	.ng			; 終端文字なら終了
-		cld
-		
-	repz	cmpsb				; 文字列検査
-		
-		jecxz	.ok
-		
-	align	4
-.loop2:
-		cmp	byte [es:edi], 00h	; 環境変数を全て使いきっていな
-		pushfd				; いかもしれないので検査(次の
-		inc	edi			; 環境変数頭までスキップ処理も
-		popfd				; かねている)
-		jnz	.loop2			;
-		jmp	.loop
-.ng:
-		mov	eax, 0
-		jmp	.ret
-.ok:
-		cmp	byte [es:edi], '='	; イコール記号かどうか '='？
-		jnz	.loop2
-		
-		mov	eax, 1
-		inc	edi
-		mov	[nowenv], edi
-		
-		jmp	.ret
-.ret:
-		pop	edi
-		pop	esi
-		ret
-
-;
-;getnextpath	次の PATH 要素を得る
-;
-;例：A:\DOS;A:\TOOL;A:\GAME;A:\TC\BIN'\0'
-;          ↑      ↑      ↑        ↑
-;
-;in:
-;	得にない
-;ret:
-;	eax	0=失敗
-;	nowpath	得られたディレクトリ名
-;
-getnextpath_:
-		push	esi
-		
-		mov	ecx, 0
-		mov	esi, [nowenv]
-		mov	ax, 02Ch
-		mov	es, ax
-		
-		cmp	b [es:esi], 0
-		jz	.no_more
-		
-.cpy_to_buf:
-		mov	al, [es:esi]
-		mov	b [nowpath + ecx], al
-		inc	esi
-		inc	ecx
-		
-		cmp	al, 00h
-		jz	.cpy_to_buf_end_zero
-		cmp	al, ';'
-		jnz	.cpy_to_buf
-		jmp	.cpy_to_buf_end
-		
-.cpy_to_buf_end_zero:
-		dec	esi
-.cpy_to_buf_end:
-		dec	ecx
-		mov	b [nowpath + ecx], 00h
-		mov	[nowenv], esi
-		mov	[nowpath_len], ecx
-		
-		pop	esi
-		mov	eax, 1
-		ret
-.no_more:
-		mov	eax, 0
-		pop	esi
-		ret
-
-;
-;プログラム名を付加する
-;
-;
-;
-	align	4
-add_progname_:
-		push	edi
-		push	esi
-		
-		mov	edi, offset nowpath
-		add	edi, [nowpath_len]
-		
-		cmp	d [nowpath_len], 0
-		jz	.loop
-		cmp	b [edi - 1], '\'
-		jz	.loop
-		mov	b [edi], '\'
-		mov	b [edi + 1], 0
-		inc	edi
-		
-	align	4
-.loop:
-		mov	al, [esi]
-		mov	[edi], al
-		inc	esi
-		inc	edi
-		or	al, al
-		jnz	.loop
-
-		mov	d [edi], 'EXP'
-		dec	edi
-		sub	edi, offset nowpath
-		mov	d [nowpath_len], edi
-
-		;検索パスの表示
-		;;mov	esi, nowpath
-		;;call	print_sz
-
-		pop	esi
-		pop	edi
-		ret
-
+	pop	edx
+	pop	ebx
+	pop	eax
+	ret
 
 ;##############################################################################
+; load EXP file
 ;##############################################################################
-; under is presented by nabe@abk.
-;/////////////////////////////////////////////////////////////////////////////
-;●.EXP ファイルのロード
-;/////////////////////////////////////////////////////////////////////////////
-;	2001/02/15	F386prot.asm から移動
-;
+
 ;	IN	[edx]	ファイル名 (ASCIIz)
 ;		[esi]	バッファアドレス(min 200h)
 ;
@@ -709,7 +581,7 @@ add_progname_:
 ;------------------------------------------------------------------------------
 ;●EXP ファイルのロード
 ;------------------------------------------------------------------------------
-proc load_exp
+proc32 load_exp
 	push	ds			;最後に積むこと
 	mov	es,[esp]		;es に設定
 
@@ -866,7 +738,7 @@ proc load_exp
 ;	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
 ;	jne	NEAR check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
 ;
-proc .load_MZ_exp
+proc32 .load_MZ_exp
 
 	;////////////////////////////////////////////////////
 	;MZ(MP) ヘッダに対応しない場合
@@ -885,7 +757,7 @@ proc .load_MZ_exp
 	;必要なメモリ算出
 	;
 	;+02h   file size & 511
-	;+04h  (file size + 511) >> 9   / thanks to Mamiya (san)
+	;+04h  (file size + 511) >> 9   // Thanks to Mamiya (san)
 	;
 	mov	ebp,eax		;ebp = eax
 	shr	ebp,16		;+02 w "ファイルサイズ / 512" の余り
@@ -983,8 +855,8 @@ exp_un_pack_fread:
 	;
 	mov	eax,es
 	mov	ecx,ds
-	mov	 ds,eax
-	mov	 es,ecx
+	mov	  ds,ax
+	mov	  es,cx
 	mov	[data1],eax	;このプログラム
 	mov	[data2],ecx	;読み込み先
 
@@ -1273,18 +1145,18 @@ make_cs_ds:
 ;		edx	ロードプログラム EIP
 ;		ebp	ロードプログラム ESP
 ;
-proc run_exp
+proc32 run_exp
 	mov	eax,gs			;DS
-	mov	 ss,eax			;
+	mov	 ss,ax			;
 	mov	esp,ebp			;スタック切り替え
 
 	push	fs			;cs
 	push	edx			;EIP
 
-	mov	ds,eax			;
-	mov	es,eax			;セレクタ初期設定
-	mov	fs,eax			;
-	mov	gs,eax			;
+	mov	ds,ax			;
+	mov	es,ax			;セレクタ初期設定
+	mov	fs,ax			;
+	mov	gs,ax			;
 
 	;
 	;全ての汎用レジスタクリア（起動時の初期値）
@@ -1389,33 +1261,18 @@ dump_orig_esp	dd	-1
 dump_orig_ss	dd	-1
 
 ;------------------------------------------------------------------------------
-;・ファイルパス検索
+; for load exp
 ;------------------------------------------------------------------------------
 	align	4
-nowenv		dd	0
-nowpath_len	dd	0
-;nowpath_pos	dd	0
+data0		dd	0	; temporary
+data1		dd	0	;
+data2		dd	0	;
+data3		dd	0	;
+data4		dd	0	;
 
-nowpath		db	"1234567890123456789012345678901234567890"
-		db	"1234567890123456789012345678901234567890","1234"
-		db	0
-		db	'$',0,0,0
-
-;------------------------------------------------------------------------------
-;・exp ファイルのロード (routin made by nabe@abk)
-;------------------------------------------------------------------------------
-	align	4
-data0		dd	0		;データ一時退避用
-data1		dd	0		;
-data2		dd	0		;
-data3		dd	0		;
-data4		dd	0		;
-
-file_handle	dd	0		;ファイルハンドル
-Load_cs		dd	0		;ロード先セレクタ
-Load_ds		dd	0		;
-
-
+file_handle	dd	0
+Load_cs		dd	0
+Load_ds		dd	0
 
 ;##############################################################################
 ;##############################################################################

@@ -59,7 +59,7 @@ make_selector:
 	push	es
 
 	mov	bx,F386_ds	;F386 を示すセレクタ
-	mov	es,ebx		;
+	mov	 es,bx		;
 
 	mov	ebx,eax		;指定ｾﾚｸﾀ値
 	;mov	edi,[ebp+0ch]	;ﾃﾞｨｸﾘﾌﾟﾀ型を示す構造体ｵﾌｾｯﾄ
@@ -131,7 +131,7 @@ make_selector_4k:
 	push	es
 
 	mov	ebx,F386_ds	;F386 を示すセレクタ
-	mov	 es,ebx		;
+	mov	  es,bx		;
 
 	mov	ebx,eax		;指定ｾﾚｸﾀ値
 	;mov	edi,[ebp+0ch]	;ﾃﾞｨｸﾘﾌﾟﾀ型を示す構造体ｵﾌｾｯﾄ
@@ -188,14 +188,14 @@ make_selector_4k:
 ;	Ret	Cy = 0 成功
 ;		Cy = 1 ページテーブルが足りない
 ;
-proc set_physical_mem
+proc32 set_physical_mem
 	test	ecx,ecx		;割りつけページ数が 0
 	jz	NEAR .ret	;何もせず ret
 
 	pusha
 	push	es
 	mov	eax,ALLMEM_sel		;全メモリアクセスセレクタ
-	mov	 es,eax			;es にロード
+	mov	  es,ax			;es にロード
 	or	 dl,7			;ページの bit0-2 = 存在, R/W, Level 0-3
 	mov	ebp,1000h		;const
 	jmp	short .next_page_table	;ループスタート

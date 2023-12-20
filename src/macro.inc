@@ -7,14 +7,18 @@
 %define	d	dword
 %define	offset
 
-%macro	proc	1
+%macro	proc8	1
 	global	%1
-	align	4
 %1:
 %endmacro
 %macro	proc16	1
 	global	%1
 	align	2
+%1:
+%endmacro
+%macro	proc32	1
+	global	%1
+	align	4
 %1:
 %endmacro
 
@@ -40,26 +44,19 @@
 	pop	eax
 %endmacro
 
-%imacro	PRINT_crlf	0
-	mov	ah,02h
-	mov	dl,13
-	int	21h
-	mov	dl,10
-	int	21h
-%endmacro
 
 ;******************************************************************************
 ;Free386 dependent macro
 ;******************************************************************************
 ;------------------------------------------------------------------------------
-;・XMS Driver を call するマクロ
+; call XMS Driver
 ;------------------------------------------------------------------------------
 %macro	XMS_function	0
 	call	far [XMS_entry]		;XMS far call
 %endmacro
 
 ;------------------------------------------------------------------------------
-;・V86 の int を発効するマクロ
+; V86 int macro
 ;------------------------------------------------------------------------------
 %macro	V86_INT	1
 	pushf
@@ -79,25 +76,22 @@
 %endmacro
 
 ;------------------------------------------------------------------------------
-;・キャリークリア & キャリーセット
+; carry macros
 ;------------------------------------------------------------------------------
-%imacro	set_cy	0	;Carry set
-	or	b [esp+8], 01h	;Carry セット
+%imacro	set_cy	0		;Carry set
+	or	b [esp+8], 01h
 %endmacro
 
-%imacro	clear_cy 0	;Carry reset
-	and	b [esp+8],0feh	;Carry クリア
+%imacro	clear_cy 0		;Carry reset
+	and	b [esp+8],0feh
 %endmacro
 
-save_cy:	;
-cy_save:	;誤植防止措置
+save_cy:	; for typo safety
+cy_save:	;
 cy_set:		;
 cy_clear:	;
 
-;------------------------------------------------------------------------------
-;・キャリーの状態をセーブして iret するマクロ
-;------------------------------------------------------------------------------
-%imacro	iret_save_cy	0	;Cy をセーブし iretd する
+%imacro	iret_save_cy	0
 	jc	.__set_cy
 	clear_cy
 	iret
@@ -107,24 +101,16 @@ cy_clear:	;
 %endmacro
 
 ;------------------------------------------------------------------------------
-;・INT 呼び出しのようにラベルを call するマクロ
+; interrupt label call
 ;------------------------------------------------------------------------------
-%imacro	calli	1	;Cy をセーブし iretd する
+%imacro	calli	1
 	pushf
 	push	cs
 	call	%1
 %endmacro
 
 ;------------------------------------------------------------------------------
-;・レジスタダンプ
-;------------------------------------------------------------------------------
-%imacro call_RegisterDump_with_code	1
-	mov	d [dump_err_code], %1
-	call	register_dump
-%endmacro
-
-;------------------------------------------------------------------------------
-;・INT用レジスタダンプ
+; interrupt hook for register dump
 ;------------------------------------------------------------------------------
 %imacro call_RegisterDumpInt	1
 %if INT_HOOK

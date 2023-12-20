@@ -6,12 +6,12 @@ BITS	32
 ;==============================================================================
 ;★プロテクトモード スタートラベル
 ;==============================================================================
-proc start32
+proc32 start32
 	mov	ebx,F386_ds		;ds セレクタ
-	mov	ds,ebx			;ds ロード
-	mov	es,ebx			;es
-	mov	fs,ebx			;fs
-	mov	gs,ebx			;gs
+	mov	 ds,bx			;ds ロード
+	mov	 es,bx			;es
+	mov	 fs,bx			;fs
+	mov	 gs,bx			;gs
 	lss	esp,[PM_stack_adr]	;スタックポインタロード
 
 ;------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ proc start32
 	pop	ds			;ds:edx = エトリーアドレス
 	int	21h
 
-	mov	ds,ebx			;recovery ds
+	mov	 ds,bx			;recovery ds
 
 	;///////////////////////////////
 	;Free386 独自割り込みの設定
@@ -84,7 +84,7 @@ Debug_code:
 ;------------------------------------------------------------------------------
 ; Memory infomation
 ;------------------------------------------------------------------------------
-proc memory_infomation
+proc8 memory_infomation
 	cmp	b [verbose], 0
 	jz	near .skip
 
@@ -93,11 +93,11 @@ proc memory_infomation
 	; memory info
 	mov	eax, [all_mem_pages]
 	shl	eax, 2				;page to KB
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	; allocated protect memory
 	mov	eax, [max_EMB_free]
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 	mov	eax, [EMB_physi_adr]
 	call	rewrite_next_hash_to_hex
 
@@ -105,14 +105,14 @@ proc memory_infomation
 	mov	eax, [DOS_alloc_sizep]
 	add	eax, b 1fh		;round up
 	shr	eax, 10-4		;para to KB
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 	mov	eax, [DOS_alloc_seg]
 	shl	eax, 4			;seg to linear address
 	call	rewrite_next_hash_to_hex
 
 	; reserved dos memory
 	movzx	eax, b [resv_real_memKB]
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	PRINT	msg_01
 .skip:
@@ -120,7 +120,7 @@ proc memory_infomation
 ;------------------------------------------------------------------------------
 ; more memory infomation
 ;------------------------------------------------------------------------------
-proc more_memory_infomation
+proc8 more_memory_infomation
 	cmp	b [verbose], 1
 	jbe	near .skip
 
@@ -140,7 +140,7 @@ proc more_memory_infomation
 
 	mov	eax, 10000h
 	sub	eax, end_adr
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	; free heap memory
 	mov	ebx, [free_heap_top]
@@ -154,7 +154,7 @@ proc more_memory_infomation
 
 	mov	eax, edx
 	sub	eax, ebx
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	; Real mode vectors backup
 	mov	eax, [RVects_save_adr]
@@ -189,7 +189,7 @@ proc more_memory_infomation
 	dec	eax
 	call	rewrite_next_hash_to_hex
 	mov	eax, ebx
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	; work memory
 	mov	eax, [work_adr]
@@ -204,7 +204,7 @@ proc more_memory_infomation
 	add	eax,  SW_stack_size * SW_max_nest -1
 	call	rewrite_next_hash_to_hex
 	mov	eax,  SW_stack_size
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	mov	eax, [VCPI_stack_adr]
 	sub	eax,  VCPI_stack_size
@@ -227,7 +227,7 @@ proc more_memory_infomation
 	call	rewrite_next_hash_to_hex
 	movzx	eax, b [user_cbuf_pages]
 	shl	eax, 12
-	call	rewrite_next_hash_to_deg
+	call	rewrite_next_hash_to_dec
 
 	PRINT	msg_02
 .skip:
@@ -243,7 +243,7 @@ proc more_memory_infomation
 ;------------------------------------------------------------------------------
 ;●全メモリを示すセレクタを作成
 ;------------------------------------------------------------------------------
-proc make_all_mem_sel
+proc8 make_all_mem_sel
 	mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
 	mov	edx,ecx
 	mov	edi,[work_adr]		;ワークメモリ
@@ -303,7 +303,7 @@ patch_for_386sx:
 	;-------------------------------
 	xor	ebx,ebx
 	mov	eax,DOSMEM_sel		;DOS メモリアクセスセレクタ
-	mov	 fs,eax			;fs に代入
+	mov	  fs,ax			;fs に代入
 
 	mov	 bx,[2Ch]		;下位 2バイト = ENV のセグメント
 	shl	ebx,4			;16 倍してリニアアドレスへ
@@ -331,49 +331,67 @@ patch_for_386sx:
 %if TOWNS || PC_98 || PC_AT
 	mov	b [init_machine32], 1
 	%if TOWNS
-		call	init_TOWNS_32		;TOWNS 固有の設定
+		call	init_TOWNS_32
 	%elif PC_98
-		call	init_PC98_32		;PC-98x1 固有の設定
+		call	init_PC98_32
 	%elif PC_AT
-		call	init_AT_32		;PC/AT互換機 固有の設定
+		call	init_AT_32
 	%endif
 %endif
 
 ;------------------------------------------------------------------------------
-; copy exp parameter
+; copy exp name to work
 ;------------------------------------------------------------------------------
-proc copy_exp_pamameter
-	;
-	; copy exp file name to work
-	;
-	mov	esi,[exp_name_adr]	; file name
-	mov	ecx,[exp_name_size]	;
-	mov	edi,[work_adr]
-	test	ecx,ecx
-	jnz	.exists_file_name
+proc8 copy_exp_filename_to_work
+	mov	esi, [exp_name_adr]	; file name, no terminate
+	mov	ecx, [exp_name_len]	;
+	mov	edi, [work_adr]
+	test	ecx, ecx
+	jnz	.exists_name
 
 	mov	al, [show_title]
 	test	al, al
 	jz	.skip
-	PRINT	msg_10			;使い方表示
+	PRINT	msg_10			; show help
 .skip:
-	jmp	exit_32			;プログラム終了処理
+	jmp	exit_32
 
+.exists_name:
+	;
+	; copy [esi] to [edi]
+	; and check file name include "\" or ":"
+	;
+	mov	[exp_name_fname_offset], edi
+.loop:
+	lodsb				; al = [esi++]
+	stosb				; [edi++] = al
+	cmp	al, '\'
+	je	.is_path
+	cmp	al, ':'
+	je	.is_path
+	loop	.loop
+	jmp	short .exit
 
-.exists_file_name:
-	rep	movsb			; copy [ds:esi] -> [ds:edi]
-	mov	b [edi], 0		; null terminate
-	;
-	; copy parameter PSP to PSP
-	;
+.is_path:
+	mov	byte [exp_name_include_path], 1
+	mov	     [exp_name_fname_offset], edi
+	loop	.loop
+
+.exit:
+	mov	byte [edi], 0
+
+;------------------------------------------------------------------------------
+; copy parameter PSP to PSP
+;------------------------------------------------------------------------------
+proc8 copy_exp_pamameter
 	mov	edi, 81h
 	mov	ecx, 7eh
 
 	cmp	b [esi], ' '
-	jnz	short .paramter_copy_loop
+	jnz	short .copy_loop
 	inc	esi			; skip first space
 
-.paramter_copy_loop:
+.copy_loop:
 	mov	al, [esi]		; 1 byte load
 	mov	[edi], al
 	cmp	al, 0dh
@@ -381,168 +399,143 @@ proc copy_exp_pamameter
 
 	inc	esi
 	inc	edi
-	loop	.paramter_copy_loop
+	loop	.copy_loop
 
 .copy_end:
 	mov	byte [edi], 0dh
 	mov	eax, edi
 	sub	al, 81h
-	mov	[80h], al	; parameter length
+	mov	[80h], al		; parameter length
+
 
 ;------------------------------------------------------------------------------
-;●EXP ファイル名の補完と検索
+; rewrite argv[0] is command name
 ;------------------------------------------------------------------------------
-	;
-	;拡張子補完
-	;
-	mov	edi,[work_adr]
+;	ENV領域が足りず書ききれない場合は、途中で諦める。
+;
+proc32 rewrite_command_name
+	mov	ebx, err_00		; set non exists ENV name string
+	call	search_env		; ret fs:[edx] is ENV end
 
-	align	4
-find_period:
-	mov	al,[edi]	;1 byte load
+	cmp	word fs:[edx], 0001h
+	jne	.exit
+	add	edx, byte 2
+
+	;
+	; copy exp command line name to ENV
+	;
+	mov	esi, [exp_name_fname_offset]
+
+	xor	eax, eax
+	mov	 ax, fs
+	lsl	ecx, ax
+	sub	ecx, edx		; ecx = remain bytes
+	jbe	.exit			; safety
+
+.loop:
+	lodsb				; al = [esi++]
+	mov	fs:[edx], al		; store
+	inc	edx
+	loop	.loop
+
+	mov	b fs:[edx], 0		; last byte force write '0'
+.exit:
+
+;------------------------------------------------------------------------------
+; Completes EXP file extensions
+;------------------------------------------------------------------------------
+proc8 completes_exp_file_name
+	mov	edi, [exp_name_fname_offset]
+.loop:
+	mov	al, [edi]
 	inc	edi
 
-	cmp	al,'.'		;if 拡張子発見?
-	je	search_file	;  then jmp
+	cmp	al,'.'
+	je	short .exist_ext
 
-	test	al,al		;0?
-	jnz	find_period	
-
-	;
-	;拡張子の追加
-	;
-	mov	d [edi-1],EXP_EXT	;拡張子補完
-	mov	b [edi+3],0		;終端記号
-
-	;
-	;ファイルの検索
-	;
-	align	4
-search_file:
-	;////// PATH386 の検索 /////////
-	mov	al,[search_PATH386]	;検索する?
 	test	al,al
-	jz	.step
+	jnz	.loop
 
-	mov	esi,[work_adr]		;検索ファイル名
-	mov	ebx,offset env_PATH386	;環境変数名
-	call	searchpath		;ファイル検索
-	test	eax,eax			;結果判断
-	je	.file_found		;ファイル発見 (jmp)
+	;
+	; add file extension
+	;
+	mov	dword [edi-1], EXP_EXT
+	mov	byte  [edi+3], 0	; null
 
-	;////// PATH の検索 ////////////
-.step:	mov	al,[search_PATH]	;検索する?
-	test	al,al
-	jz	.step2
+.exist_ext:
 
-	mov	esi,[work_adr]		;検索ファイル名
-	mov	ebx,offset env_PATH	;環境変数名
-	call	searchpath		;ファイル検索
-	test	eax,eax			;結果判断
-	je	.file_found		;ファイル発見 (jmp)
-	jmp	.not_found
+;------------------------------------------------------------------------------
+; search exp file
+;------------------------------------------------------------------------------
+proc8 search_exp_file
+	;--------------------------------------------------
+	; read command line name
+	;--------------------------------------------------
+	mov	edi, [work_adr]		; edi = file name
+	call	check_readable_file
+	jnc	.found
 
-	;////// カレントディレクトリの確認
-.step2:
-	mov	edx,[work_adr]		;検索したいファイル名のあるワーク
- 	mov	 cl,6			;すべてのファイル
-	mov	ah,4eh			;検索
-	int	21h
+	;--------------------------------------------------
+	; search
+	;--------------------------------------------------
+	mov	esi, [work_adr]		; esi = search file name
+	mov	edi, esi
+	add	edi, 100h		; edi = result store buffer
 
-	mov	edi,edx			;edi = ファイル名ポインタ
-	jnc	.file_found		;発見したなら jmp
+	cmp	byte [exp_name_include_path], 0
+	jne	.not_found
 
+	;--------------------------------------------------
+	; check PATH386
+	;--------------------------------------------------
+	cmp	byte [search_PATH386], 0
+	je	.skip_path386
+
+	mov	ebx, offset env_PATH386	; [ebx] = "PATH386"
+	call	search_path
+	jnc 	.found
+.skip_path386:
+
+	;--------------------------------------------------
+	; check PATH
+	;--------------------------------------------------
+	cmp	byte [search_PATH], 0
+	je	.skip_path
+
+	mov	ebx, offset env_PATH	; [ebx] = "PATH"
+	call	search_path
+	jnc	.found
+.skip_path:
 .not_found:
-	;------ file_not_found ------
+	;--------------------------------------------------
+	; file not found
+	;--------------------------------------------------
 	PRINT	msg_05
-	mov	edx,[work_adr]		;検索したファイル名
-	call	string_print		;文字列表示 (null:終端)
+	mov	edx, esi		; search file name
+	call	print_string_32
 
 	mov	ah, 21			;'Can not read executable file'
 	jmp	error_exit_32
 
-	;
-	;ロードファイル名の表示
-	;
-	align	4
-.file_found:
+	;--------------------------------------------------
+	; file found
+	;--------------------------------------------------
+.found:
 	mov	al,[verbose]		;冗長表示フラグ
 	test	al,al			;0?
 	jz	.no_verbose		;0 なら jmp
 
 	PRINT	msg_05
 	mov	edx,edi 		;ファイル名 string
-	call	string_print		;文字列表示 (null:終端)
+	call	print_string_32		;文字列表示 (null:終端)
 .no_verbose:
-
-;------------------------------------------------------------------------------
-;rewrite argv[0] is command name
-;------------------------------------------------------------------------------
-;	ENV領域が足りず書ききれない場合は、途中で諦める。
-;
-proc rewrite_command_name
-	push	es
-	;push	edx
-	mov	eax, DOSMEM_sel
-	mov	 es, eax
-
-	movzx	edi, w [2CH]			; PSP:[2ch] is ENV segment
-	shl	edi, 4
-	movzx	ecx, w [es:edi - 10h + 3]	; ENV size (para)
-	shl	ecx, 4
-
-	mov	al, 1
-.loop:
-	mov	ah, al
-	mov	al, [es:edi]
-	inc	edi
-	test	eax, eax	; 00h 00h found?
-	jz	.found
-
-	dec	ecx
-	jnz	.loop
-	jmp	short .exit
-
-.found:
-	mov	ax, [es:edi]	; 01h 00h is start mark
-	dec	ax		; ax-1
-	jnz	.exit
-
-	add	edi, byte 2	; edi  = command name start offset
-	sub	ecx, byte 4	; ecx -= 4
-	jbe	.exit		; if ecx<=0 jump
-
-	;
-	; copy exp file name to ENV
-	;
-	mov	ebx, edx
-	mov	esi, edx
-.name_loop:
-	mov	al, [ebx]
-	test	al, al
-	jz	.name_end
-
-	inc	ebx
-	cmp	al, '\'
-	jne	.name_loop
-	mov	esi, ebx
-	jmp	short .name_loop
-.name_end:
-	;
-	; [esi] to [es:edi]
-	;
-	rep	movsb
-	mov	b [es:edi], 0
-.exit:
-	;pop	edx
-	pop	es
 
 ;------------------------------------------------------------------------------
 ;load and run EXP
 ;------------------------------------------------------------------------------
-					;edx = load file PATH
-	mov	esi,[work_adr]		;ワーク領域ロード
-	call	load_exp		;EXP ファイルのロード
+	mov	edx, edi		;edx = load file PATH
+	mov	esi, [work_adr]		;esi = work address
+	call	load_exp
 	jc	error_exit_32		;ah = internal error code
 
 	jmp	NEAR run_exp
@@ -550,18 +543,18 @@ proc rewrite_command_name
 ;------------------------------------------------------------------------------
 ;●プログラムの終了(32bit)
 ;------------------------------------------------------------------------------
-proc abort_32
+proc32 abort_32
 	mov	ah, 25
 	jmp	short error_exit_32
-proc exit_32
+proc32 exit_32
 	mov	ah, 0
-proc error_exit_32
+proc32 error_exit_32
 	cli
 	mov	bx,F386_ds		;ds 復元
-	mov	ds,ebx			;
-	mov	es,ebx			;VCPI で切り換え時、
-	mov	fs,ebx			;セグメントレジスタは不定値
-	mov	gs,ebx			;
+	mov	 ds,bx			;
+	mov	 es,bx			;VCPI で切り換え時、
+	mov	 fs,bx			;セグメントレジスタは不定値
+	mov	 gs,bx			;
 	lss	esp,[PM_stack_adr]	;スタックポインタロード
 
 	mov	[err_level],ax
@@ -583,11 +576,11 @@ proc error_exit_32
 		mov	b [init_machine32], 0		;Re-entry prevention
 
 		%if TOWNS
-			call	exit_TOWNS_32		;TOWNS の終了処理
+			call	exit_TOWNS_32
 		%elif PC_98
-			call	exit_PC98_32		;PC-98x1 の終了処理
+			call	exit_PC98_32
 		%elif PC_AT
-			call	exit_AT_32		;PC/AT互換機の終了処理
+			call	exit_AT_32
 		%endif
 	.skip_exit_machine:
 	%endif

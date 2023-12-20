@@ -55,7 +55,7 @@ memory.obj: memory.asm $(base) start.inc free386.inc
 selector.obj: selector.asm $(base) free386.inc memory.inc
 	$(ASM) $(ASMOP) selector.asm
 
-sub32.obj: sub32.asm $(base) start.inc free386.inc memory.inc selector.inc
+sub32.obj: sub32.asm $(base) start.inc sub.inc free386.inc memory.inc selector.inc
 	$(ASM) $(ASMOP) sub32.asm
 
 call_v86.obj: call_v86.asm $(base) free386.inc memory.inc

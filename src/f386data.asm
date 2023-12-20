@@ -4,7 +4,7 @@
 ;==============================================================================
 ; Setting
 ;==============================================================================
-env_PATH386	db	'PATH386',0	; ファイル検索時に参照する環境変数
+env_PATH386	db	'PATH386',0	; ENV name for exp file search
 env_PATH	db	'PATH',0	;
 
 default_API	db	Free386_API,0	; API file name
@@ -12,26 +12,29 @@ default_API	db	Free386_API,0	; API file name
 ;==============================================================================
 ; General variable
 ;==============================================================================
-err_level	db	0		;プログラムエラーレベル
-f386err		db	0		;F386 内部エラーレベル
-cpu_is_386sx	db	0		;CPU is 386SX
-init_machine32	db	0		;initalized machine
+err_level	db	0		; DOS error level
+f386err		db	0		; Free386 internal error level
+cpu_is_386sx	db	0		; CPU is 386SX
+init_machine32	db	0		; initalized machine
 
 %ifdef USE_VCPI_8259A_API
-vcpi_8259m	db	0		;8259A Master interrupt number
-vcpi_8259s	db	0		;8259A Slave  interrupt number
+vcpi_8259m	db	0		; 8259A Master interrupt number
+vcpi_8259s	db	0		; 8259A Slave  interrupt number
 %endif
 
+
 	align	4
-pharlap_version	db	'12aJ'		;Ver 1.2aj
-exp_name_adr	dd	0		;file name string pointer
-exp_name_size	dd	0
+pharlap_version		db	'12aJ'	; Ver 1.2aj
+exp_name_adr		dd	0	; file name string, no null terminate
+exp_name_len		dd	0	; file name length
+exp_name_include_path	dd	0	; exp name include ":" or "\"
+exp_name_fname_offset	dd	0	; file name offset exclude "path"
 
 ;==============================================================================
 ; Buffer information
 ;==============================================================================
 
-work_adr	dd	0		; 汎用ワークのアドレス (200h)
+work_adr	dd	0		; universal work (min:200h)
 
 	; file and string buffer
 call_buf_used	dd	0		; used flag

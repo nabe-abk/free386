@@ -1,21 +1,20 @@
 ;
-;16 bit ルーチン
+;16 bit
 ;
 extern	get_next_parameter
-extern	HEX_conv4
-extern	HEX_conv2
+extern	bin2hex_16
 
 ;
-;32 bit ルーチン
+;32 bit
 ;
-extern	string_print
-extern	bin2deg_32
+extern	print_string_32
+extern	bin2dec_32
 extern	bin2hex_32
 extern	rewrite_next_hash_to_hex
-extern	rewrite_next_hash_to_deg
+extern	rewrite_next_hash_to_dec
 
 ;
-;データ部
+;data
 ;
 extern	hex_str
 

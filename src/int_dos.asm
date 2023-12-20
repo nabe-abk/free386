@@ -142,7 +142,7 @@ int_21h_unknown:
 ;==============================================================================
 ;・int 21h / テーブルジャンプ処理
 ;==============================================================================
-proc PM_int_21h
+proc32 PM_int_21h
 	call_RegisterDumpInt	21h
 
     %if (int_21h_fn_MAX < 0ffh)
@@ -291,14 +291,14 @@ int_21h_09h:
 ;------------------------------------------------------------------------------
 %if PRINT_TO_FILE
 
-proc int_21h_09h_output_file
+proc32 int_21h_09h_output_file
 	; 強制ファイル出力
 	pushad
 	push	ds
 	push	es
 
 	mov	eax, F386_ds
-	mov	ds, eax
+	mov	 ds,ax
 
 	; file open
 	push	edx
@@ -368,13 +368,13 @@ proc int_21h_09h_output_file
 ;------------------------------------------------------------------------------
 %if PRINT_TSUGARU
 
-proc int_21h_09h_output_tsugaru
+proc32 int_21h_09h_output_tsugaru
 	pushad
 	push	ds
 	push	es
 
 	mov	eax, F386_ds
-	mov	ds, eax
+	mov	 ds,ax
 	mov	es,[esp+4]	; original ds
 
 	; get buffer
@@ -454,7 +454,7 @@ int_21h_0ah:
 	; ebp = gp buffer
 	push	ds			; exchange ds<>es
 	mov	eax,  es
-	mov	 ds, eax		; ds = F386 ds
+	mov	  ds,ax		; ds = F386 ds
 	pop	es			; es = caller selector
 
 	mov	esi, ebp		; [ds:esi] gp buffer
@@ -564,7 +564,7 @@ int_21h_38h:
 	push	ecx
 	push	es
 	mov	ecx, F386_ds
-	mov	 es, ecx
+	mov	  es,cx
 
 	mov	cl, 32			;32 byte
 	align	4
@@ -823,7 +823,7 @@ int_21h_44h:			;未対応の機能
 ; in	ds:esi	64 byte buffer
 ;	    dl	drive number
 ;
-proc int_21h_47h
+proc32 int_21h_47h
 	push	ecx
 	push	edx
 	push	edi
@@ -957,7 +957,7 @@ int_21h_ret_esbx:
 	push	eax
 
 	mov	eax,DOSMEM_sel
-	mov	es, eax
+	mov	 es,ax
 
 	mov	eax, [cs:call_V86_es]
 	shl	eax, 4			;to Liner
@@ -982,7 +982,7 @@ int_21h_56h:
 	push	ds
 
 	mov	eax,F386_ds
-	mov	 ds,eax
+	mov	  ds,ax
 
 	call	get_gp_buffer_32
 	test	eax, eax

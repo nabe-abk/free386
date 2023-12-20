@@ -6,7 +6,7 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.82dev 2023-12-12'
+%define	VER_STRING	'Ver0.82dev 2023-12-20'
 Major_ver	equ		00h
 Minor_ver	equ		82h
 F386_Date	equ		20231212h	;Release date
@@ -89,7 +89,7 @@ _user_cbuf_pages equ	1	; call buffer for client (int 21, AX=250Dh)
 F386ERR		equ	0fch	; Free386 internal error code
 CPU_Fault	equ	0fdh	; CPU fault        error code
 
-WORK_size	equ	200h	; Universal work size
+WORK_size	equ	200h	; Universal work size, min 200h
 
 GP_BUFFERS	equ	4	; number of general purpose buffers, max 32
 GP_BUFFER_SIZE	equ	400h	; 1KB

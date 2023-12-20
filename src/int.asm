@@ -244,7 +244,7 @@ cpu_int_with_error_code:
 	pushf
 
 	mov	eax, F386_ds
-	mov	ds, eax
+	mov	 ds,ax
 
 	mov	eax, esp
 	sub	eax, 1ch
@@ -278,7 +278,7 @@ cpu_int_with_error_code:
 
 view_int:
 	mov	eax, F386_ds
-	mov	ds, eax
+	mov	 ds,ax
 
 	jc	short .step		; エラーコードが正しい
 	mov	d [esp+0ch], -1		; 特殊エラーコード

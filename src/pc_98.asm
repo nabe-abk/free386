@@ -47,7 +47,7 @@ BITS	32
 ;==============================================================================
 ;★PC-98x1 の初期設定
 ;==============================================================================
-proc init_PC98_32
+proc32 init_PC98_32
 	mov	eax,[free_liner_adr]	;空きリニアアドレス
 	mov	ebx,0x1000000		;16MB
 	cmp	eax,ebx
@@ -119,7 +119,7 @@ proc init_PC98_32
 ;------------------------------------------------------------------------------
 ;★PC-98x1 の終了処理
 ;------------------------------------------------------------------------------
-proc exit_PC98_32
+proc32 exit_PC98_32
 	mov	bl,[reset_CRTC]		;reset / 1 = 初期化, 2 = CRTCのみ
 	test	bl,bl			;0 ?   / 3 = 自動認識
 	jz	.no_reset		;ならば初期化せず
@@ -153,7 +153,7 @@ proc exit_PC98_32
 	push	esi
 	push	edi
 	mov	eax,128h		;VRAM セレクタ
-	mov	 es,eax			;Load
+	mov	  es,ax			;Load
 	xor	edi,edi			;edi = 0
 	mov	ecx,512*1024 / 4	;512 KB
 	xor	eax,eax			;塗りつぶす値
@@ -172,7 +172,7 @@ proc exit_PC98_32
 
 .res_v16:
 	mov	eax,120h		;VRAM セレクタ
-	mov	 es,eax			;Load
+	mov	  es,ax			;Load
 	xor	edi,edi			;edi = 0
 	mov	ecx,128*1024 / 4	;128 KB
 	xor	eax,eax			;塗りつぶす値
