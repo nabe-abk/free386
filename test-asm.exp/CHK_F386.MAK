@@ -7,7 +7,7 @@ LINKOP=
 all: chk_f386.exp
 
 chk_f386.obj: chk_f386.asm
-	$(ASM) $(ASMOP) $<
+	$(ASM) $(ASMOP) -o $@ $<
 
 chk_f386.exp: chk_f386.obj
-	$(LINK) $(LINKOP) $<
+	$(LINK) $(LINKOP) -o $@ $<

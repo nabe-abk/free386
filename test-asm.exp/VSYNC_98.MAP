@@ -1,2 +1,0 @@
-[001000] vsync_98.obj: text 'CODE' use32 align=4 size=244 entry=001000
-[0010F4] vsync_98.obj: data 'DATA' use32 align=4 size=140

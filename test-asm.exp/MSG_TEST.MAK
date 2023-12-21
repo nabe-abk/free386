@@ -7,7 +7,7 @@ LINKOP= -offset 4000h -maxdata 10000h
 all: msg_test.exp
 
 msg_test.obj: msg_test.asm
-	$(ASM) $(ASMOP) $<
+	$(ASM) $(ASMOP) -o $@ $<
 
 msg_test.exp: msg_test.obj
-	$(LINK) $(LINKOP) $<
+	$(LINK) $(LINKOP) -o $@ $<

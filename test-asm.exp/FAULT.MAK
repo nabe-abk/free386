@@ -7,7 +7,7 @@ LINKOP= -offset 2000h -maxdata 8000h
 all: fault.exp
 
 fault.obj: fault.asm
-	$(ASM) $(ASMOP) $<
+	$(ASM) $(ASMOP) -o $@ $<
 
 fault.exp: fault.obj
-	$(LINK) $(LINKOP) $<
+	$(LINK) $(LINKOP) -o $@ $<
