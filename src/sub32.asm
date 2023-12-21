@@ -20,7 +20,7 @@ global	dump_orig_esp
 global	dump_orig_ss
 ;------------------------------------------------------------------------------
 
-segment	text32 class=CODE align=4 use32
+seg32	text32 class=CODE align=4 use32
 ;##############################################################################
 ;stack dump
 ;	This is PDS.
@@ -464,7 +464,7 @@ proc32 search_env
 ;	cy=0	found: store [edi] found file name
 ;	cy=1	not found
 ;
-proc32 search_path
+proc32 search_path_env
 	pusha
 
 	call	search_env	; fs:[edx] = ENV string
@@ -1186,7 +1186,7 @@ proc32 run_exp
 ;******************************************************************************
 ; DATA
 ;******************************************************************************
-segment	data class=DATA align=4
+segdata	data class=DATA align=4
 ;------------------------------------------------------------------------------
 ;・レジスタダンプ表示
 ;------------------------------------------------------------------------------

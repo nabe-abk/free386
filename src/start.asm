@@ -3,6 +3,7 @@
 ;******************************************************************************
 ;[TAB=8]
 ;
+%include	"macro.inc"
 %include	"f386def.inc"
 
 extern	start
@@ -22,7 +23,7 @@ global	resv_real_memKB
 global	user_cbuf_pages
 
 ;==============================================================================
-segment	text class=CODE align=16
+seg16	text class=CODE align=16
 ;==============================================================================
 	times	100h	db 0		;= ORG 100h
 ..start:

@@ -7,7 +7,7 @@ extern	register_dump_from_int
 %endif
 
 extern	search_env
-extern	search_path
+extern	search_path_env
 extern	check_readable_file
 extern	load_exp
 extern	run_exp

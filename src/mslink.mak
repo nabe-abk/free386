@@ -1,42 +1,26 @@
 #----------------------------------------------------------------------------
-# Free386 MAKEFILE for MS-DOS
+# Free386 MAKEFILE for MS-DOS and Microsoft LINE.EXE
 #----------------------------------------------------------------------------
 
-TARGET = ..\free386.com
+TARGET_COM = ..\free386.com
+TARGET_EXE = ..\free386.exe
 
-#////////////////////////////////////////////////////////////////////
+#///////////////////////////////////////////////////////////////////
 # PATH for NASM
-#////////////////////////////////////////////////////////////////////
+#///////////////////////////////////////////////////////////////////
 ASM    = ..\bin\free386 -q ..\tools\nasm
-ASMOP  = -f obj
-
-#////////////////////////////////////////////////////////////////////
-# for flatlink.exp
-#////////////////////////////////////////////////////////////////////
-LINK   = ..\bin\free386 -q ..\tools\flatlink.exp
-LINKOP = -o $(TARGET)
-
-#////////////////////////////////////////////////////////////////////
-# for alink.exp
-#////////////////////////////////////////////////////////////////////
-# LINK   = ..\bin\free386 -q ..\tools\alink-p1.exp
-# LINKOP = -oCOM -o $(TARGET) -m
-
-#====================================================================
-# If you want to use Microsoft LINK.EXE, run the following.
-#	..\tools\imake clean
-#	..\tools\imake -f mslink.mak
-#====================================================================
+ASMOP  = -f obj -DMSLINK
 
 #------------------------------------------------------------------------------
 RM = del
 
-all: $(TARGET)
+all: $(TARGET_COM)
 
 clean:
 	$(RM) *.obj
 	$(RM) objs
-#	$(RM) $(TARGET)
+#	$(RM) $(TARGET_EXE)
+#	$(RM) $(TARGET_COM)
 #	$(RM) ..\free386.map
 
 #------------------------------------------------------------------------------
@@ -70,10 +54,16 @@ pc.obj: pc.asm pc_towns.asm pc_98.asm pc_at.asm $(base) start.inc memory.inc sel
 free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc sub.inc sub32.inc memory.inc selector.inc call_v86.inc int.inc pc.inc
 	$(ASM) $(ASMOP) free386.asm
 
-$(TARGET): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
+free
+
+$(TARGET_EXE): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
 	echo $< >objs
-	$(LINK) $(LINKOP) @objs
+	echo ,$(TARGET_EXE),nul,,nul >>objs
+	LINK @objs
 	$(RM) objs
+
+$(TARGET_COM): $(TARGET_EXE)
+	exe2bin $(TARGET_EXE) $(TARGET_COM)
 
 ### CAUTION!) free386.obj needs to be linked at the last. #####################
 

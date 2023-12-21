@@ -492,7 +492,7 @@ proc8 search_exp_file
 	je	.skip_path386
 
 	mov	ebx, offset env_PATH386	; [ebx] = "PATH386"
-	call	search_path
+	call	search_path_env
 	jnc 	.found
 .skip_path386:
 
@@ -503,7 +503,7 @@ proc8 search_exp_file
 	je	.skip_path
 
 	mov	ebx, offset env_PATH	; [ebx] = "PATH"
-	call	search_path
+	call	search_path_env
 	jnc	.found
 .skip_path:
 .not_found:

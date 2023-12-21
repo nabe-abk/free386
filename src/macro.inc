@@ -46,6 +46,36 @@
 
 
 ;******************************************************************************
+;segment for Microsoft LINK.EXE
+;******************************************************************************
+%ifdef MSLINK
+
+%macro seg16	1
+	BITS 16
+%endmacro
+
+%macro seg32	1
+	BITS 32
+%endmacro
+
+%macro segdata	1
+	align 4
+%endmacro
+
+%macro segheap	1
+	align 16
+%endmacro
+
+%else
+
+%define seg16	segment
+%define seg32	segment
+%define segdata	segment
+%define segheap	segment
+
+%endif
+
+;******************************************************************************
 ;Free386 dependent macro
 ;******************************************************************************
 ;------------------------------------------------------------------------------
