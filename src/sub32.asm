@@ -589,7 +589,7 @@ proc32 load_exp
 	;mov	edx,[ファイル名]	;ファイル名 ASCIIz
 	mov	ax,3d00h		;file open(read only)
 	int	21h			;dos call
-	jc	NEAR .file_open_error	;Cy=1 ならオープンエラー
+	jc	.file_open_error	;Cy=1 ならオープンエラー
 
 	mov	ebx,eax			;bx <- file handl番号
 	mov	[file_handle],eax	;同じくメモリにも記録
@@ -601,37 +601,33 @@ proc32 load_exp
 	mov	ecx,200h		;読み込むバイト数
 	mov	ah,3fh			;file read ->ds:edx
 	int	21h			;dos call
-	jc	NEAR .file_read_error	;Cy=1 ならリードエラー
+	jc	.file_read_error	;Cy=1 ならリードエラー
 
 	;
 	;ヘッダ部解析
 	;
 	mov	eax,[esi]
 	cmp	eax,00013350H		;P3 形式['P3']・フラットモデル[w (0001)]
-	jne	NEAR .load_MZ_exp	;P3 でなければ MZヘッダか確認 (jmp)
+	jne	.load_MZ_exp		;P3 でなければ MZヘッダか確認 (jmp)
 
 	;
 	;必要なメモリ算出
 	;
-	mov	ecx,[esi+74h]	;ロードイメージの大きさ（プログラムのサイズ）
+	mov	ecx,[esi+74h]		;ecx = program image size
+	mov	eax,[esi+56h]		;eax = mindata
+	call	.calc_4Kmem_eax_ecx
+	mov	[5ch],eax		;save to PSP
 
-	mov	eax,ecx
-	add	eax,[esi+56h]	;ファイルの後ろに割り当てるメモリの最小量
-	add	eax,     0fffh	;4KB 単位でメモリを扱うので端数繰り上げ
-	and	eax,0fffff000h	;4KB 単位へ
-	mov	[5ch],eax	;PSP に記録 /最低限必要なメモリサイズ[byte]
-
-	add	ecx,[esi+5ah]	;ファイルの後ろに割り当てるメモリの最大量
-	jnc	.step		;値オーバーしてなければ jmp
-	mov	ecx,0fffff000h	;最大値
-.step:	add	ecx,     0fffh	;4KB 単位でメモリを扱うので端数繰り上げ
-	shr	ecx,12		;4KB 単位へ
+	mov	eax,[esi+5ah]		;eax = maxdata
+	call	.calc_4Kmem_eax_ecx
+	shr	eax,12			;4KB pages
 
 	push	esi
-	mov	esi,[esi+5eh]		;ベースメモリアドレス
-	call	make_cs_ds		;cs/ds 作成とメモリ確保
+	mov	ecx,eax			;ecx = allocation pages (max)
+	mov	esi,[esi+5eh]		;esi = base memory address
+	call	make_cs_ds		;
 	pop	esi
-	jc	NEAR .not_enough_memory	;エラーならメモリ不足
+	jc	.not_enough_memory	;error
 
 	;
 	;メモリ量チェック
@@ -639,7 +635,7 @@ proc32 load_exp
 	mov	ebx,[60h]		;実際に割り当てたメモリ [byte]
 	mov	eax,[5ch]		;PSP に記録 / 最低限必要なメモリ [byte]
 	cmp	ebx,eax			;値比較
-	jb	NEAR .not_enough_memory	;負数ならメモリ不足
+	jb	.not_enough_memory	;負数ならメモリ不足
 
 	sub	ebx,[esi+74h]		;ロードイメージの大きさを引く
 	mov	[64h],ebx		;ヒープメモリ総量を PSPに記録
@@ -674,7 +670,7 @@ proc32 load_exp
 	test	al,01h			;bit 0 を check
 
 	push  d offset .sl_un_pack_ret	;call の戻りラベル
-	jnz	NEAR exp_un_pack_fread	;PACK を解きながらファイル読み込み
+	jnz	exp_un_pack_fread	;PACK を解きながらファイル読み込み
 	add	esp,byte (4)		;スタック除去(戻りラベル)
 
 
@@ -730,13 +726,25 @@ proc32 load_exp
 	jmp	short .fclose_end	;ファイルをクローズしてから終了
 
 
+proc32 .calc_4Kmem_eax_ecx
+	; in eax + ecx
+	add	eax, ecx
+	jc	.over
+.step:	add	eax,      0fffh		; round up 4KB
+	jc	.over
+	and	eax, 0fffff000h	
+	ret
+
+.over	mov	eax, 0fffff000h
+	ret
+
 
 ;----------------------------------------------------------------------
 ;○MZ ヘッダを持つ EXP ファイルのロード
 ;----------------------------------------------------------------------
 ;	mov	eax,[esi]
 ;	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
-;	jne	NEAR check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
+;	jne	check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
 ;
 proc32 .load_MZ_exp
 
@@ -779,17 +787,18 @@ proc32 .load_MZ_exp
 	add	eax, 000000fffh	;
 	and	eax, 0fffff000h	;eax = load image size (4KB unit)
 
-	movzx	ebx,w [esi+0ah]	;+0A w "ヒープの最小量 / 4KB"
-	movzx	ecx,w [esi+0ch]	;+0C w "ヒープの最大要求量 / 4KB"
+	movzx	ebx,w [esi+0ah]	;+0A w "mindata / 4KB"
 	shl	ebx,12
-	shl	ecx,12
-	add	ebx, eax	; minimum memory pages
-	add	ecx, eax	; maximum memory pages
+	add	ebx, eax	;minimum memory size (byte)
 	mov	[5ch], ebx
 
-	push	esi			; ecx = pages
-	xor	esi,esi			; esi = base offset address
-	call	make_cs_ds		;cs/ds 作成とメモリ確保
+	movzx	ecx,w [esi+0ch]	;+0C w "maxdata / 4KB"
+	shr	eax,12		;eax = load image pages
+
+	push	esi
+	add	ecx,eax			;ecx = allocate max pages
+	xor	esi,esi			;esi = base offset address
+	call	make_cs_ds
 	pop	esi
 	jc	.not_enough_memory	;エラーならメモリ不足
 
@@ -819,7 +828,7 @@ proc32 .load_MZ_exp
 	;mov	edx,---		;代入済	;edx = プログラムイメージまでの offset
 	mov	ax,4200h		;ファイル先頭からポインタ移動
 	int	21h			;DOS call（file pointer = cx:dx）
-	jc	NEAR .file_read_error	;Cy=1 なら エラー
+	jc	.file_read_error	;Cy=1 なら エラー
 
 	mov	ecx, ebp		;読む込むサイズ（プログラムサイズ）
 	xor	edx, edx		;読み込む先頭メモリ(ds:edx)
@@ -1071,7 +1080,7 @@ make_cs_ds:
 	add	eax,3ffh		;端数切上げ
 	shr	eax,10			;eax = ページテーブル用に必要なメモリ
 	sub	ecx,eax			;空きページ数から引く
-	jb	near .no_memory		;マイナスならエラー
+	jb	.no_memory		;マイナスならエラー
 .do_alloc:
 	mov	ebp, [free_liner_adr]	;貼り付け先アドレスを保存
 	push	esi

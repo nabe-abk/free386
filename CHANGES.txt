@@ -3,6 +3,7 @@ Ver 0.82 - 2023-12-xx
 ==============================================================================
 
 - Add: Set EXP file name to ENV command name.
+- Fix: Very rare error in heap memory calculation for exp file.
 - Update: int 21h, ah=4ah for Open Watcom's EXP file.
 - Update: Source file names are now easier to understand.
 - Update: sub.asm/sub32.asm. Cleanup and rewrite routines.
