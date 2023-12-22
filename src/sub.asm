@@ -76,7 +76,7 @@ proc16 bin2hex_16
 	rol	eax, 4
 	movzx	bx, al
 	and	bl, 0fh
-	mov	dl, [hex_str + ebx]
+	mov	dl, [hex_str + bx]
 
 	cmp	b [di], '_'
 	jne	.skip
