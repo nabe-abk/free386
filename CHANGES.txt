@@ -8,6 +8,7 @@ Ver 0.82 - 2023-12-xx
 - Update: int 21h, ah=4ah for Open Watcom's EXP file.
 - Update: source file names are now easier to understand.
 - Update: sub.asm/sub32.asm. Cleanup and rewrite routines.
+- [TOWNS] Fix: nsdd sleeping can take a long time.
 - [Universal] Enable hardware interrupt (required by Open Watcom).
 - [test-asm.exp] Fix: vsync_XX.exp, forgot to restore DS in interrupt.
 

@@ -379,7 +379,7 @@ proc32 sleep_nsdd
 	test	ah, ah
 	jnz	.exit
 
-	mov	ebp, ecx	; ebp=常駐ドライバの数
+	movzx	ebp,  cx	; ebp=常駐ドライバの数
 	xor	ebx, ebx
 
 .loop:
