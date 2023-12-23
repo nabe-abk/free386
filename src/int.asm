@@ -1,5 +1,5 @@
 ;******************************************************************************
-;　Free386	割り込み処理ルーチン
+;　Free386 Interrupt
 ;******************************************************************************
 ;[TAB=8]
 ;
@@ -15,16 +15,10 @@
 %include	"call_v86.inc"
 
 ;//////////////////////////////////////////////////////////////////////////////
-;■グローバルシンボル宣言
+; global data
 ;//////////////////////////////////////////////////////////////////////////////
-
-global		PM_int_00h
-global		PM_int_dummy
 global		DOS_int_list
 global		int21h_table
-
-global		HW_INT_TABLE_M
-global		HW_INT_TABLE_S
 
 ;******************************************************************************
 seg32	text32 class=CODE align=4 use32
@@ -37,8 +31,7 @@ seg32	text32 class=CODE align=4 use32
 ;------------------------------------------------------------------------------
 ;	DOS のハンドラへ chain する
 ;
-	align	4
-PM_int_dummy:
+proc32 PM_int_dummy
 	push	ebx
 	push	ds
 
@@ -56,272 +49,233 @@ PM_int_dummy:
 
 
 ;------------------------------------------------------------------------------
-;★インテル予約ＣＰＵ例外（int 00 - 1f）
+; CPU Interrupt / int 00h - 1fh
 ;------------------------------------------------------------------------------
-	align	4
-PM_int_00h:	clc
-		push	eax
-		call	cpu_int
-PM_int_top:	nop
+; *** Interrupt Routine MUST be "4 bytes".
+;
+%define calc_CPU_int_adr(x,y)	PM_int_00h + x*4 + y*4
 
-PM_int_01h:	clc
-		push	eax
-		call	cpu_int
-		nop
+proc32 cpu_double_fault
+	lss	esp, cs:[VCPI_stack_adr]	; load safety stack pointer
+	pushf					; eflags
+	push	-1				; cs
+	push	-1				; eip
+	push	byte 08h			; int number
+	jmp	cpu_fault
 
-PM_int_02h:	clc
-		push	eax
-		call	cpu_int
-		nop
+proc32 cpu_stack_fault
+	lss	esp, cs:[VCPI_stack_adr]	; load safety stack pointer
+	pushf					; eflags
+	push	-1				; cs
+	push	-1				; eip
+	push	byte 0ch			; int number
+	jmp	cpu_fault
 
-PM_int_03h:	clc
-		push	eax
-		call	cpu_int
-		nop
 
-PM_int_04h:	clc
-		push	eax
-		call	cpu_int
-		nop
+proc32 PM_int_00h
+	; 00h: Zero Divide Error
+	; 01h: Debug Exceptions
+	; 02h: NMI
+	; 03h: Breakpoint (trap)
+	; 04h: INTO Overflow (trap)
+	; 05h: Bounds Check Fault
+	; 06h: Invalid Opcode Fault
+	; 07h: Coprocessor Not Available
+%assign int_num 0
+%rep	8
+	push	byte int_num
+	jmp	short cpu_fault
+%assign int_num int_num+1
+%endrep
+	;
+	; 08h: Double fault (error_code) [abort]
+	;
+	jmp	short cpu_double_fault
+	nop
+	nop
+	;
+	; 09h: Coprocessor Segment Overrun [abort]
+	;
+	push	byte 09h
+	jmp	short cpu_fault
+	;
+	; 0Ah: Invalid TSS
+	;
+	push	byte 0ah
+	jmp	short cpu_fault_with_error_code
+	;
+	; 0Bh: Segment Not Present Fault (error_code)
+	;
+	push	byte 0bh
+	jmp	short cpu_fault_with_error_code
+	;
+	; 0Ch: Stack Exception Fault  (error_code)
+	;
+	jmp	short cpu_stack_fault
+	nop
+	nop
+	;
+	; 0Dh: General Protection Exception (error_code)
+	;
+	push	byte 0dh
+	jmp	short cpu_fault_with_error_code
+	;
+	; 0Eh: Page Fault (error_code)
+	;
+	push	byte 0eh
+	jmp	short cpu_fault_with_error_code
+	;
+	; 0Fh: (Reserved)
+	;
+	push	byte 0fh
+	jmp	short cpu_fault
 
-PM_int_05h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_06h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_07h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_08h:	clc
-		nop
-		jmp	NEAR double_fault
-		nop
-
-PM_int_09h:	clc
-		nop
-		call	cpu_int
-		nop
-
-PM_int_0ah:	stc
-		nop
-		call	cpu_int_with_error_code
-		nop
-
-PM_int_0bh:	stc
-		nop
-		call	cpu_int_with_error_code
-		nop
-
-PM_int_0ch:	clc
-		nop
-		jmp	NEAR stack_fault	;スタック例外
-		nop
-
-PM_int_0dh:	stc
-		int	3
-		call	cpu_int_with_error_code
-		nop
-
-PM_int_0eh:	stc
-		nop
-		call	cpu_int_with_error_code
-		nop
-
-PM_int_0fh:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_10h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_11h:	stc
-		nop
-		call	cpu_int_with_error_code
-		nop
-
-PM_int_12h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_13h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_14h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_15h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_16h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_17h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_18h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_19h:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_1ah:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_1bh:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_1ch:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_1dh:	clc
-		push	eax
-		call	cpu_int
-		nop
-
-PM_int_1eh:	stc
-		nop
-		call	cpu_int_with_error_code
-		nop
-
-PM_int_1fh:	clc
-		push	eax
-		call	cpu_int
+	;
+	; 10h: x87 Floating-Point Error
+	;
+	push	byte 10h
+	jmp	short cpu_fault
+	;
+	; 11h: Alignment Check (error_code)
+	;
+	push	byte 11h
+	jmp	short cpu_fault_with_error_code
+	;
+	; 12h: Machine Check
+	;
+	push	byte 12h
+	jmp	short cpu_fault
+	;
+	; 13h: SIMD Floating-Point Exception
+	;
+	push	byte 13h
+	jmp	short cpu_fault
+	;
+	; 14h: Virtualization Exception
+	;
+	push	byte 14h
+	jmp	short cpu_fault
+	;
+	; 15h: Control Protection Exception (error code)
+	;
+	push	byte 15h
+	jmp	short cpu_fault_with_error_code
+	;
+	; 16h-1Bh: (reserved)
+	;
+%assign int_num 0
+%rep	6
+	push	byte int_num
+	jmp	short cpu_fault
+%assign int_num int_num+1
+%endrep
+	;
+	; 1Ch: Hypervisor Injection Exception
+	;
+	push	byte 1ch
+	jmp	short cpu_fault
+	;
+	; 1Dh: VMM Communication Exception (error code)
+	;
+	push	byte 1dh
+	jmp	short cpu_fault_with_error_code
+	;
+	; 1Eh: Security Exception (error code)
+	;
+	push	byte 1eh
+	jmp	short cpu_fault_with_error_code
+	;
+	; 1Fh: (reserved)
+	;
+	push	byte 1fh
+	;jmp	short cpu_fault
 
 	;	+0ch	eflags
 	;	+08h	cs
 	;	+04h	eip
-	;stack	+00h	error code
-
-	align	4
-double_fault:
-stack_fault:
-	lss	esp,[cs:PM_stack_adr]		;スタックポインタロード
-	push	d -1				; eflags
-	push	d -1				; eip
-	push	d -1				; cs
-	push	d 0				; error code
-	push	d (offset PM_int_0ch +7)	;call 元の代わり
-	push	ds
+	;stack	+00h	int number
+proc32 cpu_fault
 	push	eax
-	jmp	short view_int
+	mov	eax, [esp+4]		; eax = int number
+	mov	dword [esp+4], 0	; error code = 0
+	xchg	[esp], eax		; recovery eax
 
-	align	4
-cpu_int:
-cpu_int_with_error_code:
+	;
+	;	+10h	eflags
+	;	+0ch	cs
+	;	+08h	eip
+	;	+04h	error code
+	;stack	+00h	int number
+proc32 cpu_fault_with_error_code
 	push	ds
-	push	eax	; for register_dump_fault
-	pushf
-
-	mov	eax, F386_ds
-	mov	 ds,ax
-
-	mov	eax, esp
-	sub	eax, 1ch
-	mov	[dump_orig_esp],esp
-	mov	eax, ss
-	mov	[dump_orig_ss] ,eax
-
-	; スタックの安全性チェック
-	verw	ax
-	jnz	short .load_stack	; ss に書き込みできない
-	test	eax, eax
-	jz	short .load_stack	; ss=0
-	lsl	eax, eax		; eax = セレクタ上限
-	cmp	esp, eax 		; esp がセレクタ上限を超えてない
-	jbe	short .safe
-.load_stack:
-	lss	esp,[cs:PM_stack_adr]	;安全なスタックポインタロード
-	xor	eax, eax
-	dec	eax
-	push	eax				; eflags
-	push	eax				; eip
-	push	eax				; cs
-	push	eax				; error code
-	push	d (offset PM_int_1fh +7)	; call 元の代わり
-	push	ds
+	push	F386_ds
+	pop	ds
 	push	eax
-	clc
-	pushf
-.safe:
-	popf
 
-view_int:
-	mov	eax, F386_ds
-	mov	 ds,ax
+	mov	[dump_orig_esp], esp
+	push	ss
+	pop	dword [dump_orig_ss]
 
-	jc	short .step		; エラーコードが正しい
-	mov	d [esp+0ch], -1		; 特殊エラーコード
-.step:
-	;発生 int 番号算出
-	mov	eax,[esp+8]		;call元アドレス
-	sub	eax,offset PM_int_top	;int 00h との差
-	shr	eax,3			;1/8 すると eax = Int 番号
-	mov	[esp+8],eax		;int 番号保存
-	call	register_dump_fault	;ダンプ表示
+	;	+18h	eflags
+	;	+14h	cs
+	;	+10h	eip
+	;	+0ch	error code
+	;	+08h	int number
+	;	+04h	ds
+	;stack	+00h	eax
+	;
+	lss	esp,[PM_stack_adr]	; load safety stack
+	lds	eax,[dump_orig_esp]	; ds:eax <- old stack
+	;
+	; copy stack info
+	;
+	push	dword [eax +18h]	; eflags
+	push	dword [eax +14h]	; cs
+	push	dword [eax +10h]	; eip
+	push	dword [eax +0ch]	; error code
+	push	dword [eax +08h]	; int number
+	push	set_dump_head_is_fault	; header handler
+	push	dword [eax +04h]	; ds
+	push	dword [eax +00h]	; eax
 
-	;スタックポインタロード
-	lss	esp,[cs:PM_stack_adr]
-
-	mov	al,CPU_Fault		;プログラム エラーコード記録
-	jmp	exit_32			;プログラム終了
+	push	F386_ds
+	pop	ds			; recovery ds
+	;
+	; view register dump
+	;
+	call	register_dump
+	;
+	; exit
+	;
+	mov	al, CPU_Fault
+	jmp	exit_32
 
 
 ;------------------------------------------------------------------------------
-;★ハードウェア割り込み (INTR)
+; Hardware Interrupt / Master
 ;------------------------------------------------------------------------------
-	align	4
-HW_INT_TABLE_M:	push	byte 0
-		jmp	short INTR_intM
-		push	byte 1
-		jmp	short INTR_intM
-		push	byte 2
-		jmp	short INTR_intM
-		push	byte 3
-		jmp	short INTR_intM
-		push	byte 4
-		jmp	short INTR_intM
-		push	byte 5
-		jmp	short INTR_intM
-		push	byte 6
-		jmp	short INTR_intM
-		push	byte 7
-		; jmp	short INTR_intM
+proc32 HW_int_master_table
+	push	byte 0
+	jmp	short HW_int_master_common
+	push	byte 1
+	jmp	short HW_int_master_common
+	push	byte 2
+	jmp	short HW_int_master_common
+	push	byte 3
+	jmp	short HW_int_master_common
+	push	byte 4
+	jmp	short HW_int_master_common
+	push	byte 5
+	jmp	short HW_int_master_common
+	push	byte 6
+	jmp	short HW_int_master_common
+	push	byte 7
+	; jmp	short HW_int_master_common
 
+proc32 HW_int_master_common
 	;///////////////////////////////////////////////
-	;ハードウェア割り込み（マスタ側）
+	; common routine
 	;///////////////////////////////////////////////
-INTR_intM:
 %ifdef USE_VCPI_8259A_API
 	push	eax
 	mov	al, [cs:vcpi_8259m]
@@ -369,7 +323,7 @@ INTR_intM:
 
 	align	4
 .CPU_int:
-	lea	eax,[PM_int_00h + HW_INT_MASTER*8 + edx*8]	;CPU例外のアドレス
+	lea	eax, [ calc_CPU_int_adr(HW_INT_MASTER, edx) ]	;CPU例外のアドレス
 	mov	[esp+8],eax					;セーブ
 
 	pop	eax
@@ -377,28 +331,31 @@ INTR_intM:
 	ret				;CPU 例外呼び出し
 %endif
 
-	;///////////////////////////////////////////////
-	;ハードウェア割り込み（スレーブ側）
-	;///////////////////////////////////////////////
-	align	4
-HW_INT_TABLE_S:	push	byte 0
-		jmp	short INTR_intS
-		push	byte 1
-		jmp	short INTR_intS
-		push	byte 2
-		jmp	short INTR_intS
-		push	byte 3
-		jmp	short INTR_intS
-		push	byte 4
-		jmp	short INTR_intS
-		push	byte 5
-		jmp	short INTR_intS
-		push	byte 6
-		jmp	short INTR_intS
-		push	byte 7
-		; jmp	short INTR_intS
+;------------------------------------------------------------------------------
+; Hardware Interrupt / Slave
+;------------------------------------------------------------------------------
+proc32 HW_int_slave_table
+	push	byte 0
+	jmp	short HW_int_slave_common
+	push	byte 1
+	jmp	short HW_int_slave_common
+	push	byte 2
+	jmp	short HW_int_slave_common
+	push	byte 3
+	jmp	short HW_int_slave_common
+	push	byte 4
+	jmp	short HW_int_slave_common
+	push	byte 5
+	jmp	short HW_int_slave_common
+	push	byte 6
+	jmp	short HW_int_slave_common
+	push	byte 7
+	; jmp	short HW_int_slave_common
 
-INTR_intS:
+proc32 HW_int_slave_common
+	;///////////////////////////////////////////////
+	; common routine
+	;///////////////////////////////////////////////
 %ifdef USE_VCPI_8259A_API
 	push	eax
 	mov	al, [cs:vcpi_8259s]
@@ -446,7 +403,7 @@ INTR_intS:
 
 	align	4
 .CPU_int:
-	lea	eax,[PM_int_00h + HW_INT_SLAVE*8 + edx*8]	;CPU例外のアドレス
+	lea	eax, [ calc_CPU_int_adr(HW_INT_SLAVE, edx) ]	;CPU例外のアドレス
 	mov	[esp+8],eax					;セーブ
 
 	pop	eax

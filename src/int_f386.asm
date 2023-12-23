@@ -20,7 +20,7 @@ setup_F386_int:
 	int	21h				;DOS-Extender call
 
 	mov	cl,INT_REGDUMP			;割り込み番号
-	mov	edx,offset regdump_function	;レジスタdumpサービス
+	mov	edx,offset register_dump_iret	;レジスタdumpサービス
 	mov	ax,2504h			;割り込みの設定
 	int	21h				;DOS-Extender call
 
@@ -204,13 +204,5 @@ F386fn_11h:
 
 	align	4
 .error:	set_cy				;プログラムロード中でない
-	iret
-
-;******************************************************************************
-;■レジスタダンプサービス (int 0ffh)
-;******************************************************************************
-	align	4
-regdump_function:
-	call	register_dump
 	iret
 

@@ -788,6 +788,7 @@ proc8 get_VCPI_interface
 ;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え準備
 ;------------------------------------------------------------------------------
+proc8 setup_PM_struct
 	mov	eax,[top_ladr]		;プログラム先頭リニアアドレス
 	mov	ecx,[GDT_adr]		;GDT オフセット
 	mov	edx,[IDT_adr]		;IDT オフセット
@@ -813,6 +814,8 @@ proc8 get_VCPI_interface
 ;------------------------------------------------------------------------------
 ;GDT 内の LDT / IDT / TSS / DOSメモリ セレクタの設定
 ;
+proc8 setup_LDT_IDT_TSS
+
 	mov	 di,[GDT_adr]	;GDT のオフセット
 	mov	ebx,[top_ladr]	;このプログラムの先頭リニアアドレス(bit 31-0)
 
@@ -906,7 +909,7 @@ proc8 get_VCPI_interface
 ;	dw	F386_cs		;selctor
 ;	dw	0ee00h		;属性 (386割り込みゲート) / 特権レベル3
 ;	dw	00000h		;offset  bit 16-31
-setup_IDT:
+proc8 setup_IDT
 	mov	 ax,F386_cs	;セレクタ
 	shl	eax,16		;上位へ
 	mov	edx,0ee00h	;386割り込みゲート / 特権レベル3
@@ -914,13 +917,14 @@ setup_IDT:
 
 	;/// CPU 内部割り込み設定 /////////////////////////
 	mov	ax,offset PM_int_00h	;割り込み #00
-	mov	cx,20h			;00h ～ 1fh
-	mov	bp,8			;加算値
+	mov	bp,4			;オフセット加算値
+	mov	cx,20h			;ループ数 (00-1fh)
 	call	write_IDT		;IDT へ書き込み
 
 	;/// DOS割り込み設定 //////////////////////////////
 	mov	cx,10h			;20h ～ 2fh
 	mov	si,offset DOS_int_list	;DOS 割り込みリスト
+	mov	bp, 8
 
 	align	4
 .loop1:	mov	ax,[si]			;jmp 先読み出し
@@ -944,6 +948,8 @@ setup_IDT:
 ;------------------------------------------------------------------------------
 ; Hardware interrupt IDT setup
 ;------------------------------------------------------------------------------
+proc8 setup_hardware_int_IDT
+
 %ifdef USE_VCPI_8259A_API
 	mov	ax,0de0ah		;VCPI function  0Ah
 	int	67h			;get 8259 interrupt vector
@@ -963,12 +969,12 @@ setup_IDT:
 
 	mov	bp, 4	; テーブルオフセット加算値
 
-	mov	ax,HW_INT_TABLE_M	;割り込みマスタ側 #00
+	mov	ax,HW_int_master_table	;割り込みマスタ側 #00
 	mov	cx,8			;ループ数
 	;mov	di, di			;マスタ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
 
-	mov	ax,HW_INT_TABLE_S	;割り込みスレーブ側 #00
+	mov	ax,HW_int_slave_table	;割り込みスレーブ側 #00
 	mov	cx,8			;ループ数
 	mov	di, si			;スレーブ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
@@ -977,6 +983,8 @@ setup_IDT:
 ;------------------------------------------------------------------------------
 ;●hook int 24h
 ;------------------------------------------------------------------------------
+proc8 setup_int_24h
+
 	mov	ax, 3524h		; read int 24h
 	int	21h
 	mov	[DOS_int24h_adr], bx
@@ -989,6 +997,8 @@ setup_IDT:
 ;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え
 ;------------------------------------------------------------------------------
+proc8 cpu_mode_change
+
 	mov	ax,0de0ch		;VCPI function  0Ch
 	mov	esi,[top_ladr]		;プログラム先頭リニアアドレス
 	add	esi,offset to_PM_data	;切替え用構造体アドレス

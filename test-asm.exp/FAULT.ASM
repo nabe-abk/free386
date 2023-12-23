@@ -14,7 +14,20 @@ segment	text align=4 class=CODE use32
 ;------------------------------------------------------------------------------
 ..start:
 	PRINT	msg_01
-	mov	edx, 0
+	mov	eax, 00000123h
+	mov	ebx, 02022222h
+	mov	ecx, 03330333h
+	mov	edx, 04404444h
+	mov	esi, 05555505h
+	mov	edi, 06606606h
+	mov	ebp, 07777770h
+	push	24h
+	push	2ch
+	push	34h
+	pop	gs
+	pop	fs
+	pop	es
+	xor	edx, edx
 	mov	eax, [edx]
 
 	PRINT	msg_02
@@ -28,6 +41,7 @@ segment	text align=4 class=CODE use32
 
 
 
-msg_01	db	'Access to null pointer.',13,10,'$'
+msg_01	db	'Access to void pointer.',13,10,'$'
 msg_02	db	'Access to 0fffffffh pointer.',13,10,'$'
 
+

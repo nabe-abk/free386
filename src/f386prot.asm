@@ -550,6 +550,7 @@ proc32 exit_32
 	mov	ah, 0
 proc32 error_exit_32
 	cli
+	cld
 	mov	bx,F386_ds		;ds •œŒ³
 	mov	 ds,bx			;
 	mov	 es,bx			;VCPI ‚ÅØ‚èŠ·‚¦A

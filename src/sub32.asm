@@ -13,49 +13,327 @@
 %include "free386.inc"
 %include "memory.inc"
 %include "selector.inc"
-
 ;------------------------------------------------------------------------------
-global	dump_err_code
+global	dump_orig_eax
+global	dump_orig_ds
 global	dump_orig_esp
 global	dump_orig_ss
 ;------------------------------------------------------------------------------
 
 seg32	text32 class=CODE align=4 use32
 ;##############################################################################
-;stack dump
-;	This is PDS.
-;	original made by 合著@ABK  2000/07/24
+;register dump
 ;##############################################################################
 ;------------------------------------------------------------------------------
-;●レジスタダンプ表示
+proc32 register_dump_iret
 ;------------------------------------------------------------------------------
-;;	mov		eax, 0dh		; 例外番号
-;;	mov		ebx, offset dmy_tbl	; 渡されるテーブル
-;;
-%imacro	to_hex	1
-	mov	edx,offset %1
-	call	eax2hex
-%endmacro
+	;	+08h eflags
+	;	+04h cs
+	; stack	+00h eip
+	push	eax				; error code       is dummy
+	push	eax				; interrupt number is dummy
+	push	offset set_dump_head_is_reg	; callback function
+	push	ds
+	push	eax
 
+	push	F386_ds
+	pop	ds
+
+	mov	eax, esp
+	add	eax, 4 * 8
+	mov	[dump_orig_esp], eax
+	push	ss
+	pop	dword [dump_orig_ss]
+
+	; stack
+	;	+1ch	eflags
+	;	+18h	cs
+	;	+14h	eip
+	;	+10h	error code
+	;	+0ch	interrupt number
+	;	+08h	header handler address
+	;	+04h	ds
+	;	+00h	eax
+	call	register_dump
+
+	pop	eax
+	pop	ds
+	add	esp, 4 * 3
+	iret
+
+
+;------------------------------------------------------------------------------
+proc32 set_dump_head_is_reg
+;------------------------------------------------------------------------------
+	; edi = ebp = buffer address
+	mov	esi, offset regdump_hr
+	call	copy_esi_to_edi
+	mov	esi, offset dump_head_reg
+	call	copy_esi_to_edi
+	ret
+
+;------------------------------------------------------------------------------
+proc32 set_dump_head_is_fault
+;------------------------------------------------------------------------------
+	; ebx = int number
+	; edx = error code
+	; edi = ebp = buffer address
+	;
+	mov	esi, offset regdump_hr
+	call	copy_esi_to_edi
+
+	mov	esi, offset dump_head_fault
+	call	copy_esi_to_edi
+
+	push	edi
+	mov	edi, ebp
+	mov	eax, ebx
+	call	rewrite_next_hash_to_hex	; int number
+
+	add	edi, byte 4
+	;
+	; copy exception name
+	;
+	cmp	ebx, byte 11h
+	ja	.unknown
+
+	mov	esi, offset cpu_fault_name_table
+.loop:
+	test	ebx, ebx
+	jz	short .copy_name
+.zero_loop:
+	lodsb
+	test	al,al
+	jnz	.zero_loop	; find 0
+	dec	ebx
+	jmp	short .loop
+.unknown:
+	mov	esi, offset cpu_fault_unknown
+.copy_name:
+	call	copy_esi_to_edi
+
+	mov	eax, edx
+	call	rewrite_next_hash_to_hex	; error code
+	pop	edi
+	ret
+
+;------------------------------------------------------------------------------
+proc32 copy_esi_to_edi
+;------------------------------------------------------------------------------
+.loop:
+	lodsb
+	test	al,al
+	jz	.ret
+	stosb
+	jmp	short .loop
+.ret:
+	ret
+
+;##############################################################################
+; register dump main
+;	original code by kattyo@ABK  2000/07/24
+;##############################################################################
+; in	 ds = F386_ds
+; out	eax = destroy
+;
+proc32 register_dump
+	call	get_gp_buffer_32
+	test	eax, eax
+	jnz	.step		; success
+	ret			; alloc error
+	;stack
+	;	+20h	eflags
+	;	+1ch	cs
+	;	+18h	eip
+	;	+14h	error code
+	;	+10h	interrupt number
+	;	+0ch	header handler address
+	;	+08h	ds
+	;	+04h	eax
+	;memory
+	;	[dump_orig_esp]
+	;	[dump_orig_ss]
+.step:
+	cld
+	pusha					; 20h bytes
+	push	es
+	%assign buf_adr		-4		; buffer address (eax)
+	%assign	sdiff		 24h
+
+	mov	eax, cr3
+	push	eax
+	mov	eax, cr2
+	push	eax
+	mov	eax, cr0
+	push	eax				; 0ch bytes
+
+	%assign	sdiff	sdiff + 0ch
+
+	push	dword [esp + sdiff + 20h]	; eflags
+	push	ebp
+	push	edi
+	push	esi				; esi
+
+	push	edx
+	push	ecx
+	push	ebx
+
+	%assign	sdiff	sdiff + 1ch
+
+	push	dword [esp + sdiff + 04h]	; eax
+	push	gs
+	push	fs
+	push	es
+
+	%assign	sdiff	sdiff + 10h
+
+	push	dword [esp + sdiff + 08h]	; ds
+	push	dword [dump_orig_esp]
+	push	dword [dump_orig_ss]
+
+	%assign	sdiff	sdiff + 0ch
+
+	push	dword [esp + sdiff + 18h]	; eip
+	%assign	sdiff	sdiff + 04h
+	push	dword [esp + sdiff + 1ch]	; cs
+	%assign	sdiff	sdiff + 04h
+
+	push	ds
+	pop	es				; set es
+
+	;------------------------------------------------------------
+	; set flags
+	;------------------------------------------------------------
+	mov	eax, [esp + sdiff + 20h]	; eflags
+	mov	edx, offset regdump_flags +1
+	mov	 cl, '0'
+
+	test	al, 01h		; Carry
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*0],bl
+
+	test	al, 04h		; Parity
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*1],bl
+
+	test	al, 40h		; Zero
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*2],bl
+
+	test	al, 80h		; Sign
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*3],bl
+
+	test	ah, 08h		; Overflow
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*4],bl
+
+	test	ah, 04h		; Direction / DF
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*5],bl
+
+	test	ah, 02h		; Interrupt Enable / IF
+	setnz	bl
+	or	bl, cl
+	mov	[edx + 3*6],bl
+
+	;------------------------------------------------------------
+	; make message data
+	;------------------------------------------------------------
+	mov	ebp, [esp + sdiff + buf_adr]	; save buffer pointer
+	mov	edi, ebp
+
+	mov	ebx, [esp + sdiff + 10h]	; interrupt number
+	mov	ecx, [esp + sdiff + 14h]	; error code
+
+	call	near [esp + sdiff + 0ch]	; header set handler
+
+	push	edi
+	mov	esi, offset regdump_msg
+	call	copy_esi_to_edi			; regdump message
+	mov	byte [edi], '$'			; end mark for PRINT
+	pop	edi
+
+	;------------------------------------------------------------
+	; rewrite register value
+	;------------------------------------------------------------
+	mov	ecx, 19
+.loop_regs:
+	pop	eax
+	call	rewrite_next_hash_to_hex
+	loop	.loop_regs
+
+	PRINT	ebp
+
+	; free buffer
+	mov	eax, ebp
+	call	free_gp_buffer_32
+
+	pop	es
+	popa
+	ret
+
+
+;##############################################################################
+; register dump for interrupt hook
+;##############################################################################
 %if INT_HOOK
-;------------------------------------------------
+;------------------------------------------------------------------------------
+proc32 set_dump_head_is_int
+;------------------------------------------------------------------------------
+	; ecx = error code
+	; edi = ebp = buffer address
+	mov	esi, offset regdump_hr
+	call	copy_esi_to_edi
+
+	mov	esi, offset dump_head_int
+	call	copy_esi_to_edi
+
+	push	edi
+	mov	edi, ebp
+	mov	eax, ecx
+	call	rewrite_next_hash_to_hex	; rewrite int number
+	pop	edi
+	ret
+
+%if INT_HOOK_RETV
+;------------------------------------------------------------------------------
+proc32 set_dump_head_is_return
+;------------------------------------------------------------------------------
+	; ecx = error code
+	; edi = ebp = buffer address
+	mov	esi, offset dump_head_ret
+	call	copy_esi_to_edi
+	ret
+%endif
+
+;------------------------------------------------------------------------------
 proc32 register_dump_from_int
-;------------------------------------------------
+;------------------------------------------------------------------------------
+	push	set_dump_head_is_int
 	push	ds
 	push	eax
 	;
-	; call元アドレスをexception number代わりに使う
-	; comの仕様上, 100h より小さいことは無い
-	;
 	;stack
-	;	+18h	eflags
-	;	+14h	cs
-	;	+10h	eip
-	;	+0ch	int number
-	;	+08h	caller (or exception number)
+	;	+1ch	eflags
+	;	+18h	cs
+	;	+14h	eip
+	;	+10h	int number
+	;	+0ch	caller
+	;	+08h	set header handler
 	;	+04h	ds
 	;	+00h	eax
 	;
+	%assign	cs_diff		18h
+	%assign	intnum_diff 	10h
+	%assign	ah_diff 	01h
+
 	push	d F386_ds
 	pop	ds
 	;
@@ -69,67 +347,70 @@ proc32 register_dump_from_int
 	; target CS
 	;
 	%if INT_HOOK_CS
-		cmp	d [esp+14h], INT_HOOK_CS
+		cmp	w [esp + cs_diff], INT_HOOK_CS
 		jne	short .no_dump
 	%endif
 	;
 	; exclude CS
 	;
 	%if INT_HOOK_EX_CS
-		cmp	d [esp+14h], INT_HOOK_EX_CS
+		cmp	w [esp + cs_diff], INT_HOOK_EX_CS
 		je	short .no_dump
 	%endif
 	;
 	; Free386 internal call ignore
 	;
 	%if !INT_HOOK_F386
-		cmp	d [esp+14h], F386_cs
+		cmp	w [esp + cs_diff], F386_cs
 		je	short .no_dump
 	%endif
 	;
-	; int 21h, ah=09h は必ず無視
+	; int 21h, ah=09h is ignore
 	;
-	cmp	b [esp+0ch], 21h
-	jnz	short .skip
+	cmp	b [esp + intnum_diff], 21h
+	jnz	short .do_dump
 	cmp	ah, 09h
 	jz	short .no_dump
-.skip:
+.do_dump:
+	; stack
+	;	+1ch	eflags
+	;	+18h	cs
+	;	+14h	eip
+	;	+10h	int number
+	;	+0ch	caller
+	;	+08h	set header handler
+	;	+04h	ds
+	;	+00h	eax
+	mov	eax, esp
+	add	eax, 20h
+	mov	[dump_orig_esp], eax
+	push	ss
+	pop	dword [dump_orig_ss]
 
-	push	d [esp+18h]	; eflags
-	popf			; recovery
-
-	mov	eax, [blue_int_str]
-	mov	[regdump_msg], eax	;"Int = "
-
-	call	register_dump_fault
-
-	mov	eax, [blue_err_str]
-	mov	[regdump_msg], eax	;"Err = "
+	call	register_dump
 
 	%if INT_HOOK_RETV
-		cmp	b [esp+1],  4ch	; ah!=4ch
-		jne	.skip2
-		cmp	b [esp+0ch],21h	; int 21h
+		cmp	b [esp + ah_diff],    4ch	; ah!=4ch
+		jne	.do_dump_ret
+		cmp	b [esp + intnum_diff],21h	; int 21h
 		je	.no_dump
-	.skip2:
+	.do_dump_ret:
 		cmp	b [.in_dump], 0
 		jnz	.no_dump
 		mov	b [.in_dump], 1
 
-		mov	eax, [esp+10h]
+		mov	eax, [esp + 14h]
 		mov	[.orig_eip], eax
-		mov	eax, [esp+14h]
+		mov	eax, [esp + 18h]
 		mov	[.orig_cs],  eax
-		mov	d [esp+10h], offset .int_retern
-		mov	  [esp+14h], cs
+		mov	d [esp+14h], offset .int_retern
+		mov	  [esp+18h], cs
 	%endif
 
 .no_dump:
-	push	d [esp+18h]	; eflags
-	popf			; recovery
-
 	pop	eax
 	pop	ds
+	add	esp, byte 4		; <-- push set_dump_head_is_int
 	ret
 
 %if INT_HOOK_RETV
@@ -138,8 +419,9 @@ proc32 register_dump_from_int
 	pushf
 	push	d [cs:.orig_cs]
 	push	d [cs:.orig_eip]
-	push	d -2			; for return value dump
-	push	d 100h			; dummy
+	push	eax			; int number is dummy
+	push	eax			; error code is dummy
+	push	set_dump_head_is_return	; dump header handler
 	push	ds
 	push	eax
 
@@ -147,11 +429,17 @@ proc32 register_dump_from_int
 	pop	ds
 	mov	b [.in_dump], 0
 
-	call	register_dump_fault
+	mov	eax, esp
+	add	eax, 20h
+	mov	[dump_orig_esp], eax
+	push	ss
+	pop	dword [dump_orig_ss]
+
+	call	register_dump
 
 	pop	eax
 	pop	ds
-	add	esp, 8
+	add	esp, 0ch
 	iret
 
 	align	4
@@ -160,214 +448,6 @@ proc32 register_dump_from_int
 .orig_cs	dd	0
 %endif
 %endif
-
-;------------------------------------------------
-proc32 register_dump
-;------------------------------------------------
-	pushf
-	push	cs
-	push	eax	; EIP dummy
-	push	d [cs:dump_err_code]
-	push	d 100h	; Exception number
-	push	ds
-	push	eax
-	mov	eax, F386_ds
-	mov	  ds,ax
-	mov	eax,[esp+1ch]	; caller
-	mov	[esp+10h],eax
-	mov	d [dump_err_code], -1
-
-	call	register_dump_fault
-
-	pop	eax
-	pop	ds
-	add	esp, 10h
-	popf
-	ret
-
-	;stack
-	;	+1ch	eflags
-	;	+18h	cs
-	;	+14h	eip
-	;	+10h	error code
-	;	+0ch	exception number
-	;	+08h	ds
-	;	+04h	eax
-	align 4
-;------------------------------------------------
-;------------------------------------------------
-proc32 register_dump_fault
-	; in	stack +04h	eax
-	;
-	; レジスタ保存, ds設定済で呼び出すこと
-	;
-	cld
-	push	edx
-	push	ecx
-	push	ebx
-	push	eax
-
-	mov	eax, [esp+14h]
-	to_hex	blue_eax
-	mov	eax, [esp+04h]
-	to_hex	blue_ebx
-	mov	eax, [esp+08h]
-	to_hex	blue_ecx
-	mov	eax, [esp+0ch]
-	to_hex	blue_edx
-
-	mov	eax, esi
-	to_hex	blue_esi
-	mov	eax, edi
-	to_hex	blue_edi
-	mov	eax, ebp
-	to_hex	blue_ebp
-
-	mov	eax, [esp+20h]
-	to_hex	blue_errorcode
-	mov	eax, [esp+24h]
-	to_hex	blue_eip
-	mov	eax, [esp+28h]
-	to_hex	blue_cs
-
-	mov	eax, [esp+18h]
-	to_hex	blue_ds
-	mov	eax, es
-	to_hex	blue_es
-	mov	eax, fs
-	to_hex	blue_fs
-	mov	eax, gs
-	to_hex	blue_gs
-
-	mov	eax, [dump_orig_ss]
-	mov	d [dump_orig_ss], -1
-	cmp	eax, -1
-	jz	short .current_ss
-
-	to_hex	blue_ss
-	mov	eax,[dump_orig_esp]
-	to_hex	blue_esp
-	jmp	short .end_ss
-.current_ss:
-	mov	eax, esp
-	add	eax, b 30h
-	to_hex	blue_esp
-	mov	eax, ss
-	to_hex	blue_ss
-.end_ss:
-
-	mov	eax, cr0
-	to_hex	blue_cr0
-	mov	eax, cr2
-	to_hex	blue_cr2
-	mov	eax, cr3
-	to_hex	blue_cr3
-
-	mov	eax, [esp + 2ch]	; eflags
-	mov	edx, offset blue_flags +1
-
-	test	ah, 004h	; OF
-	setnz	bl
-	or	bl, '0'
-	mov	[edx],bl
-
-	test	ah, 002h	; DF
-	setnz	bl
-	or	bl, '0'
-	mov	[edx + 3*1],bl
-
-	test	al, 040h	; Zero
-	setnz	bl
-	or	bl, '0'
-	mov	[edx + 3*2],bl
-
-	test	al, 020h	; Zero
-	setnz	bl
-	or	bl, '0'
-	mov	[edx + 3*3],bl
-
-	test	al, 001h	; Carry
-	setnz	bl
-	or	bl, '0'
-	mov	[edx + 3*4],bl
-
-	to_hex	blue_eflags
-
-	;CPU例外による呼び出し？
-	mov	ebx, offset regdump_msg
-	mov	eax, [esp + 1ch]
-	cmp	eax, 0ffh
-	ja	.no_exception
-
-	mov	dl, [err_max]
-	cmp	al, dl
-	jbe	.exp1
-	mov	al, dl
-.exp1:
-	movzx	ecx, b [err_size]
-	mul	ecx	; edx broken
-	lea	ebx, [err_00 + eax]
-	mov	edx, offset blue_intno
-.loop:
-	mov	al, [ebx]
-	mov	[edx], al
-	inc	ebx
-	inc	edx
-	loop	.loop
-	mov	ebx, offset blue_screen
-	jmp	short .print
-
-.no_exception:
-	cmp	d [esp+20h], -2
-	jne	.print
-	PRINT	string_return
-	PRINT	offset regdump_ds
-	PRINT	string_crlf
-	jmp	short .exit
-
-.print:
-	PRINT	ebx
-.exit:
-	pop	eax
-	pop	ebx
-	pop	ecx
-	pop	edx
-	ret
-
-;================================================
-;convert to hex
-;================================================
-; EAX を [EDX] へ１６進数文字列として格納
-	align 4
-eax2hex:
-	mov	bl,[edx+4]
-	cmp	bl,'_'
-	jz	.loop
-	shl	eax, 16
-.loop:
-	mov	ebx, eax
-	shr	ebx, 28
-	mov	 cl, [hex_str + ebx]
-	mov	[edx], cl
-	inc	edx
-	shl	eax, 4
-
-	mov	bl, [edx]
-	cmp	bl, ' '
-	jz	.end
-	cmp	bl, ':'
-	jz	.end
-	cmp	bl, 'h'
-	jz	.end
-	cmp	bl, 13
-	jz	.end
-
-	cmp	bl, '_'
-	jnz	.loop
-	inc	edx
-	jmp	short .loop
-.end:
-	ret
 
 ;##############################################################################
 ; search PATH/ENV
@@ -645,8 +725,8 @@ proc32 load_exp
 	;
 	mov	eax,[esi + 62h]	;スタックポインタ
 	mov	ebx,[esi + 68h]	;実行開始アドレス
-	mov	[data3],eax	;esp
-	mov	[data4],ebx	;eip
+	mov	[tmp03],eax	;esp
+	mov	[tmp04],ebx	;eip
 
 	;
 	;★★★プログラムロード★★★
@@ -690,8 +770,8 @@ proc32 load_exp
 	int	21h			;dos コール
 
 	pop	ds
-	mov	ebp,[data3]		;esp
-	mov	edx,[data4]		;eip
+	mov	ebp,[tmp03]		;esp
+	mov	edx,[tmp04]		;eip
 	mov	 fs,[Load_cs]		;cs
 	mov	 gs,[Load_ds]		;ds
 	clc				;キリャークリア
@@ -817,8 +897,8 @@ proc32 .load_MZ_exp
 	;
 	mov	eax,[esi + 0eh]	;スタックポインタ
 	mov	ebx,[esi + 14h]	;実行開始アドレス
-	mov	[data3],eax	;esp
-	mov	[data4],ebx	;eip
+	mov	[tmp03],eax	;esp
+	mov	[tmp04],ebx	;eip
 
 	;
 	;以下、P3 のコピー
@@ -866,15 +946,15 @@ exp_un_pack_fread:
 	mov	ecx,ds
 	mov	  ds,ax
 	mov	  es,cx
-	mov	[data1],eax	;このプログラム
-	mov	[data2],ecx	;読み込み先
+	mov	[tmp01],eax	;このプログラム
+	mov	[tmp02],ecx	;読み込み先
 
 	;
 	;↑により ds がこのセグメントを示すようになった
 	;
 	mov	edi,edx			;edi <- ファイル読み込み先
 	mov	edx,esi			;edx <- ワークメモリ
-	mov	[data0],esi		;汎用変数に一時的に記憶
+	mov	[tmp00],esi		;汎用変数に一時的に記憶
 
 
 	align	4
@@ -913,7 +993,7 @@ exp_up_loop:	;*** ループスタート ****************************
 	add	edi,eax			;リードバイト数だけプログラムロード領域
 					; のアドレスをステップする
 
-	mov	 ds, [data2]		;ds = ファイルロード領域
+	mov	 ds, [tmp02]		;ds = ファイルロード領域
 
 	;
 	;ds:edx = プログラムロード領域
@@ -922,8 +1002,8 @@ exp_up_loop:	;*** ループスタート ****************************
 	int	21h			;DOS コール
 	jc	short exp_up_fread_err	;キャリーがあればリードエラー
 
-	mov	 ds, [cs:data1]		;このプログラムの ds
-	mov	edx, [data0]		;ワークエリアオフセットを戻す
+	mov	 ds, [cs:tmp01]		;このプログラムの ds
+	mov	edx, [tmp00]		;ワークエリアオフセットを戻す
 	;
 	;↑ds:edx をワーク領域に復元
 	;
@@ -940,8 +1020,8 @@ exp_up_fread_eof:	;ファイルを最後まで読んで、処理しきった
 	;
 	;セグメントレジスタ ds･es を元に戻す
 	;
-	mov	 es,[data1]	;このプログラム
-	mov	 ds,[data2]	;ロード領域
+	mov	 es,[tmp01]	;このプログラム
+	mov	 ds,[tmp02]	;ロード領域
 
 	pop	edi
 	pop	ebp
@@ -1187,97 +1267,56 @@ proc32 run_exp
 ; DATA
 ;******************************************************************************
 segdata	data class=DATA align=4
-;------------------------------------------------------------------------------
-;・レジスタダンプ表示
-;------------------------------------------------------------------------------
-; db "Expection Interrupted : INT 00h -                                 ",13,10
-; db "ErrorCode = ####_####  CS:EIP = ####:####_####  EFLAGS = ####_####",13,10
-; db "DS = ####  ES = ####  SS = ####  FS = ####  GS = ####             ",13,10
-; db "CR0 = ####_####  CR1 = ****_****  CR2 = ####_####  CR3 = ####_####",13,10
-; db "EAX = ####_####  EBX = ####_####  ECX = ####_####  EDX = ####_####",13,10
-; db "ESI = ####_####  EDI = ####_####  EBP = ####_####  ESP = ####_####",13,10
-; db "$"
+		   ;                         12345678901234567890123456789012345678901
+dump_head_fault	db "CPU Expection: INT ##h -                                          ",13,10,
+		db "Err = ####_####  ",0
+dump_head_int	db "Int = ###h       ",0
+dump_head_ret	db "Return:          ",0
+dump_head_reg	db "Register dump:   ",0
+regdump_msg	db                   "CS:EIP = ####:####_####  SS:ESP = ####:####_####",13,10,
+		db " DS = ####  ES = ####  FS = ####  GS = ####   "
+regdump_flags	db "C  P  Z  S  O  D  I ",13,10,
+		db "EAX = ####_####  EBX = ####_####  ECX = ####_####  EDX = ####_####",13,10,
+		db "ESI = ####_####  EDI = ####_####  EBP = ####_####  FLG = ####_####",13,10,
+		db "CR0 = ####_####  CR2 = ####_####  CR3 = ####_####",13,10
+regdump_hr	db "------------------------------------------------------------------",13,10,0
 
-blue_screen:	;;	db 01Bh,"[46m"
-		db "----------------------------------------"
-		db "--------------------------",13,10
-		db "Expection Interrupted : INT "
-blue_intno	db "##h -                                 ",13,10,
-regdump_msg	db "Err = " ;blue_err_strで書き換えるので変更時は注意
-blue_errorcode	db "####_####  "
-blue_cseip	db "CS:EIP = "
-blue_cs		db "####:"
-blue_eip	db "####_####   SS:ESP = "
-blue_ss		db "####:"
-blue_esp	db "####_####",13,10,
-regdump_ds	db " DS = "
-blue_ds		db "####        ES = "
-blue_es		db "####        FS = "
-blue_fs		db "####        GS = "
-blue_gs		db "####",13,10,"EAX = "
-blue_eax	db "####_####  EBX = "
-blue_ebx	db "####_####  ECX = "
-blue_ecx	db "####_####  EDX = "
-blue_edx	db "####_####",13,10,"ESI = "
-blue_esi	db "####_####  EDI = "
-blue_edi	db "####_####  EBP = "
-blue_ebp	db "####_####  FLG = "
-blue_eflags	db "####_####",13,10,"CR0 = "
-blue_cr0	db "####_####  CR2 = "
-;blue_cr1 / CPU に存在しない
-blue_cr2	db "####_####  CR3 = "
-blue_cr3	db "####_####  "
-blue_flags	db "O  D  S  Z  C  ",13,10
-		db "----------------------------------------"
-		db "--------------------------",13,10
-;;		db 0x1b,"[40;0m"
-		db "$"
-string_return	db 'Return:'
-string_crlf	db 13,10,'$'
-
-blue_err_str	db	"Err "
-blue_int_str	db	"Int "
-
-extern	hex_str		;Definded in sub.asm
-;hex_str 	db	'0123456789ABCDEF'
-
-err_size	db	34
-err_max		db	12h
-			;1234567890123456789012345678901234
-err_00		db	'00h - Zero Divide Error           '
-err_01		db	'01h - Debug Exceptions            '
-err_02		db	'02h - NMI                         '
-err_03		db	'03h - Breakpoint                  '
-err_04		db	'04h - INTO Overflow Fault         '
-err_05		db	'05h - Bounds Check Fault          '
-err_06		db	'06h - Invalid Opcode Fault        '
-err_07		db	'07h - Coprocessor Not Available   '
-err_08		db	'08h - Double Fault                '
-err_09		db	'09h - Coprocessor Segment Overrun '
-err_0a		db	'0Ah - Invalid TSS                 '
-err_0b		db	'0Bh - Segment Not Present Fault   '
-err_0c		db	'0Ch - Stack Exception Fault       '
-err_0d		db	'0Dh - General Protection Exception'
-err_0e		db	'0Eh - Page Fault                  '
-err_0f		db	'0Fh - (CPU RESERVED)              '
-err_10		db	'10h - Coprocessor Error           '
-err_11		db	'11h - Alignment Fault             '
-err_dmy		db	'1xh - Unknown (Stack broken?)     '
+cpu_fault_name_table:
+			;12345678901234567890123456789012345678901 : max 41 byte
+.err_00		db	'Zero Divide Error',0
+.err_01		db	'Debug Exceptions',0
+.err_02		db	'NMI',0
+.err_03		db	'Breakpoint',0
+.err_04		db	'INTO Overflow',0
+.err_05		db	'Bounds Check Fault',0
+.err_06		db	'Invalid Opcode Fault',0
+.err_07		db	'Coprocessor Not Available',0
+.err_08		db	'Double Fault',0
+.err_09		db	'Coprocessor Segment Overrun',0
+.err_0a		db	'Invalid TSS',0
+.err_0b		db	'Segment Not Present Fault',0
+.err_0c		db	'Stack Exception Fault',0
+.err_0d		db	'General Protection Exception',0
+.err_0e		db	'Page Fault',0
+.err_0f		db	'(CPU RESERVED)',0
+.err_10		db	'Coprocessor Error',0
+.err_11		db	'Alignment Fault',0
+cpu_fault_unknown:
+		db	'Unknown',0
 
 	align	4
-dump_err_code	dd	-1
-dump_orig_esp	dd	-1
-dump_orig_ss	dd	-1
+dump_orig_esp	dd	0
+dump_orig_ss	dd	0
 
 ;------------------------------------------------------------------------------
 ; for load exp
 ;------------------------------------------------------------------------------
 	align	4
-data0		dd	0	; temporary
-data1		dd	0	;
-data2		dd	0	;
-data3		dd	0	;
-data4		dd	0	;
+tmp00		dd	0	; temporary
+tmp01		dd	0	;
+tmp02		dd	0	;
+tmp03		dd	0	;
+tmp04		dd	0	;
 
 file_handle	dd	0
 Load_cs		dd	0

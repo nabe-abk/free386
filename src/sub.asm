@@ -243,40 +243,36 @@ proc32 bin2hex_32
 ;
 proc32 rewrite_next_hash_to_hex
 	push	ecx
-.loop:
-	inc	edi
-	cmp	b [edi], '#'
-	jne	.loop
-	call	count_num_of_hash
+	call	count_num_of_next_hash
 	call	bin2hex_32
 	pop	ecx
 	ret
 
-
 proc32 rewrite_next_hash_to_dec
 	push	ecx
-.loop:
-	inc	edi
-	cmp	b [edi], '#'
-	jne	.loop
-	call	count_num_of_hash
+	call	count_num_of_next_hash
 	call	bin2dec_32
 	pop	ecx
 	ret
 
-proc32 count_num_of_hash
+proc32 count_num_of_next_hash
+.search_loop:
+	inc	edi
+	cmp	b [edi], '#'
+	jne	.search_loop
+
 	push	edi
 	xor	ecx, ecx
-	jmp	.loop
+	jmp	.count_loop
 .skip:
 	inc	edi
-.loop:
+.count_loop:
 	cmp	b [edi+ecx], '_'
 	je	.skip
 	cmp	b [edi+ecx], '#'
 	jne	.exit
 	inc	ecx
-	jmp	.loop
+	jmp	.count_loop
 .exit:
 	pop	edi
 	ret

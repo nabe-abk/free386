@@ -5,9 +5,12 @@ Ver 0.82 - 2023-12-xx
 - Support for building with Microsoft LINK.EXE.
 - Add: set EXP file name to ENV command name.
 - Fix: very rare error in heap memory calculation for exp file.
+- Fix: using -vv option will cause a hang up if bits 16-31 of ebx is not 0.
 - Update: int 21h, ah=4ah for Open Watcom's EXP file.
 - Update: source file names are now easier to understand.
+- Update: rewrite register dump and cpu fault routines (and fix bugs).
 - Update: sub.asm/sub32.asm. Cleanup and rewrite routines.
+- [PC/AT] Update: machine check routine.
 - [TOWNS] Fix: nsdd sleeping can take a long time.
 - [Universal] Enable hardware interrupt (required by Open Watcom).
 - [test-asm.exp] Fix: vsync_XX.exp, forgot to restore DS in interrupt.

@@ -9,7 +9,13 @@ if [ "$1" = "clean" ]; then
 	exit
 fi
 
-for f in *.MAK; do
+if [ "$1" = "" ]; then
+	FILES=*.MAK
+else
+	FILES=`echo -n $1 | tr '[:lower:]' '[:upper:]'`.MAK
+fi
+
+for f in $FILES; do
 	sed -E '
 		s/ASM\s*=.*/ASM=nasm/g;
 		s/LINK\s*=.*/LINK=..\/tools\/flatlink -strip/g;
