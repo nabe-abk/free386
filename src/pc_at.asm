@@ -10,21 +10,22 @@ seg16	text class=CODE align=4 use16
 ;	Cy=1	false
 ;
 proc16 check_AT_16
-	xor	ah,ah		;AH = 0
-%rep	4		;偶数回繰り返し
-	in	al,41h		;タイマ カウンタ#01
- 	xor	ah,al		;xor
-	in	al,42h		;タイマ カウンタ#02
- 	xor	ah,al		;xor
-%endrep
+	xor	bx,bx		;AH = 0
+	mov	cx,16
+.loop:
+	in	al,40h		;timer #00
+ 	xor	bl,al		;xor
+	in	al,41h		;timer #01
+ 	xor	bh,al		;xor
+	loop	.loop
 
- 	test	ah,ah		;値確認
-	jz	.not_AT		;0 なら AT ではない
-	clc	;成功
+ 	test	bx,bx
+ 	jz	.not_AT
+	clc
 	ret
 
 .not_AT:
-	stc	;失敗
+	stc
 	ret
 
 ;==============================================================================
