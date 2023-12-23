@@ -16,8 +16,8 @@ F386_Date	equ		20231212h	;Release date
 ;==============================================================================
 %ifndef AUTO_RELEASE
 		; Target Machine / If all of zero, for DOS general purpose.
-TOWNS		equ	0	; for FM TOWNS binary
-PC_98		equ	1	; for PC-9801/9821 binary
+TOWNS		equ	1	; for FM TOWNS binary
+PC_98		equ	0	; for PC-9801/9821 binary
 PC_AT		equ	0	; for PC/AT binary
 
 		; for DEVELOP build
