@@ -581,7 +581,7 @@ proc32 exit_TOWNS_16
 	;///////////////////////////////
 	;reset key BIOS
 	;///////////////////////////////
-%if (INIT_KEY_BIOS)
+%if INIT_KEY_BIOS
 	mov	ah,90h
 	int	90h
 	mov	ax,0501h

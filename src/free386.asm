@@ -270,27 +270,27 @@ proc16 print_title
 ;------------------------------------------------------------------------------
 ;●簡易機種判別
 ;------------------------------------------------------------------------------
-%if (MACHINE_CODE != 0)		;機種汎用でない
+%if MACHINE_CODE			;機種汎用でない
 
-machine_check:
+proc8 machine_check
 	mov	al,[check_MACHINE]	;機種判別フラグ
 	test	al,al			;値確認
 	jz	.no_check		;0 ならチェックしない
 
-%if TOWNS
-	call	check_TOWNS_16
-%elif PC_98
-	call	check_PC98_16
-%elif PC_AT
-	call	check_AT_16
-%endif
+	%if TOWNS
+		call	check_TOWNS_16
+	%elif PC_98
+		call	check_PC98_16
+	%elif PC_AT
+		call	check_AT_16
+	%endif
 
-	jnc	.check_safe		;Cy=0 なら該当機種
+	jnc	.check_true		;Cy=0 なら該当機種
 	mov	ah, 02			;機種判別失敗
 	jmp	error_exit_16		;終了
 
 .no_check:
-.check_safe:
+.check_true:
 %endif
 
 ;------------------------------------------------------------------------------

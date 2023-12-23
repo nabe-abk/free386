@@ -198,7 +198,7 @@ PC98_DOS_CRTC_init:
 	out	06Ah, al
 
 	;/// ‰æ–Ê•\Ž¦’âŽ~ //////////////
-%if (STOP_GVRAM)
+%if STOP_GVRAM
 	mov	al, 00Ch
 	out	0A2h, al	;‰æ–Ê•\Ž¦’âŽ~
 %endif

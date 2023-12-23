@@ -14,11 +14,11 @@ F386_Date	equ		20231212h	;Release date
 ;==============================================================================
 ; RELEASE and DEBUG setting
 ;==============================================================================
-%ifndef AUTO_RELEASE
+%ifndef BUILD_TARGET
 		; Target Machine / If all of zero, for DOS general purpose.
-TOWNS		equ	1	; for FM TOWNS binary
-PC_98		equ	0	; for PC-9801/9821 binary
-PC_AT		equ	0	; for PC/AT binary
+%define	TOWNS		1	; for FM TOWNS binary
+%define	PC_98		0	; for PC-9801/9821 binary
+%define	PC_AT		0	; for PC/AT binary
 
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
@@ -148,6 +148,42 @@ DOSMEM_Lsel	equ	34h	;DOS 1MB memroy
 IntVectors	equ	100h	;Interrupt vectors, fixed
 
 ;==============================================================================
+;for BUILD_TARGET macro
+;==============================================================================
+%ifidni BUILD_TARGET,TOWNS
+	%define	TOWNS	1
+
+%elifidni BUILD_TARGET,PC_98
+	%define	PC_98	1
+%elifidni BUILD_TARGET,PC98
+	%define	PC_98	1
+%elifidni BUILD_TARGET,98
+	%define	PC_98	1
+
+%elifidni BUILD_TARGET,PC_AT
+	%define	PC_AT	1
+%elifidni BUILD_TARGET,AT
+	%define	PC_AT	1
+
+%elifidni BUILD_TARGET,gen
+	;
+%elifidni BUILD_TARGET,general
+	;
+%elifdef BUILD_TARGET
+	%error Unknown build target
+%endif
+
+%ifndef TOWNS
+	%define	TOWNS	0
+%endif
+%ifndef PC_98
+	%define	PC_98	0
+%endif
+%ifndef PC_AT
+	%define	PC_AT	0
+%endif
+
+;==============================================================================
 ;Machine type setting
 ;==============================================================================
 ;------------------------------------------------------------------------------
@@ -238,17 +274,10 @@ I8259A_IMR_S	equ	0a1h	;
 %endif
 
 ;------------------------------------------------------------------------------
-;setting check
-;------------------------------------------------------------------------------
-
-%if (TOWNS + PC_98 + PC_AT) >1
-%error You must select from "for_TOWNS, for_PC98, fot_AT", or no select.
-
-;------------------------------------------------------------------------------
 ;for General DOS machine
 ;------------------------------------------------------------------------------
 
-%elif (TOWNS + PC_98 + PC_AT) = 0
+%if (TOWNS + PC_98 + PC_AT) = 0
 
 MACHINE_CODE	equ	00h
 

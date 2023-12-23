@@ -14,13 +14,13 @@ ASMOP  = -f obj
 # for flatlink.exp
 #////////////////////////////////////////////////////////////////////
 LINK   = ..\bin\free386 -q ..\tools\flatlink.exp
-LINKOP = -o $(TARGET)
+LINKOP =
 
 #////////////////////////////////////////////////////////////////////
 # for alink.exp
 #////////////////////////////////////////////////////////////////////
 # LINK   = ..\bin\free386 -q ..\tools\alink-p1.exp
-# LINKOP = -oCOM -o $(TARGET) -m
+# LINKOP = -oCOM -m
 
 #====================================================================
 # If you want to use Microsoft LINK.EXE, run the following.
@@ -72,7 +72,7 @@ free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc
 
 $(TARGET): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
 	echo $< >objs
-	$(LINK) $(LINKOP) @objs
+	$(LINK) $(LINKOP) -o $@ @objs
 	$(RM) objs
 
 ### CAUTION!) free386.obj needs to be linked at the last. #####################

@@ -10,17 +10,19 @@ TARGET = ../free386.com
 ASM    = nasm
 ASMOP  = -f obj
 
+ASMOP +=$(if $(FREE386_TARGET),-DBUILD_TARGET=$(FREE386_TARGET),)
+
 #///////////////////////////////////////////////////////////////////
 # flatlink
 #///////////////////////////////////////////////////////////////////
 LINK   = ../tools/flatlink
-LINKOP = -o $(TARGET)
+LINKOP =
 
 #///////////////////////////////////////////////////////////////////
 # alink
 #///////////////////////////////////////////////////////////////////
 # LINK   = ../tools/alink-p1
-# LINKOP = -oCOM -o $(TARGET) -m
+# LINKOP = -oCOM -m
 
 #------------------------------------------------------------------------------
 RM = rm -f
@@ -63,7 +65,7 @@ free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc
 	$(ASM) $(ASMOP) free386.asm
 
 $(TARGET): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
-	$(LINK) $(LINKOP) $^
+	$(LINK) $(LINKOP) -o $@ $^
 
 ### CAUTION!) free386.obj needs to be linked at the last. #####################
 

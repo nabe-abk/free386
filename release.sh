@@ -21,68 +21,42 @@ done
 #--------------------------------------------------------------------
 cd src
 
-mv f386def.inc f386def.org
-
-# for TOWNS
-
-echo "%define AUTO_RELEASE" > f386def.inc
-echo "TOWNS equ 1" >>f386def.inc
-echo "PC_98 equ 0" >>f386def.inc
-echo "PC_AT equ 0" >>f386def.inc
-cat f386def.org >>f386def.inc
 make -f makefile.lin clean
-make -f makefile.lin 
+make -f makefile.lin BUILD_TARGET=TOWNS
 
 echo mv ../free386.com ../bin/TOWNS
      mv ../free386.com ../bin/TOWNS
+echo
 
 # for PC-98
 
-echo ""
-echo "%define AUTO_RELEASE" > f386def.inc
-echo "TOWNS equ 0" >>f386def.inc
-echo "PC_98 equ 1" >>f386def.inc
-echo "PC_AT equ 0" >>f386def.inc
-cat f386def.org >>f386def.inc
 make -f makefile.lin clean
-make -f makefile.lin 
+make -f makefile.lin BUILD_TARGET=PC_98
 
 echo mv ../free386.com ../bin/PC-98
      mv ../free386.com ../bin/PC-98
+echo
 
 # for PC/AT
 
-echo ""
-echo "%define AUTO_RELEASE" > f386def.inc
-echo "TOWNS equ 0" >>f386def.inc
-echo "PC_98 equ 0" >>f386def.inc
-echo "PC_AT equ 1" >>f386def.inc
-cat f386def.org >>f386def.inc
 make -f makefile.lin clean
-make -f makefile.lin 
+make -f makefile.lin BUILD_TARGET=AT
 
 echo mv ../free386.com ../bin/AT
      mv ../free386.com ../bin/AT
+echo
 
 # for DOS general
 
-echo ""
-echo "%define AUTO_RELEASE" > f386def.inc
-echo "TOWNS equ 0" >>f386def.inc
-echo "PC_98 equ 0" >>f386def.inc
-echo "PC_AT equ 0" >>f386def.inc
-cat f386def.org >>f386def.inc
 make -f makefile.lin clean
-make -f makefile.lin 
+make -f makefile.lin BUILD_TARGET=gen
 
 echo mv ../free386.com ../bin
      mv ../free386.com ../bin
+echo
 
 # cleanup
 
-echo ""
-rm f386def.inc
-mv f386def.org f386def.inc
 make -f makefile.lin clean
 
 cd ..
@@ -90,7 +64,7 @@ cd ..
 # check
 #--------------------------------------------------------------------
 
-echo ""
+echo
 for d in $DIRS; do
 	if [ ! -e "$d/free386.com" ]; then
 		echo "$d/free386.com does not exists!"
