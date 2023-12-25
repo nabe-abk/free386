@@ -54,8 +54,6 @@ pc.obj: pc.asm pc_towns.asm pc_98.asm pc_at.asm $(base) start.inc memory.inc sel
 free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc sub.inc sub32.inc memory.inc selector.inc call_v86.inc int.inc pc.inc
 	$(ASM) $(ASMOP) free386.asm
 
-free
-
 $(TARGET_EXE): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
 	echo $< >objs
 	echo ,$(TARGET_EXE),nul,,nul >>objs
