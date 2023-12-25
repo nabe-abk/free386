@@ -24,22 +24,26 @@ F386_Date	equ		20231225h	;Release date
 INT_HOOK	equ	0	; Interrupt hook and register dump
 INT_HOOK_RETV	equ	1	; 	with return value dump
 INT_HOOK_AH	equ	0	; 	only AH value
+INT_HOOK_AX	equ	0	; 	only AX value
 INT_HOOK_CS	equ	0	; 	only CS value
 INT_HOOK_EX_CS	equ	0	; 	exclude CS value
 INT_HOOK_F386	equ	0	; (DANGER!) with Free386 CS's INT
 PRINT_TO_FILE	equ	0	; int 21/ah=09h to DUMP_FILE file
 PRINT_TSUGARU	equ	0	; int 21/ah=09h to Tsugaru(emulator) console
+DUMP_DS_EDX	equ	1	; int 21h, AX=2510h-2511h, need PRINT_TSUGARU
 
 %else
 		; for RELEASE
 INT_HOOK	equ	0
 INT_HOOK_RETV	equ	0
 INT_HOOK_AH	equ	0
+INT_HOOK_AX	equ	0
 INT_HOOK_CS	equ	0
 INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
 PRINT_TO_FILE	equ	0
 PRINT_TSUGARU	equ	0
+DUMP_DSEDX	equ	0
 
 %endif
 

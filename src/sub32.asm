@@ -27,9 +27,9 @@ seg32	text32 class=CODE align=4 use32
 ;------------------------------------------------------------------------------
 proc32 register_dump_iret
 ;------------------------------------------------------------------------------
-	;	+08h eflags
-	;	+04h cs
 	; stack	+00h eip
+	;	+04h cs
+	;	+08h eflags
 	push	eax				; error code       is dummy
 	push	eax				; interrupt number is dummy
 	push	offset set_dump_head_is_reg	; callback function
@@ -46,14 +46,14 @@ proc32 register_dump_iret
 	pop	dword [dump_orig_ss]
 
 	; stack
-	;	+1ch	eflags
-	;	+18h	cs
-	;	+14h	eip
-	;	+10h	error code
-	;	+0ch	interrupt number
-	;	+08h	header handler address
-	;	+04h	ds
 	;	+00h	eax
+	;	+04h	ds
+	;	+08h	header handler address
+	;	+0ch	interrupt number
+	;	+10h	error code
+	;	+14h	eip
+	;	+18h	cs
+	;	+1ch	eflags
 	call	register_dump
 
 	pop	eax
@@ -142,14 +142,14 @@ proc32 register_dump
 	jnz	.step		; success
 	ret			; alloc error
 	;stack
-	;	+20h	eflags
-	;	+1ch	cs
-	;	+18h	eip
-	;	+14h	error code
-	;	+10h	interrupt number
-	;	+0ch	header handler address
-	;	+08h	ds
 	;	+04h	eax
+	;	+08h	ds
+	;	+0ch	header handler address
+	;	+10h	interrupt number
+	;	+14h	error code
+	;	+18h	eip
+	;	+1ch	cs
+	;	+20h	eflags
 	;memory
 	;	[dump_orig_esp]
 	;	[dump_orig_ss]
@@ -321,14 +321,14 @@ proc32 register_dump_from_int
 	push	eax
 	;
 	;stack
-	;	+1ch	eflags
-	;	+18h	cs
-	;	+14h	eip
-	;	+10h	int number
-	;	+0ch	caller
-	;	+08h	set header handler
-	;	+04h	ds
 	;	+00h	eax
+	;	+04h	ds
+	;	+08h	set header handler
+	;	+0ch	caller
+	;	+10h	int number
+	;	+14h	eip
+	;	+18h	cs
+	;	+1ch	eflags
 	;
 	%assign	cs_diff		18h
 	%assign	intnum_diff 	10h
@@ -341,6 +341,13 @@ proc32 register_dump_from_int
 	;
 	%if INT_HOOK_AH
 		cmp	ah, INT_HOOK_AH
+		jne	short .no_dump
+	%endif
+	;
+	; target AH
+	;
+	%if INT_HOOK_AX
+		cmp	ax, INT_HOOK_AX
 		jne	short .no_dump
 	%endif
 	;
@@ -373,14 +380,14 @@ proc32 register_dump_from_int
 	jz	short .no_dump
 .do_dump:
 	; stack
-	;	+1ch	eflags
-	;	+18h	cs
-	;	+14h	eip
-	;	+10h	int number
-	;	+0ch	caller
-	;	+08h	set header handler
-	;	+04h	ds
 	;	+00h	eax
+	;	+04h	ds
+	;	+08h	set header handler
+	;	+0ch	caller
+	;	+10h	int number
+	;	+14h	eip
+	;	+18h	cs
+	;	+1ch	eflags
 	mov	eax, esp
 	add	eax, 20h
 	mov	[dump_orig_esp], eax
@@ -446,6 +453,44 @@ proc32 register_dump_from_int
 .in_dump	dd	0
 .orig_eip	dd	0
 .orig_cs	dd	0
+%endif
+
+;------------------------------------------------------------------------------
+; debug dump with emulator Tsugaru
+;------------------------------------------------------------------------------
+; in	ecx = dump bytes
+;
+%if PRINT_TSUGARU && DUMP_DS_EDX
+proc32 debug_dump_ds_edx
+	pushf
+	;
+	; target AH
+	;
+	%if INT_HOOK_AH
+		cmp	ah, INT_HOOK_AH
+		jne	short .no_dump
+	%endif
+	;
+	; target AH
+	;
+	%if INT_HOOK_AX
+		cmp	ax, INT_HOOK_AX
+		jne	short .no_dump
+	%endif
+
+	push	ebx
+	push	edx
+
+	mov	ebx, edx
+	mov	dx, 2F18h
+	mov	al, 0ah
+	out	dx, al
+
+	pop	edx
+	pop	ebx
+.no_dump:
+	popf
+	ret
 %endif
 %endif
 

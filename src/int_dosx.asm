@@ -881,6 +881,8 @@ proc32 DOSX_fn_250eh
 ;	cy = 1	fail. eax = 1 not enough real-mode stack space
 ;
 proc32 DOSX_fn_2510h
+	call_DumpDsEdx	18h		; dump, if set DUMP_DS_EDX
+
 	start_sdiff
 	push_x	es
 
@@ -985,28 +987,14 @@ proc32 DOSX_fn_2510h
 ;	+0eh d edx
 ;
 proc32 DOSX_fn_2511h
+	call_DumpDsEdx	12h		; dump, if set DUMP_DS_EDX
+
 	push	es
 	push	edx
 
 	push	F386_ds
 	pop	es
 
-%if INT_HOOK && PRINT_TSUGARU
-	; Debug support with emulator Tsugaru
-	push	ebx
-	push	ecx
-	push	edx
-
-	mov	ebx, edx
-	mov	ecx, 12h
-	mov	dx, 2F18h
-	mov	al, 0ah
-	out	dx, al
-
-	pop	edx
-	pop	ecx
-	pop	ebx
-%endif
 	;--------------------------------------------------
 	; set V86 segments
 	;--------------------------------------------------

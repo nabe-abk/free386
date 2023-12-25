@@ -178,3 +178,12 @@ cy_clear:	;
 %endif
 %endmacro
 
+%imacro call_DumpDsEdx		1
+%if INT_HOOK && PRINT_TSUGARU && DUMP_DS_EDX
+	push	ecx
+	mov	ecx, %1
+	call	debug_dump_ds_edx
+	pop	ecx
+%endif
+%endmacro
+
