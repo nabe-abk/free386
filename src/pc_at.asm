@@ -46,13 +46,17 @@ proc32 init_AT_32
 	mov	esi,offset AT_selector_alias	;エイリアスの作成
 	call	make_aliases			;
 
-	;/// VESA3.0 の確認 ////////////////////////
+	;--------------------------------------------------
+	; check VESA3.0
+	;--------------------------------------------------
+%if VESA_DISABLE
+	jmp	.no_VESA
+%endif
 	mov	ax,4f00h	;install VESA?
 	mov	di,[work_adr]	;バッファアドレス (ボード名/Ver など多数が返る)
 	V86_INT	10h		;VGA/VESA BIOS call
 	cmp	ax,004fh	;サポートされてる？
 	jne	.no_VESA	;違えば VESA なし(jmp)
-	jmp	.no_VESA	;for debug**************************
 
 	;/// VESA3.0 Protect Mode Bios の検索 //////
 	push	b (DOSMEM_sel)
@@ -313,5 +317,5 @@ AT_selector_alias:
 
 
 VESA_PMIB	dd	0		;VESA Protect-Mode-Info-Block
-VESA30_init	db	'VESA3.0 Protect Mode BIOS inisalized!!',13,10,'$'
+VESA30_init	db	'VESA3.0 Protect Mode BIOS initalized!!',13,10,'$'
 

@@ -249,6 +249,8 @@ MACHINE_CODE	equ	30h	; PC/AT
 %define	MACHINE_STRING	'PC/AT'
 %define	Free386_API	'f386_at.api'	; API file
 
+VESA_DISABLE	equ	1	; Disable VESA
+
 VESA_buf_sel	equ	148h	; VESA-BIOS buffer selector
 VESA_buf_size	equ	1	; VESA-BIOS buffer size (page / 1=4kb)
 VESA_call_adr	equ	0ffc0h	; VESA-BIOS / call VESA_cs:VESA_call_adr
