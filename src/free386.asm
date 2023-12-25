@@ -36,7 +36,6 @@ global		to_PM_data_ladr
 global		VCPI_entry
 global		VCPI_stack_adr
 global		V86_cs
-global		f386err
 
 ;--- for int.asm ----------------------------------
 global		IDT_adr
@@ -44,7 +43,6 @@ global		PM_stack_adr
 global		RVects_flag_tbl
 global		DTA_off
 global		DTA_seg
-global		DOS_int21h_adr
 global		default_API
 global		pharlap_version
 
@@ -254,7 +252,7 @@ proc16 print_title
 	mov	al,[show_title]	;タイトル表示する?
 	test	al,al		;値 check
 	jz	.no_title	;0 なら表示せず
-	PRINT86	P_title		;タイトル表示
+	PRINT16	P_title		;タイトル表示
 .no_title:
 
 	cmp	b [verbose], 2
@@ -264,7 +262,7 @@ proc16 print_title
 	mov	cx, 4		; digits
 	mov	di, seg_hex	; store target
 	call	bin2hex_16
-	PRINT86	seg_msg
+	PRINT16	seg_msg
 .skip:
 
 ;------------------------------------------------------------------------------
@@ -516,7 +514,7 @@ XMS_setup:
 proc8 get_EMB_XMS20
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
-	PRINT86	msg_06		;'Found XMS 2.0'
+	PRINT16	msg_06		;'Found XMS 2.0'
 
 .step:
 	mov	ah,08h		;EMB 空きメモリ問い合わせ
@@ -551,7 +549,7 @@ get_EMB_failed:
 proc8 get_EMB_XMS30
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
-	PRINT86	msg_07		;'Found XMS 3.0'
+	PRINT16	msg_07		;'Found XMS 3.0'
 
 .step:
 	mov	ah,88h			;EMB 空きメモリ問い合わせ
@@ -775,14 +773,6 @@ proc8 get_VCPI_interface
 	in	al,I8259A_IMR_M		;8259A マスタ
 	mov	[intr_mask_org],ax	;記憶
 %endif
-
-	;///////////////////////////////////////////////////
-	;int21h アドレス記憶
-	;///////////////////////////////////////////////////
-	xor	ax,ax			;ax = 0
-	mov	gs,ax			;es = 0
-	mov	eax,[gs:21h*4]		;DOS function CS:IP
-	mov	[DOS_int21h_adr],eax	;記録
 
 
 ;------------------------------------------------------------------------------
@@ -1044,7 +1034,7 @@ free_EMB:
 	test	ax,ax		;ax = 0 ?
 	jnz	.ret		;non 0 なら jmp
 
-	PRINT86	err_xms_free	;「メモリ開放失敗」
+	PRINT16	err_xms_free	;「メモリ開放失敗」
 .ret:
 	ret
 
@@ -1140,7 +1130,7 @@ proc16 error_exit_16
 	jz	.exit
 
 .print:
-	PRINT86	err_head
+	PRINT16	err_head
 	mov	dx,bx
 	mov	ah,09h			;output error message
 	int	21h

@@ -87,8 +87,8 @@ PM_int_28h:
 	align	4
 PM_int_29h:
 	call_RegisterDumpInt	29h
-	push	d 29h			; ベクタ番号
-	jmp	call_V86_int		; V86 割り込みルーチン呼び出し
+	push	d 29h
+	jmp	call_V86_int_iret
 
 ;------------------------------------------------------------------------------
 ;・int 2ah / MS-Networks NETBIOS
@@ -117,8 +117,8 @@ PM_int_2eh:
 	align	4
 PM_int_2fh:
 	call_RegisterDumpInt	2fh
-	push	d 2fh			;ベクタ番号
-	jmp	call_V86_int		;V86 割り込みルーチン呼び出し
+	push	2fh			; interrupt number
+	jmp	call_V86_int_iret
 
 
 ;******************************************************************************
@@ -137,7 +137,7 @@ int_21h_notsupp:
 ;------------------------------------------------------------------------------
 	align	4
 int_21h_unknown:
- 	jmp	call_V86_int21
+ 	jmp	call_V86_int21_iret
 
 ;==============================================================================
 ;・int 21h / テーブルジャンプ処理
@@ -147,7 +147,7 @@ proc32 PM_int_21h
 
     %if (int_21h_fn_MAX < 0ffh)
 	cmp	ah,int_21h_fn_MAX		;テーブル最大値
-	ja	int_21h_unknown		;それ以上なら jmp
+	ja	int_21h_unknown			;それ以上なら jmp
     %endif
 	push	eax
 	movzx	eax,ah				;eax = AH
@@ -166,8 +166,8 @@ int_21h_ds_edx:
 	push	es
 	push	edx
 
-	push	d (F386_ds)		;F386 ds
-	pop	es			;es に load
+	push	F386_ds		;F386 ds
+	pop	es		;es に load
 
 	push	eax
 
@@ -205,7 +205,7 @@ int_21h_ds_edx:
 
 	mov	edx, eax	; edx <- GP buffer address
 	xchg	[esp], eax	; recovery eax
-	calli	call_V86_int21
+	V86_INT	21h
 
 	xchg	[esp], eax	; eax <- GP buffer address
 	call	free_gp_buffer_32
@@ -244,7 +244,7 @@ int_21h_09h:
 	push	es
 	push	edx
 
-	push	d (F386_ds)
+	push	F386_ds
 	pop	es
 
 	mov	d [es:call_buf_used], 1	; use call buffer
@@ -276,7 +276,7 @@ int_21h_09h:
 	popad
 
 	mov	edx, [es:call_buf_adr32]
-	calli	call_V86_int21
+	V86_INT	21h
 
 	mov	d [es:call_buf_used], 0
 
@@ -297,15 +297,15 @@ proc32 int_21h_09h_output_file
 	push	ds
 	push	es
 
-	mov	eax, F386_ds
-	mov	 ds,ax
+	push	F386_ds
+	pop	ds
 
 	; file open
 	push	edx
 	mov	al, 0001_0010b
 	mov	ah, 3dh
 	mov	edx, offset .file
-	calli	call_V86_int21
+	V86_INT	21h
 	pop	edx
 	jc	.exit
 
@@ -317,7 +317,7 @@ proc32 int_21h_09h_output_file
 	mov	ah, 42h
 	xor	ecx,ecx
 	xor	edx,edx
-	calli	call_V86_int21
+	V86_INT	21h
 	pop	edx
 
 	; get buffer
@@ -344,11 +344,11 @@ proc32 int_21h_09h_output_file
 .loop_end:
 	; write
 	mov	ah, 40h
-	calli	call_V86_int21
+	V86_INT	21h
 
 	; close
 	mov	ah, 3eh
-	calli	call_V86_int21
+	V86_INT	21h
 
 	; free buffer
 	mov	eax, ebp
@@ -373,8 +373,8 @@ proc32 int_21h_09h_output_tsugaru
 	push	ds
 	push	es
 
-	mov	eax, F386_ds
-	mov	 ds,ax
+	push	F386_ds
+	pop	ds
 	mov	es,[esp+4]	; original ds
 
 	; get buffer
@@ -429,8 +429,8 @@ int_21h_0ah:
 	push	es
 	push	ds
 
-	mov	esi,F386_ds
-	mov	 es,esi
+	push	F386_ds
+	pop	ds
 
 	push	eax
 	call	get_gp_buffer_32
@@ -447,7 +447,7 @@ int_21h_0ah:
 
 	push	edx
 	mov	edx, ebp		; ds:edx is gp buffer
-	calli	call_V86_int21
+	V86_INT	21h
 	pop	edx
 
 	; edx = caller buffer
@@ -483,12 +483,12 @@ int_21h_1ch:
 	push	esi
 
 	xor	ebx,ebx			;ebx 上位16bit クリア
-	calli	call_V86_int21		;DS:BX = FAT-ID アドレス
+	V86_INT	21h			;DS:BX = FAT-ID アドレス
 
-	mov	esi,[cs:call_V86_ds]	;real ds
+	mov	esi,cs:[cv86_ds]	;real ds
 	shl	esi, 4			;セグメントを16倍 (para -> byte)
 	add	ebx,esi			;ebx = FAT:ID ベースアドレス
-	push	d (DOSMEM_sel)		;DOSメモリアクセスセレクタ
+	push	DOSMEM_sel		;DOSメモリアクセスセレクタ
 	pop	ds			;ds に設定
 
 	pop	esi
@@ -501,7 +501,7 @@ int_21h_1ch:
 	align	4
 int_21h_1ah:
 	push	es
-	push	d (F386_ds)
+	push	F386_ds
 	pop	es
 
 	mov	[es:DTA_off],edx	;offset
@@ -536,7 +536,7 @@ int_21h_31h:			;未対応の機能
 	align	4
 int_21h_38h:
 	cmp	dx,-1
-	je	near call_V86_int21	; 設定なら jmp
+	je	call_V86_int21_iret	; setting is jmp
 
 	;------------------------------------------------------------
 	; read 
@@ -555,7 +555,7 @@ int_21h_38h:
 
 	mov	edi, edx		;edi = プログラム側バッファ
 	mov	edx, esi		;バッファアドレス
-	calli	call_V86_int21		;int 21h 割り込み処理ルーチン呼び出し
+	V86_INT	21h			;int 21h 割り込み処理ルーチン呼び出し
 	jc	short .error2
 
 	;------------------------------------------------------------
@@ -563,9 +563,10 @@ int_21h_38h:
 	;------------------------------------------------------------
 	push	ecx
 	push	es
-	mov	ecx, F386_ds
-	mov	  es,cx
+	push	F386_ds
+	pop	es
 
+	xor	ecx, ecx
 	mov	cl, 32			;32 byte
 	align	4
 .loop:	mov	ch,[es:edx]		;1 byte
@@ -617,9 +618,9 @@ int_21h_3fh:
 	push	ds
 	push	ecx	;スタック参照注意
 
-	mov	esi,F386_ds		;DS
-	mov	ds,esi			;DS ロード
- 	mov	es,[esp+4]		;読み込み先
+	push	F386_ds
+	pop	ds
+	mov	es,[esp+4]		;読み込み先
 
 	mov	d [call_buf_used], 1	; save call buffer flag
 
@@ -638,7 +639,7 @@ int_21h_3fh:
 	push	edx		;退避
 	mov	edx,[call_buf_adr32]	;読み出しバッファ
 	mov	ecx,ebp			;バッファサイズ
-	calli	call_V86_int21		;ファイル読み込み  / DOS call
+	V86_INT	21h			;ファイル読み込み  / DOS call
 	pop	edx
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
@@ -660,7 +661,7 @@ int_21h_3fh:
 	mov	ecx,edx			;ecx = 残りサイズ
 	push	edx		;退避
 	mov	edx,[call_buf_adr32]	;読み出しバッファ
-	calli	call_V86_int21		;ファイル読み込み  / DOS call
+	V86_INT	21h			;ファイル読み込み  / DOS call
 	pop	edx		;復元
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
@@ -719,8 +720,8 @@ int_21h_40h:
 	push	es
 	push	ecx	;スタック参照注意
 
-	mov	edi,F386_ds		;DS
-	mov	es ,edi			;  es:edi 転送先（バッファ用）
+	push	F386_ds
+	pop	es			;  es:edi 転送先（バッファ用）
 	mov	esi,edx			;  ds:esi 書き込みデータ
 
 	mov	d [es:call_buf_used], 1	; save call buffer flag
@@ -742,7 +743,7 @@ int_21h_40h:
 	push	edx		;退避
 	mov	edx,[es:call_buf_adr32]	;書き込みバッファ
 	mov	ecx,ebp			;バッファサイズ
-	calli	call_V86_int21		;ファイル書き込み  / DOS call
+	V86_INT	21h			;ファイル書き込み  / DOS call
 	pop	edx		;復元
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
@@ -766,7 +767,7 @@ int_21h_40h:
 	mov	ecx,edx			;ecx = 残りサイズ
 	push	edx		;退避
 	mov	edx,[es:call_buf_adr32]	;書き込みバッファ
-	calli	call_V86_int21		;ファイル書き込み  / DOS call
+	V86_INT	21h			;ファイル書き込み  / DOS call
 	pop	edx		;復元
 	jc	.error_exit		;Cy=1 => エラーならジャンプ
 
@@ -806,15 +807,11 @@ int_21h_40h:
 ;・IOCTRL  AH=44h
 ;------------------------------------------------------------------------------
 	align	4
-int_21h_44h:			;未対応の機能
-	nop	;「うんづ」との相性問題？　メモリ破壊？
-	jmp	call_V86_int21
+int_21h_44h:
+	jmp	call_V86_int21_iret
 	;
-	;誤魔化し
+	; not support AL=02h-05h
 	;
-	;これでは AL=02h-05h に対応できない
-	;
-	iret
 
 
 ;------------------------------------------------------------------------------
@@ -837,7 +834,7 @@ proc32 int_21h_47h
 	test	esi, esi
 	jz	.error
 
-	calli	call_V86_int21	;save to ds:si
+	V86_INT	21h		;save to ds:si
 	jc	.error_free_gp
 
 	mov	esi, [esp]	;copy cs:edi to ds:esi
@@ -881,7 +878,7 @@ proc32 int_21h_47h
 ;------------------------------------------------------------------------------
 	align	4
 int_21h_4eh:
-	calli	int_21h_ds_edx		;DOS call
+	callint	int_21h_ds_edx		;DOS call
 
 	pushfd			;FLAGS save
 	push	ds
@@ -890,9 +887,10 @@ int_21h_4eh:
 	push	edi
 	push	ecx
 
-	mov	esi,F386_ds
+	push	F386_ds
+	pop	ds
+
 	mov	ecx,28h /4	;データ領域サイズ /4
-	mov	ds ,si		;DS を F386 のモノに
 	mov	es ,[DTA_seg]
 	mov	esi,80h
 	mov	edi,[DTA_off]
@@ -916,7 +914,7 @@ int_21h_4eh:
 ;------------------------------------------------------------------------------
 	align	4
 int_21h_4fh:
-	calli	call_V86_int21		;DOS call
+	V86_INT	21h		;DOS call
 
 	pushfd			;FLAGS save
 	push	ds
@@ -925,9 +923,10 @@ int_21h_4fh:
 	push	edi
 	push	ecx
 
-	mov	esi,F386_ds
+	push	F386_ds
+	pop	ds
+
 	mov	ecx,28h /4	;データ領域サイズ /4
-	mov	ds ,si		;DS を F386 のモノに
 	mov	es ,[DTA_seg]
 	mov	esi,80h
 	mov	edi,[DTA_off]
@@ -952,14 +951,14 @@ int_21h_4fh:
 	align	4
 int_21h_ret_esbx:
 	xor	ebx, ebx
-	calli	call_V86_int21		;int 21h 割り込み処理ルーチン呼び出し
+	V86_INT	21h		;int 21h 割り込み処理ルーチン呼び出し
 
 	push	eax
 
 	mov	eax,DOSMEM_sel
 	mov	 es,ax
 
-	mov	eax, [cs:call_V86_es]
+	mov	eax, cs:[cv86_es]
 	shl	eax, 4			;to Liner
 	add	ebx, eax
 
@@ -981,8 +980,8 @@ int_21h_56h:
 	push	ecx
 	push	ds
 
-	mov	eax,F386_ds
-	mov	  ds,ax
+	push	F386_ds
+	pop	ds
 
 	call	get_gp_buffer_32
 	test	eax, eax
@@ -1008,7 +1007,7 @@ int_21h_56h:
 	pop	ecx
 	pop	ebx
 	pop	eax
-	calli	int_21h_ds_edx		;call DOS
+	callint	int_21h_ds_edx		;call DOS
 
 	pushf
 	push	eax

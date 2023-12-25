@@ -1,15 +1,22 @@
 
 extern	setup_cv86
 
-extern	call_V86_int
-extern	call_V86_int21
-extern	call_V86_HARD_int	;call hardware interrupt
-
-extern	call_V86
-extern	call_V86_ds
-extern	call_V86_es
+extern	call_V86_clear_stack
+extern	call_V86_int21_iret
+extern	call_V86_int_iret
+extern	call_V86_HW_int_iret
+extern	all_flags_save_iret
 
 extern	callf32_from_V86
 
+
+;--- DATA ---
 extern	rint_labels_adr
+
+extern	cv86_ds
+extern	cv86_es
+extern	cv86_fs
+extern	cv86_gs
+extern	cv86_copy_stack
+extern	cv86_copy_size
 

@@ -48,15 +48,12 @@ user_cbuf_seg16	dw	0		; segment
 user_cbuf_ladr	dd	0		; linear address
 
 ;--------------------------------------------------------------------
-;----- メモリ関連情報 -----------------------------------------------
-;
-	;ページディレクトリやページテーブルは 4KB にalign されなければならず、
-	;プログラム終端との間に使われないメモリ領域が発生してしまう
+; memory information
+;--------------------------------------------------------------------
 	align	4
-
-
 VCPI_stack_adr	dd	0		;V86 モード切り換え時のみ
 		dw	F386_ds		;　使用するスタック
+
 PM_stack_adr	dd	0		;プロテクトモード時のスタック
 		dw	F386_ds		;
 V86_cs		dw	0,0		;V86モード時 cs
@@ -115,7 +112,6 @@ LGDT_data	dw	GDTsize-1	;GDT リミット
 LIDT_data	dw	IDTsize-1	;IDT リミット
 		dd	0		;    リニアアドレス
 
-DOS_int21h_adr	dw	0,0		;DOS int 21h CS:IP
 DOS_int24h_adr	dw	0		;DOS int 24h CS:IP
 DOS_int24h_seg	dw	0		;
 VCPI_entry	dd	0		;VCPI サービスエントリ
@@ -128,13 +124,13 @@ RVects_flag_tbl	resb	IntVectors/8	;書き換えフラグ テーブル
 RVects_save_adr	dd	0		;リアルモードベクタ保存のアドレス
 
 ;
-;----- VCPI関連データ領域 -------------------------------------------
-;
-
+;--------------------------------------------------------------------
+; VCPI data
+;--------------------------------------------------------------------
 	align	4
-to_PM_data_ladr	dd	0	;下記構造体リニアアドレス
+to_PM_data_ladr	dd	0	; to_PM_data's linear address
 
-to_PM_data:			;V86 → PM構造体
+to_PM_data:	; V86 -> Protect Mode structure
 to_PM_CR3	dd	0
 to_PM_GDTR	dd	0
 to_PM_IDTR	dd	0
@@ -142,9 +138,6 @@ to_PM_LDTR	dw	LDT_load_sel
 to_PM_TR	dw	TSS_load_sel
 to_PM_EIP	dd	0
 to_PM_CS	dw	F386_cs
-
-	align	4
-VCPI_cr3	dd	0		;
 
 ;==============================================================================
 ; Messages

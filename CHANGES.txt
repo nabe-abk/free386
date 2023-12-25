@@ -1,7 +1,10 @@
 ==============================================================================
-Ver 0.82 - 2023-12-xx
+Ver 0.90 - 2023-12-xx
 ==============================================================================
 
+- All "call V86" routines have been rewritten.
+	- Support stack copy for int 21h AX=250Dh/AX=2510h
+	- Fix: Carry flags that should originally be saved may change.
 - Support for building with Microsoft LINK.EXE.
 - Add: set EXP file name to ENV command name.
 - Fix: very rare error in heap memory calculation for exp file.

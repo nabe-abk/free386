@@ -24,28 +24,27 @@ global		int21h_table
 seg32	text32 class=CODE align=4 use32
 ;******************************************************************************
 ;//////////////////////////////////////////////////////////////////////////////
-;■割り込み処理ルーチン
+; Interrupt main
 ;//////////////////////////////////////////////////////////////////////////////
 ;------------------------------------------------------------------------------
-;★ダミーの割り込みハンドラ
+; Dummy for chain dos handler
 ;------------------------------------------------------------------------------
-;	DOS のハンドラへ chain する
 ;
 proc32 PM_int_dummy
 	push	ebx
 	push	ds
 
 	mov	ds ,[esp+0ch]		;CS
-	mov	ebx,[esp+08h]		;EIP ロード
-	movzx	ebx,b [ebx-1]		;int 番号をロード
-	pop	ds
+	mov	ebx,[esp+08h]		;EIP
+	movzx	ebx,b [ebx-1]		;ebx = int number
 
-	xchg	[esp], ebx		;ebx復元
+	pop	ds
+	xchg	[esp], ebx		;stack top is int number
 %if INT_HOOK
 	call	register_dump_from_int
 %endif
-	; stack top is int number
-	jmp	call_V86_int
+
+	jmp	call_V86_int_iret
 
 
 ;------------------------------------------------------------------------------
@@ -281,11 +280,11 @@ proc32 HW_int_master_common
 	mov	al, [cs:vcpi_8259m]
 	add	[esp+4], al
 	pop	eax
-	jmp	call_V86_HARD_int
+	jmp	call_V86_HW_int_iret
 
 %elif (HW_INT_MASTER > 1fh)
 	add	b [esp], HW_INT_MASTER
-	jmp	call_V86_HARD_int
+	jmp	call_V86_HW_int_iret
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	edx
@@ -318,7 +317,7 @@ proc32 HW_int_master_common
 	mov	[esp+8],edx		;呼び出しINT番号として記録
 	pop	eax
 	pop	edx
-	jmp	call_V86_HARD_int	;V86 ルーチンコール
+	jmp	call_V86_HW_int_iret
 
 
 	align	4
@@ -361,11 +360,11 @@ proc32 HW_int_slave_common
 	mov	al, [cs:vcpi_8259s]
 	add	[esp+4], al
 	pop	eax
-	jmp	call_V86_HARD_int
+	jmp	call_V86_HW_int_iret
 
 %elif (HW_INT_SLAVE > 1fh)
 	add	b [esp], HW_INT_SLAVE
-	jmp	call_V86_HARD_int
+	jmp	call_V86_HW_int_iret
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	edx
@@ -398,7 +397,7 @@ proc32 HW_int_slave_common
 	mov	[esp+8],edx		;呼び出しINT番号として記録
 	pop	eax
 	pop	edx
-	jmp	call_V86_HARD_int	;V86 ルーチンコール
+	jmp	call_V86_HW_int_iret
 
 
 	align	4
@@ -413,7 +412,7 @@ proc32 HW_int_slave_common
 
 
 ;//////////////////////////////////////////////////////////////////////////////
-;■割り込みサービス
+; Services
 ;//////////////////////////////////////////////////////////////////////////////
 
 %include	"int_dos.asm"		;DOS 割り込み処理
@@ -421,7 +420,7 @@ proc32 HW_int_slave_common
 %include	"int_f386.asm"		;Free386 オリジナル API
 
 ;//////////////////////////////////////////////////////////////////////////////
-;■割り込みデータ部
+; DATA
 ;//////////////////////////////////////////////////////////////////////////////
 segdata	data class=DATA align=4
 

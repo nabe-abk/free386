@@ -190,8 +190,8 @@ proc32 get_gp_buffer_32
 	push	ecx
 	push	ds
 
-	mov	cx, F386_ds
-	mov	ds, cx
+	push	F386_ds
+	pop	ds
 
 	cli
 	mov	eax, [gp_buffer_remain]
@@ -239,8 +239,8 @@ proc32 free_gp_buffer_32
 	push	ecx
 	push	ds
 
-	mov	cx, F386_ds
-	mov	ds, cx
+	push	F386_ds
+	pop	ds
 
 	mov	ebx, gp_buffer_table
 	xor	ecx, ecx
@@ -283,13 +283,15 @@ proc32 clear_gp_buffer_32
 	ret
 
 
-BITS	16
 ;==============================================================================
 ; Get general purpose buffer (16bits)
 ;==============================================================================
 ; out	ax = buffer pointer, 0 is failed
 ;
-proc32 get_gp_buffer_16
+%if 0	; not use
+
+BITS	16
+proc16 get_gp_buffer_16
 	pushf
 	push	ebx
 	push	ecx
@@ -367,6 +369,7 @@ proc32 free_gp_buffer_16
 .fail:
 	mov	ax, 1
 	jmp	short .ret
+%endif
 
 ;******************************************************************************
 ; switch cpu mode stack allocation
@@ -402,7 +405,6 @@ proc32 alloc_sw_stack_32
 ;
 proc32 free_sw_stack_32
 	pushfd
-	push	eax
 
 	cli
 	cmp	b [sw_cpumode_nest], 0
@@ -411,7 +413,6 @@ proc32 free_sw_stack_32
 
 	add	d [sw_stack_bottom], SW_stack_size
 
-	pop	eax
 	popfd
 	ret
 

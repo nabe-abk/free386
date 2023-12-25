@@ -14,276 +14,322 @@
 ;******************************************************************************
 global	rint_labels_adr
 
-global	call_V86_int
-global	call_V86_int21
-global	call_V86_HARD_int
+global	cv86_ds
+global	cv86_es
+global	cv86_fs
+global	cv86_gs
 
-global	call_V86
-global	call_V86_ds
-global	call_V86_es
+global	cv86_copy_stack
+global	cv86_copy_size
 
 global	callf32_from_V86	; use by int 21h ax=250dh and towns.asm
 
 ;******************************************************************************
 seg16	text class=CODE align=4 use16
 ;******************************************************************************
-;■初期化コード
-;******************************************************************************
 ;==============================================================================
-;■V86←→Protect連携ルーチンのセットアップ
+; initalize
 ;==============================================================================
-proc32 setup_cv86
+proc16 setup_cv86
 	;//////////////////////////////////////////////////
-	;リルアモード割り込みフックルーチン生成用メモリ取得
+	; init cv86 stack
 	;//////////////////////////////////////////////////
-	mov	ax,IntVectors *4	;フックルーチン生成用メモリ
-	call	heap_malloc		;上位メモリ割り当て
-	mov	[rint_labels_adr],di	;save
-	mov	dx,di			;dx に
-	add	dx,byte 3		;hook ラベルと retラベル のずれを加算
-	mov	[rint_labels_top],dx	;
+	mov	ax, cs
+	mov	[cv86_cs], ax
+	mov	[cv86_ss], ax
+	mov	[cv86_es], ax
+	mov	[cv86_ds], ax
+	mov	[cv86_fs], ax
+	mov	[cv86_gs], ax
 
-	;フックルーチンの生成
-	mov	bl,0e8h			;call命令
-	mov	bh, 90h			;NOP 命令
-	mov	cx,IntVectors		;int の数
-	mov	si,offset int_V86	;呼び出しラベル
-	mov	bp,4			;加算値
-	mov	ax,si			;ax = 呼び出しアドレス
+	;//////////////////////////////////////////////////
+	; make realmode to Protect mode entries
+	;//////////////////////////////////////////////////
+	mov	ax, IntVectors *4
+	call	heap_malloc
+	mov	[rint_labels_adr],di
 
-	align	4
-	;e8 xxxx	call int_buf
-	;90		nop
-	;を 256 個並べる（int hook用）
+	mov	dx, di
+	add	dx, byte 3		; "e8 xx xx" is 3byte
+	mov	[rint_labels_top],dx	; int 0's return address
+
+	; Routine code:
+	;	e8 xx xx	call int_buf
+	;	90		nop
+	;
+	mov	bl,0e8h			;call opcode
+	mov	bh, 90h			;NOP  opcode
+	mov	ax,offset int_from_V86	;call address
+	sub	ax,dx			;to relative address
+
+	mov	cx, IntVectors
+	mov	bp, 4
+
 .loop:
-	mov	[di+3],bh		;NOP
-	mov	[di  ],bl		;call
-	sub	ax,dx			;相対アドレス算出
-	mov	[di+1],ax		;<r_adr>
-	add	di,bp			;int ラベル
-	add	dx,bp			;call 時 stack に積まれるアドレス
-	mov	ax,si			;ax = 呼び出しアドレス
+	mov	[di  ],bl		; call
+	mov	[di+1],ax		; <r_adr>
+	mov	[di+3],bh		; NOP
+	add	di,bp			; +4
+	sub	ax,bp			; -4
 	loop	.loop
 
 	ret
 
-
-BITS	32
 ;******************************************************************************
-;■V86 モードの割り込みルーチン呼び出し (from Protect mode)
+seg32	text32 class=CODE align=4 use32
 ;******************************************************************************
-;	引数	+00h d Interrupt number
+;******************************************************************************
+; call V86 main
+;******************************************************************************
+; in	cli
 ;
-	align	4
-call_V86_int21:
-	push	d 21h			;ベクタ番号
-call_V86_int:
-	sub	esp, 10h		;es --> gs
-	push	eax
+; stack	+00h	ret address
+;	+04h	option
+;			bit 0	int
+;			bit 1	clear ds,es
+;	+08h	cs:ip / int number(00h-ffh)
+;
+proc32 call_V86_clear_stack
+	start_sdiff
+	push_x	gs
+	push_x	fs
+	push_x	es
+	push_x	ds
+	pushf_x
+
+	push	F386_ds
+	pop	ds
+	mov	[tmp_eax], eax
+	mov	[tmp_ebx], ebx
+	mov	[tmp_ecx], ecx
+	mov	ecx, [esp + .sdiff + 04h]	; option flags
+	mov	ebx, [esp + .sdiff + 08h]	; call adr OR int number
+
+	;--------------------------------------------------
+	; int or far call?
+	;--------------------------------------------------
+	test	cl, O_CV86_INT
+	mov	ch, 9Dh				; "nop"(90h) to "popf"(9Dh) for far call
+	jz	.far_call
+
+	push	DOSMEM_sel
+	pop	fs
+	mov	ebx, fs:[ebx*4]			; load interrupt vector
+	mov	ch, 90h				; "popf"(9Dh) to "nop"(90h) for int
+
+.far_call:
+	mov	[call_V86_adr], ebx		; save call adr
+	mov	[.in_V86_popf_opcode],ch	; write popf OR nop
+
+	;--------------------------------------------------
+	; clear V86 ds, es
+	;--------------------------------------------------
+	test	cl, O_CV86_CLSEG		; check option flag
+	jz	short .not_clear_ds_es
+
+	mov	ebx, [cv86_cs]
+	mov	[cv86_ds], ebx
+	mov	[cv86_es], ebx
+.not_clear_ds_es:
+
+	;--------------------------------------------------
+	; alloc V86 stack
+	;--------------------------------------------------
+	call	alloc_sw_stack_32	; eax <- pointer 
+
+	mov	ebx, esp
+	push	ss
+	pop	es			; es:ebx = ss:esp
 
 	push	ds
-	push	es
+	pop	ss
+	mov	esp, eax		; switch to V86 stack
 
-	push	d F386_ds
-	pop	ds
+	;--------------------------------------------------
+	; save to V86 stack
+	;--------------------------------------------------
+	push	es			; protect mode SS
+	push	ebx			; protect mode ESP
 
-	cli
-	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
-	mov	  es,ax			;es にロード
-	mov	eax,[esp + 4*7]		;引数（ベクタ番号*4）を取得
-	mov	eax,[es:eax*4]		;V86 割り込みベクタロード
-	mov	[call_V86_adr],eax	;呼び出しアドレスセーブ
+	;--------------------------------------------------
+	; copy to V86 stack
+	;--------------------------------------------------
+	mov	ecx, esp		; caller ss:esp pointer
+	mov	eax, [cv86_copy_size]
+	test	eax, eax
+	jz	.no_stack_copy
 
-	pop	es
-	pop	ds
+	mov	ebx, [cv86_copy_stack]
+	add	ebx, eax			; copy start
+.copy_loop:
+	sub	ebx, 4
+	push	dword es:[ebx]
+	sub	eax, 4
+	ja	.copy_loop
+	sub	esp, eax			; adjust pointer
 
-	mov	eax, [cs:V86_cs]
-	mov	[esp+04h], eax		;V86 ds
-	mov	[esp+08h], eax		;V86 es
-	mov	[esp+0ch], eax		;V86 fs
-	mov	[esp+10h], eax		;V86 gs
+	xor	eax, eax
+	mov	[cv86_copy_size], eax		; copy size set 0
+	mov	ebx, [ecx]			; es:ebx = caller esp
 
-	mov	eax, [cs:call_V86_adr]
-	xchg	[esp], eax		;[esp]=呼び出し先, eax=オリジナル
-	call	call_V86
+.no_stack_copy:
+	;--------------------------------------------------
+	; push to V86 stack, restore register
+	;--------------------------------------------------
+	push	ecx				; caller ss:esp pointer
+	push	word es:[ebx]			; flags
+	push	dword [tmp_eax]			; eax
 
-	; Carryフラグ設定
-	pushfd
-	push	eax
+	mov	ebx, [tmp_ebx]
+	mov	ecx, [tmp_ecx]
 
-	mov	eax, [esp+4]
-	and	b [esp+28h], 0feh
-	and	al, 01h
-	or	b [esp+28h], al
+	; V86 stack
+	;	+00h d	eax
+	;	+04h w	flags
+	;	+06h d	caller ss:esp pointer
+	;		<stack copy data>
+	;	+xx   d	protect mode caller esp
+	;	+xx+4 d	protect mode caller  ss
 
-	pop	eax
-	add	esp, 1ch		;スタック除去
-	iret
-
-
-;******************************************************************************
-;■V86モードの割り込みルーチン呼び出し (ハードウェア割り込み用)
-;******************************************************************************
-;	引数	+00h d Interrupt number
-;
-	align	4
-call_V86_HARD_int:
-	xchg	[esp], esi		;esi = int番号
-	push	eax
-	push	es
-
-	mov	eax,[cs:V86_cs]
-	push	eax			;gs
-	push	eax			;fs
-	push	eax			;es
-	push	eax			;ds
-
-	mov	eax,DOSMEM_sel		;DOSメモリ読み書き用セレクタ
-	mov	  es,ax
-	push	d [es:esi*4]		;V86割り込みベクタ
-
-	call	call_V86
-
-	add	esp, 14h		;スタック除去
-
-	pop	es
-	pop	eax
-	pop	esi
-	iret
-
-
-;******************************************************************************
-;■V86コール汎用サブルーチン
-;******************************************************************************
-;・このルーチンは「call」して使用する
-;・V86 コール時の セグメントレジスタの値を保存する
-;・任意のアドレスを呼び出せる
-;・フラグは基本的にV86側で、callした戻り値をセット
-;
-;引数	+00h	戻りアドレス
-;	+04h	call adress / cs:ip
-;	+08h	V86 ds
-;	+0ch	V86 es
-;	+10h	V86 fs
-;	+14h	V86 gs
-;
-	align	4
-call_V86:
-	push	ds	;1	esp によるスタック参照に注意！
-	push	es	;2
-	push	fs	;3
-	push	gs	;4
-
-	push	d (F386_ds)		;データセグメント
-	pop	ds			;ds にロード
-
-	cli
-	mov	[save_eax],eax		;eax保存
-	mov	[save_esi],esi		;esi
-	mov	[save_esp],esp
-	mov	[save_ss] ,ss
-
-	mov	eax,[esp + 4*4 +4]	;呼び出しアドレスロード
-	lea	esi,[esp + 4*4 +8]	;V86 call パラメータブロック
-	mov	[call_V86_adr],eax	;呼び出しアドレスセーブ
-
-	push	ss			;現在のスタック
-	pop	gs			;gs に設定
-
-	lss	esp,[VCPI_stack_adr]	;専用スタックロード
-	push	d [gs:esi+12]		;** V86 gs
-	push	d [gs:esi+ 8]		;** V86 fs
-	push	d [gs:esi   ]		;** V86 ds
-	push	d [gs:esi+ 4]		;** V86 es
-	push	d [V86_cs]		;** V86 ss
-
-	call	alloc_sw_stack_32
-	push	eax			;** V86 sp
-	pushf				;eflags
-	push	d [V86_cs]		;** V86 CS を記録
-	push	d (offset .in86)	;** V86 IP を記録
+	;-------------------------------
+	; jmp to V86
+	;-------------------------------
+	mov	[cv86_esp], esp		;save V86 sp
+	lss	esp,[cv86_stack_adr]	;PM -> V86 stack structure
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
-	call 	far [VCPI_entry]	;VCPI far call
+	call 	far [cs:VCPI_entry]	;VCPI far call
 
-
-;--------------------------------------------------------------------
-;・V86側
 ;--------------------------------------------------------------------
 BITS	16
-	align	4
-.in86:
-	push	d [cs:save_ss]		;呼び出し側の ss/esp
-	push	d [cs:save_esp]		;
+proc16 .in_V86
+	pop	eax
+.in_V86_popf_opcode:
+	popf
+	call	far [cs:call_V86_adr]
 
-	mov	eax,[cs:save_eax]	;eax の値復元
-	mov	esi,[cs:save_esi]	;esi の値復元
-
-	push	w (-1)			;mark / iret,retf両対応のため
-	pushf				;flag save for INT
-	call	far [cs:call_V86_adr]	;目的ルーチンのコール
+	pushfd
+	push	eax
+	push	esi
 
 	cli
-	mov	[cs:call_V86_ds],ds	;ds セーブ
-	mov	ds,[cs:V86_cs]		;V86時 ds
-	mov	[call_V86_es],es	;es セーブ
-	mov	[call_V86_fs],fs	;fs セーブ
-	mov	[call_V86_gs],gs	;gs セーブ
+	mov	[cs:cv86_ds], ds
+	push	cs
+	pop	ds
+	mov	[cv86_es], es
+	mov	[cv86_fs], fs
+	mov	[cv86_gs], gs
 
-	mov	[save_eax],eax		;eax セーブ
-	mov	[save_esi],esi		;esi セーブ
-	pushf
-	pop	w [call_V86_flags]	;flags セーブ
+	;-------------------------------
+	; jmp to Protect mode
+	;-------------------------------
+	mov	[tmp_esp], sp
+	mov	d [to_PM_EIP],offset .ret_PM
 
-	pop	ax			;flagsが取り除かれてるか？
-	cmp	ax,-1
-	jz	.pop_skip		;flagsがなければskip
-	pop	ax
-.pop_skip:
-	pop	d [save_esp]		;Protect mode esp
-	pop	d [save_ss]		;Protect mode ss
-
-	mov	d [to_PM_EIP],offset .retPM	;戻りラベル
-
-	mov	esi,[to_PM_data_ladr]	;モード切替え用構造体アドレス
-	mov	ax,0de0ch		;to プロテクトモード
+	mov	esi,[to_PM_data_ladr]
+	mov	ax,0de0ch
 	int	67h			;VCPI call
 
+;--------------------------------------------------------------------
 BITS	32
-;--------------------------------------------------------------------
-;・プロテクトモード側
-;--------------------------------------------------------------------
-	align	4
-.retPM:
-	mov	eax,F386_ds		;ds
-	mov	  ds,ax			;gs にロード
+proc32 .ret_PM
+	mov	ax, F386_ds
+	mov	ds, ax
+	lss	esp, [tmp_esp]		;switch to V86 stack
 
-	lss	esp,[save_esp]		;スタック復元
-	call	free_sw_stack_32
+	; V86 stack
+	;	+00h d	esi
+	;	+04h d	eax
+	;	+08h d	eflags
+	;	+0ch d	caller ss:esp pointer
+	;		<stack copy data>
+	;	+xx   d	protect mode caller esp
+	;	+xx+4 d	protect mode caller  ss
 
-	;引数	+08h	V86 ds
-	;	+0ch	V86 es
-	;	+10h	V86 fs
-	;	+14h	V86 gs
-	mov	eax,[call_V86_ds]	;V86 ds 戻り値
-	mov	esi,[call_V86_es]	;V86 es
-	mov	[esp + 4*4 + 08h],eax	;スタックにセーブ
-	mov	[esp + 4*4 + 0ch],esi	;
-	mov	eax,[call_V86_fs]	;V86 fs
-	mov	esi,[call_V86_gs]	;V86 gs
-	mov	[esp + 4*4 + 10h],eax	;スタックにセーブ
-	mov	[esp + 4*4 + 14h],esi	;
+	pop	esi			; recovery esi
+	pop	dword [tmp_eax]		; pop eax
+	mov	[tmp_ebx], ebx
+	pop	eax			; V86 eflags
 
-	pop	gs			;
-	pop	fs			;セレクタ復元
-	pop	es			;
-	pop	ds			;
+	pop	esp			; load caller stack pointer
+	lss	esp,[esp]		; load caller stack
 
-	mov	eax,[cs:save_eax]	;eax 復元
-	mov	esi,[cs:save_esi]	;esi 復元
+	call	free_sw_stack_32	; free V86 stack // no argument
 
-	bt	d [cs:call_V86_flags],0	;V86時 Carryフラグ設定
+	; caller stack
+	;	-14h d	eflags
+	;	-10h d	ds
+	;	-0ch d	es
+	;	-08h d	fs
+	;	-04h d	gs
+	; stack	+00h	ret address
+	;	+04h	option
+	;	+08h	cs:ip / int number(00h-ffh)
+
+	pop_x	ebx			; caller eflags
+	and	eax, 000000fffh		; V86    eflags mask system bits
+	and	ebx, 0fffff000h		; caller eflags mask status bits
+	or	ebx, eax
+
+	; clear +04h/+08h stack data
+	mov	eax, [esp + .sdiff]
+	mov	[esp + .sdiff + 08h], eax	; ret address
+	mov	[esp + .sdiff + 04h], ebx	; save eflags
+	mov	[esp + .sdiff],       ebx	; save eflags
+
+	mov	eax, [tmp_eax]
+	mov	ebx, [tmp_ebx]
+
+	pop_x	ds
+	pop_x	es
+	pop_x	fs
+	pop_x	gs
+	end_sdiff
+
+	popf
+	popf
 	ret
+
+
+;******************************************************************************
+; call V86 support routine
+;******************************************************************************
+; stack
+;	+00h d Interrupt number
+;	+04h d eip
+;	+08h d cs
+;	+0ch d eflags
+;
+proc32 call_V86_int21_iret
+	push	21h
+
+proc8  call_V86_int_iret
+	btc	dword [esp+0ch], 0	; set caller carry status
+
+	push	O_CV86_INT | O_CV86_CLSEG
+	call	call_V86_clear_stack
+
+	iret_save_cy
+	iret
+
+	; for hardware interrupt
+proc32 call_V86_HW_int_iret
+	push	O_CV86_INT
+	call	call_V86_clear_stack
+	iret
+
+proc32	all_flags_save_iret	; exclude IF
+	xchg	[esp+8], eax
+
+	pushf
+	and	w [esp], 1101_1111_1111b
+	and	eax, 0fffff200h
+	or	eax, [esp]
+	xchg	[esp], eax
+	pop	eax
+
+	xchg	[esp+8], eax
+	iret
 
 
 ;******************************************************************************
@@ -291,7 +337,7 @@ BITS	32
 ;******************************************************************************
 BITS	16
 	align	4
-int_V86:
+int_from_V86:
 	push	ds	;4
 	push	es	;3
 	push	fs	;2
@@ -382,7 +428,7 @@ BITS	32
 	push	d [save_esp]		;** V86 sp
 	pushfd				;eflags
 	push	eax			;** V86 CS を記録
-	push	d (offset .ret_PM)	;** V86 IP を記録
+	push	offset .ret_PM	;** V86 IP を記録
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [VCPI_entry]	;VCPI far call
@@ -454,7 +500,7 @@ BITS	32
 	push	eax			;** V86 sp // dummy
 	pushfd				;eflags
 	push	eax			;** V86 CS
-	push	d (offset .ret_PM)	;** V86 IP
+	push	offset .ret_PM	;** V86 IP
 
 	mov	eax, [cf32_ss16]
 	shl	eax, 4
@@ -478,31 +524,58 @@ BITS	16
 	retf
 
 
-
 BITS	32
 ;******************************************************************************
 ;■データ
 ;******************************************************************************
 segdata	data class=DATA align=4
+
+tmp_eax		dd	0		;
+tmp_ebx		dd	0		;
+tmp_ecx		dd	0		;
+tmp_esp		dd	0		;
+tmp_esp_ss	dd	F386_ds		;
+
+save_eax	dd	0
+save_esi	dd	0
+save_esp	dd	0
+save_ss		dd	0
+
+
 ;------------------------------------------------------------------------------
-save_eax	dd	0		;temporary
-save_esi	dd	0		;
-save_esp	dd	0		;
-save_ss		dd	0		;
+; call V86 routeine
+;------------------------------------------------------------------------------
+call_V86_adr	dd	0		; call address // CS:IP
 
-call_V86_ds	dw	0,0		;
-call_V86_es	dw	0,0		;V86 のルーチンコール後の
-call_V86_fs	dw	0,0		; 各レジスタの値
-call_V86_gs	dw	0,0		;
-call_V86_flags	dw	0,0		;
+cv86_stack_adr	dd	offset cv86_stack
+cv86_stack_ss	dd	F386_ds
 
-call_V86_adr	dd	0		;V86 / 呼び出す CS:IP
+	; Protect Mode -> V86 stack // VCPI AX=DE0Ch
+		dd	0,0		; safety stack 8 byte
+		dd	0,0		; stack for far call
+cv86_stack:	
+cv86_eip	dd	offset call_V86_clear_stack.in_V86
+cv86_cs		dd	0
+cv86_eflags	dd	0	; not use?
+cv86_esp	dd	0
+cv86_ss		dd	0
+cv86_es		dd	0
+cv86_ds		dd	0
+cv86_fs		dd	0
+cv86_gs		dd	0
 
-	; Real mode interrupt hook routines, for call to 32bit from V86.
+cv86_copy_stack	dd	0	; copy start point
+cv86_copy_size	dd	0	; copy bytes
+
+;------------------------------------------------------------------------------
+; Real mode interrupt hook routines, for call to 32bit from V86.
+;------------------------------------------------------------------------------
 rint_labels_adr	dd	0
 rint_labels_top	dd	0		; rint_labels_adr +3
 
-
+;------------------------------------------------------------------------------
+; call protect mode routeine from V86
+;------------------------------------------------------------------------------
 cf32_ss16	dd	0		;
 cf32_esp32	dd	0		;in 32bit linear address
 		dd	DOSMEM_sel	;for lss

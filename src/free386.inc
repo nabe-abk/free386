@@ -17,7 +17,6 @@ extern		to_PM_data_ladr
 extern		VCPI_entry
 extern		VCPI_stack_adr
 extern		V86_cs
-extern		f386err
 
 ;--- for int.asm ----------------------------------
 extern		IDT_adr
@@ -25,7 +24,6 @@ extern		PM_stack_adr
 extern		RVects_flag_tbl
 extern		DTA_off
 extern		DTA_seg
-extern		DOS_int21h_adr
 extern		default_API
 extern		pharlap_version
 

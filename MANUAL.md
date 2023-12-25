@@ -174,8 +174,6 @@ If you have requests for implementation, please contact us.
 
 - int 21h
 	- AX=250Dh	- Get real mode link info. EAX's procedure do not support stack copying.
-	- AX=250Eh	- Call real mode proc. Not support stack copying by ECX (fails when non-zero ECX).
-	- AX=2510h	- Same as AX=250Eh.
 	- AH=09h	- Print string. If the data size exceeds the "call buffer size", the excess data will be truncated.
 	- AH=44h	- IOCTRL. Not support buffer functions.
 	- AH=49h	- Free selector. Do not free memory, only disable the selector.
@@ -186,8 +184,6 @@ If you have requests for implementation, please contact us.
 
 - int 21h
 	- AX=250Dh	- リアルモードリンク情報取得。EAXで返されるプロシジャは、スタックコピーをサポートしません。
-	- AX=250Eh	- リアルモードcall。ECXによるスタックコピー指定ができない（失敗する）。
-	- AX=2510h	- 同上。
 	- AH=09h	- 文字列出力。データがコールバッファサイズを越えた場合、超えたデータは無視される。
 	- AH=44h	- IOCTRL。バッファを使用するものは未サポート。
 	- AH=49h	- セレクタの開放。メモリを開放せず、セレクタを無効化するのみ。

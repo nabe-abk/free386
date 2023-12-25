@@ -122,8 +122,8 @@ F386fn_10h:
 	push	ds
 	push	es
 
-	push	d (DOSENV_sel)
-	push	d (F386_ds)
+	push	DOSENV_sel
+	push	F386_ds
 	pop	ds
 	pop	es
 	xor	esi,esi

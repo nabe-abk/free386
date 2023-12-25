@@ -176,9 +176,9 @@ AT_VESA30_alloc:
 	movzx	ecx,w [es:edi+6]	;初期化ルーチン位置
 	push	ds			;ds 保存
 	push	cs
-	push	d (offset .VESA_ret0)	;戻りラベル
-	push	d (0fffeh)		;far return op-code のあるアドレス
-	push	d (VESA_cs)
+	push	offset .VESA_ret0	;戻りラベル
+	push	0fffeh		;far return op-code のあるアドレス
+	push	VESA_cs
 	push	ecx			;初期化ルーチン
 	retf				;ルーチンコール
 	;注意！
@@ -188,7 +188,7 @@ AT_VESA30_alloc:
 .VESA_ret0:
 	mov	es,[esp]		;es = F386_ds
 	pop	ds			;ds 復元
-	PRINT	VESA30_init		;初期化成功のメッセージ
+	PRINT32	VESA30_init		;初期化成功のメッセージ
 
 	;----------------------------------------------------------------------
 	;VESA bios call の準備
@@ -213,8 +213,8 @@ AT_VESA30_alloc:
 	;VRAM の張り付け
 	;----------------------------------------------------------------------
 	push	cs
-	push	d (offset .VESA_ret1)	;戻りラベル
-	push	d (VESA_cs)		;
+	push	offset .VESA_ret1	;戻りラベル
+	push	VESA_cs		;
 
 	mov	eax,offset VESA_call2 + VESA_call_adr
 	sub	eax,offset VESA_call	;差を算出

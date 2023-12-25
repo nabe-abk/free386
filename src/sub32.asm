@@ -269,7 +269,7 @@ proc32 register_dump
 	call	rewrite_next_hash_to_hex
 	loop	.loop_regs
 
-	PRINT	ebp
+	PRINT32	ebp
 
 	; free buffer
 	mov	eax, ebp

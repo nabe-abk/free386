@@ -6,6 +6,7 @@
 %define	w	word
 %define	d	dword
 %define	offset
+%define	byte_x(x)	byte ((x) - 100h)
 
 %macro	proc8	1
 	global	%1
@@ -22,28 +23,55 @@
 %1:
 %endmacro
 
-%imacro	PRINT86	1
+%imacro	PRINT16	1
 	mov	dx,%1
 	mov	ah,09h
 	int	21h
 %endmacro
 
-%imacro	PRINT	1
+%imacro	PRINT32	1
 	mov	edx,%1
 	mov	ah,09h
 	int	21h
 %endmacro
 
-%imacro	PRINT_	1
-	push	eax
-	push	edx
-	mov	edx,%1
-	mov	ah,09h
-	int	21h
-	pop	edx
-	pop	eax
+;******************************************************************************
+; stack macro
+;******************************************************************************
+%imacro start_sdiff	0
+	%assign	.sdiff	0
+%endmacro
+%imacro end_sdiff	0
+	%if .sdiff != 0
+		%error Stack error!
+	%endif
 %endmacro
 
+
+%imacro push_x	1
+	push	%1
+	%assign	.sdiff	.sdiff + 4
+%endmacro
+%imacro pushf_x	0
+	pushf
+	%assign	.sdiff	.sdiff + 4
+%endmacro
+%imacro pusha_x	0
+	pusha
+	%assign	.sdiff	.sdiff + 20h
+%endmacro
+%imacro pop_x	1
+	pop	%1
+	%assign	.sdiff	.sdiff - 4
+%endmacro
+%imacro popf_x	0
+	popf
+	%assign	.sdiff	.sdiff - 4
+%endmacro
+%imacro popa_x	0
+	popa
+	%assign	.sdiff	.sdiff - 20h
+%endmacro
 
 ;******************************************************************************
 ;segment for Microsoft LINK.EXE
@@ -86,23 +114,16 @@
 %endmacro
 
 ;------------------------------------------------------------------------------
-; V86 int macro
+; call V86 macro
 ;------------------------------------------------------------------------------
+%define O_CV86_FARCALL	00h	; far call
+%define O_CV86_INT	01h	; int flag
+%define O_CV86_CLSEG	02h	; clear ds,es
+
 %macro	V86_INT	1
-	pushf
-	push	cs
-	push	d (offset .ret_label)
-	push	d %1			;int number
-	jmp	call_V86_int
-
-	align	4
-.ret_label:
-%endmacro
-
-%macro	V86_INT_21h	0
-	pushf
-	push	cs
-	call	call_V86_int21
+	push	byte %1					;int number
+	push	dword (O_CV86_INT | O_CV86_CLSEG)
+	call	call_V86_clear_stack
 %endmacro
 
 ;------------------------------------------------------------------------------
@@ -130,10 +151,16 @@ cy_clear:	;
 	iret
 %endmacro
 
+%imacro	iret_set_flags 0
+%endmacro
+
+
+
+
 ;------------------------------------------------------------------------------
 ; interrupt label call
 ;------------------------------------------------------------------------------
-%imacro	calli	1
+%imacro	callint 1
 	pushf
 	push	cs
 	call	%1
@@ -144,7 +171,7 @@ cy_clear:	;
 ;------------------------------------------------------------------------------
 %imacro call_RegisterDumpInt	1
 %if INT_HOOK
-	push	d %1
+	push	%1
 	call	register_dump_from_int
 	mov	[esp], eax
 	pop	eax

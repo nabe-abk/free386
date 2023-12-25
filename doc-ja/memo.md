@@ -8,7 +8,7 @@
 
 機能の追加はもちろん、細かいバグも様々修正し、ソースの汚い仕様を直し、新たに書き直したところは英語コメントにし、[マニュアル](../MANUAL.md)も整備し、ファイル構成も整理しました。
 
-例えば、Linuxでも、AT互換機でも、PC-98でも、Free386.com を簡単に make できるスクリプトを作りました。サンプルプログラムの make も……と思ったのですが、EXPを生成できる再配布可能な良いリンカがないんです。狭いDOS-Extender界でもPharLapさんはマイナーなほうでして……。とりあえず [test.com/](../test.com/) だけ対応しました。
+例えば、Linuxでも、AT互換機でも、PC-98でも、Free386.com を簡単に make できるスクリプトを作りました。サンプルプログラムの make も……と思ったのですが、狭いDOS-Extender界でもPharLapさんはマイナーなほうでして、~~EXPを生成できる再配布可能な良いリンカがないんです~~。【追記】[FlatLink](https://github.com/nabe-abk/flatlink)というリンカを新たに作り対応しました。
 
 またTOWNS版において、386SX機に対応し（Thanks to [@RyuTakegami](https://twitter.com/RyuTakegami)）、加えてCoCo/NSD常駐サービス関連の不安定だった部分に対応しました。Ver0.60でのCoCo対応はF-BASIC386製のプログラムが動かない不完全なものだったのですが、今回それを解消しました。
 

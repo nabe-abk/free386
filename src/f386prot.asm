@@ -63,7 +63,7 @@ Debug_code:
 	cmp	al, ah
 	je	.enable_tsugaru_api	; is Tsugaru
 
-	PRINT	.not_Tsugaru
+	PRINT32	.not_Tsugaru
 	jmp	.skip
 
 .not_Tsugaru	db	"This enviroment is not Tsugaru!",13,10,'$'
@@ -114,7 +114,7 @@ proc8 memory_infomation
 	movzx	eax, b [resv_real_memKB]
 	call	rewrite_next_hash_to_dec
 
-	PRINT	msg_01
+	PRINT32	msg_01
 .skip:
 
 ;------------------------------------------------------------------------------
@@ -229,7 +229,7 @@ proc8 more_memory_infomation
 	shl	eax, 12
 	call	rewrite_next_hash_to_dec
 
-	PRINT	msg_02
+	PRINT32	msg_02
 .skip:
 
 ;------------------------------------------------------------------------------
@@ -352,7 +352,7 @@ proc8 copy_exp_filename_to_work
 	mov	al, [show_title]
 	test	al, al
 	jz	.skip
-	PRINT	msg_10			; show help
+	PRINT32	msg_10			; show help
 .skip:
 	jmp	exit_32
 
@@ -510,7 +510,7 @@ proc8 search_exp_file
 	;--------------------------------------------------
 	; file not found
 	;--------------------------------------------------
-	PRINT	msg_05
+	PRINT32	msg_05
 	mov	edx, esi		; search file name
 	call	print_string_32
 
@@ -525,7 +525,7 @@ proc8 search_exp_file
 	test	al,al			;0?
 	jz	.no_verbose		;0 なら jmp
 
-	PRINT	msg_05
+	PRINT32	msg_05
 	mov	edx,edi 		;ファイル名 string
 	call	print_string_32		;文字列表示 (null:終端)
 .no_verbose:
@@ -591,7 +591,7 @@ proc32 error_exit_32
 	;///////////////////////////////
 %if RestoreRealVec
 RestoreRealVectors:
-	push	d (DOSMEM_sel)			;DOS メモリアクセスレジスタ
+	push	DOSMEM_sel			;DOS メモリアクセスレジスタ
 	pop	fs				;load
 	mov	ecx,IntVectors			;ベクタ数
 	mov	ebx,offset RVects_flag_tbl	;ベクタ書き換えフラグテーブル
@@ -633,7 +633,7 @@ RestoreRealVectors:
 	push	ebx			;V86 esp
 	pushfd				;eflags
 	push	eax			 ;V86 cs
-	push	d (offset exit_16) ;V86 EIP / 終了ラベル
+	push	offset exit_16 ;V86 EIP / 終了ラベル
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call    far [VCPI_entry]	;VCPI call
