@@ -9,7 +9,6 @@ extern	all_flags_save_iret
 
 extern	call32_from_V86
 
-
 ;--- DATA ---
 extern	V86int_table_adr
 
