@@ -6,10 +6,11 @@ Ver 0.90 - 2023-12-xx
 	- Support stack copy for int 21h AX=250Dh/AX=2510h
 	- Fix: Carry flags that should originally be saved may change.
 - Support for building with Microsoft LINK.EXE.
-- Add: set EXP file name to ENV command name.
 - Fix: very rare error in heap memory calculation for exp file.
 - Fix: using -vv option will cause a hang up if bits 16-31 of ebx is not 0.
 - Update: int 21h, ah=4ah for Open Watcom's EXP file.
+- Update: support int 21h, AX=250Dh stack parameter for 32bit routine.
+- Update: set EXP file name to ENV command name.
 - Update: source file names are now easier to understand.
 - Update: rewrite register dump and cpu fault routines (and fix bugs).
 - Update: sub.asm/sub32.asm. Cleanup and rewrite routines.

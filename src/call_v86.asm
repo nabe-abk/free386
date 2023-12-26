@@ -12,7 +12,7 @@
 ;******************************************************************************
 ; global symbols
 ;******************************************************************************
-global	rint_labels_adr
+global	V86int_table_adr
 
 global	cv86_ds
 global	cv86_es
@@ -22,7 +22,7 @@ global	cv86_gs
 global	cv86_copy_stack
 global	cv86_copy_size
 
-global	callf32_from_V86	; use by int 21h ax=250dh and towns.asm
+global	call32_from_V86	; use by int 21h ax=250dh and towns.asm
 
 ;******************************************************************************
 seg16	text class=CODE align=4 use16
@@ -30,15 +30,15 @@ seg16	text class=CODE align=4 use16
 ;==============================================================================
 ; initalize
 ;==============================================================================
-proc16 setup_cv86
+proc2 setup_cv86
 	;//////////////////////////////////////////////////
-	; init cv86 stack
+	; init cv86/cf32 stack
 	;//////////////////////////////////////////////////
 	mov	ax, cs
 	mov	[cv86_cs], ax
 	mov	[cv86_ss], ax
-	mov	[cv86_es], ax
 	mov	[cv86_ds], ax
+	mov	[cv86_es], ax
 	mov	[cv86_fs], ax
 	mov	[cv86_gs], ax
 
@@ -47,11 +47,11 @@ proc16 setup_cv86
 	;//////////////////////////////////////////////////
 	mov	ax, IntVectors *4
 	call	heap_malloc
-	mov	[rint_labels_adr],di
+	mov	[V86int_table_adr],di
 
 	mov	dx, di
 	add	dx, byte 3		; "e8 xx xx" is 3byte
-	mov	[rint_labels_top],dx	; int 0's return address
+	mov	[V86int_table_top],dx	; int 0's return address
 
 	; Routine code:
 	;	e8 xx xx	call int_buf
@@ -89,7 +89,7 @@ seg32	text32 class=CODE align=4 use32
 ;			bit 1	clear ds,es
 ;	+08h	cs:ip / int number(00h-ffh)
 ;
-proc32 call_V86_clear_stack
+proc4 call_V86_clear_stack
 	start_sdiff
 	push_x	gs
 	push_x	fs
@@ -154,29 +154,26 @@ proc32 call_V86_clear_stack
 	;--------------------------------------------------
 	; copy to V86 stack
 	;--------------------------------------------------
-	mov	ecx, esp		; caller ss:esp pointer
-	mov	eax, [cv86_copy_size]
-	test	eax, eax
+	mov	ecx, [cv86_copy_size]
+	test	ecx, ecx
 	jz	.no_stack_copy
 
-	mov	ebx, [cv86_copy_stack]
-	add	ebx, eax			; copy start
+	mov	eax, [cv86_copy_stack]
+	add	eax, ecx			; copy start
 .copy_loop:
-	sub	ebx, 4
-	push	dword es:[ebx]
 	sub	eax, 4
+	push	dword es:[eax]
+	sub	ecx, 4
 	ja	.copy_loop
-	sub	esp, eax			; adjust pointer
+	sub	esp, ecx			; adjust pointer
 
 	xor	eax, eax
 	mov	[cv86_copy_size], eax		; copy size set 0
-	mov	ebx, [ecx]			; es:ebx = caller esp
 
 .no_stack_copy:
 	;--------------------------------------------------
 	; push to V86 stack, restore register
 	;--------------------------------------------------
-	push	ecx				; caller ss:esp pointer
 	push	word es:[ebx]			; flags
 	push	dword [tmp_eax]			; eax
 
@@ -186,23 +183,24 @@ proc32 call_V86_clear_stack
 	; V86 stack
 	;	+00h d	eax
 	;	+04h w	flags
-	;	+06h d	caller ss:esp pointer
-	;		<stack copy data>
+	;	+06h -	<stack copy data> // any size
 	;	+xx   d	protect mode caller esp
 	;	+xx+4 d	protect mode caller  ss
 
-	;-------------------------------
+	;--------------------------------------------------
 	; jmp to V86
-	;-------------------------------
+	;--------------------------------------------------
 	mov	[cv86_esp], esp		;save V86 sp
 	lss	esp,[cv86_stack_adr]	;PM -> V86 stack structure
+
+	mov	dword [cv86_eip], .in_V86
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [cs:VCPI_entry]	;VCPI far call
 
 ;--------------------------------------------------------------------
 BITS	16
-proc16 .in_V86
+proc4 .in_V86
 	pop	eax
 .in_V86_popf_opcode:
 	popf
@@ -220,9 +218,9 @@ proc16 .in_V86
 	mov	[cv86_fs], fs
 	mov	[cv86_gs], gs
 
-	;-------------------------------
+	;--------------------------------------------------
 	; jmp to Protect mode
-	;-------------------------------
+	;--------------------------------------------------
 	mov	[tmp_esp], sp
 	mov	d [to_PM_EIP],offset .ret_PM
 
@@ -232,7 +230,7 @@ proc16 .in_V86
 
 ;--------------------------------------------------------------------
 BITS	32
-proc32 .ret_PM
+proc4 .ret_PM
 	mov	ax, F386_ds
 	mov	ds, ax
 	lss	esp, [tmp_esp]		;switch to V86 stack
@@ -241,18 +239,20 @@ proc32 .ret_PM
 	;	+00h d	esi
 	;	+04h d	eax
 	;	+08h d	eflags
-	;	+0ch d	caller ss:esp pointer
-	;		<stack copy data>
+	;	+0ch -	<stack copy data>
 	;	+xx   d	protect mode caller esp
 	;	+xx+4 d	protect mode caller  ss
-
+	;	-------------------------------- stack bottom
+	
 	pop	esi			; recovery esi
 	pop	dword [tmp_eax]		; pop eax
 	mov	[tmp_ebx], ebx
 	pop	eax			; V86 eflags
 
-	pop	esp			; load caller stack pointer
-	lss	esp,[esp]		; load caller stack
+	; calc current switch stack bottom pointer
+	mov	ebx, [sw_stack_bottom]
+	add	ebx, SW_stack_size - 8
+	lss	esp,[ebx]		; load caller stack
 
 	call	free_sw_stack_32	; free V86 stack // no argument
 
@@ -271,12 +271,8 @@ proc32 .ret_PM
 	and	ebx, 0fffff000h		; caller eflags mask status bits
 	or	ebx, eax
 
-	; clear +04h/+08h stack data
-	mov	eax, [esp + .sdiff]
-	mov	[esp + .sdiff + 08h], eax	; ret address
-	mov	[esp + .sdiff + 04h], ebx	; save eflags
-	mov	[esp + .sdiff],       ebx	; save eflags
-
+	push	ebx
+	popf
 	mov	eax, [tmp_eax]
 	mov	ebx, [tmp_ebx]
 
@@ -286,24 +282,21 @@ proc32 .ret_PM
 	pop_x	gs
 	end_sdiff
 
-	popf
-	popf
-	ret
+	ret	8	; remove 8byte stack
 
-
-;******************************************************************************
+;------------------------------------------------------------------------------
 ; call V86 support routine
-;******************************************************************************
+;------------------------------------------------------------------------------
 ; stack
 ;	+00h d Interrupt number
 ;	+04h d eip
 ;	+08h d cs
 ;	+0ch d eflags
 ;
-proc32 call_V86_int21_iret
+proc4 call_V86_int21_iret
 	push	21h
 
-proc8  call_V86_int_iret
+proc1  call_V86_int_iret
 	btc	dword [esp+0ch], 0	; set caller carry status
 
 	push	O_CV86_INT | O_CV86_CLSEG
@@ -313,31 +306,70 @@ proc8  call_V86_int_iret
 	iret
 
 	; for hardware interrupt
-proc32 call_V86_HW_int_iret
+proc4 call_V86_HW_int_iret
 	push	O_CV86_INT
 	call	call_V86_clear_stack
 	iret
 
-proc32	all_flags_save_iret	; exclude IF
+proc4	all_flags_save_iret	; exclude IF
 	xchg	[esp+8], eax
 
+	push	ebx
 	pushf
-	and	w [esp], 1101_1111_1111b
+	pop	ebx
 	and	eax, 0fffff200h
-	or	eax, [esp]
-	xchg	[esp], eax
-	pop	eax
+	and	ebx, 1101_1111_1111b
+	or	eax, ebx
+	pop	ebx
 
 	xchg	[esp+8], eax
 	iret
 
 
 ;******************************************************************************
-;■V86 からプロテクトモード割り込みルーチンの呼び出し
+seg16	text
 ;******************************************************************************
+;******************************************************************************
+; Interrupt for 32bit mode from V86
+;******************************************************************************
+; stack	+00h	internal caller IP from V86int_table
+;	+02h	original caller IP
+;	+04h	original caller CS
+;	+06h	flags
+;
 BITS	16
-	align	4
-int_from_V86:
+proc4 int_from_V86_new
+	push	ds	;4
+	push	es	;3
+	push	fs	;2
+	push	gs	;1
+	push	eax
+	push	esi	; 10h byte stack push
+
+	push	cs
+	pop	ds
+
+	;--------------------------------------------------
+	; calc interrupt number
+	;--------------------------------------------------
+	mov	si,sp
+	mov	ax,ss:[si + 10h]	;return EIP
+
+	sub	ax,[V86int_table_top]	;int 0's address
+	shr	ax,2			;div 4
+;	mov	[.int_opcode +1], al	;rewrite int opcode imm
+
+	;--------------------------------------------------
+	; change protect mode
+	;--------------------------------------------------
+;	mov   d [to_PM_EIP], .in_PM
+
+	mov	esi,[to_PM_data_ladr]
+	mov	ax,0de0ch
+	int	67h
+
+;--------------------------------------------------------------------
+proc4 int_from_V86
 	push	ds	;4
 	push	es	;3
 	push	fs	;2
@@ -358,7 +390,7 @@ int_from_V86:
 	mov	si,sp			;
 
 	mov	ax,[fs:si + 2*4]	;call 元アドレス
-	sub	ax,[rint_labels_top]	;登録番号 0 から (CPU Int 処理と同じ
+	sub	ax,[V86int_table_top]	;登録番号 0 から (CPU Int 処理と同じ
 	shr	ax,2			;4 で割る         int.asm 参照)
 	mov	[.int_no], al		;プロテクト時の呼び出し番号として記録
 
@@ -428,105 +460,195 @@ BITS	32
 	push	d [save_esp]		;** V86 sp
 	pushfd				;eflags
 	push	eax			;** V86 CS を記録
-	push	offset .ret_PM	;** V86 IP を記録
+	push	d (offset .ret_PM)	;** V86 IP を記録
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [VCPI_entry]	;VCPI far call
+
 
 
 ;******************************************************************************
 ; far call protect mode routeine from V86
 ;******************************************************************************
+; int 21h, AX=250Dh routine
+;
+;
 BITS	16
-	align	4
-callf32_from_V86:
-	; retf address	;     = 4
-	push	ds	; 2*4 = 8
-	push	es
-	push	fs
-	push	gs
-	push	eax	; 4*2 = 8
+proc1 call32_from_V86.fail
+	pop	ds
+	popf
+	pop	eax
+	pop	esi
+	retf
+
+proc4 call32_from_V86
 	push	esi
+	push	eax
+	pushf
+	push	ds
 
 	push	cs
 	pop	ds
 
-	cli
-	push	bp	; = 2
-	mov	bp, sp
-	mov	eax, [bp + 16h]
-	mov	[cs:cf32_target_eip], eax
-	mov	eax, [bp + 1ah]
-	mov	[cs:cf32_target_cs],  eax
-	pop	bp
+	call	alloc_sw_stack_16
+	test	ax, ax
+	jz	.fail
 
+	;--------------------------------------------------
+	; save register to switch stack
+	;--------------------------------------------------
+	cli
+	mov	si, [sw_stack_bottom]	; get current swtich stack top
+	xor	ax, ax
+	pop	word [si]		; save ds
+	mov	[si+02h], es
+	mov	[si+04h], fs
+	mov	[si+06h], gs
+	pop	 word [si+1ch]		; flags
+	pop	dword [si+10h]		; eax
+	pop	dword [si+14h]		; esi
+	pop	dword [si+18h]		; return cs:ip
+
+	;--------------------------------------------------
+	; analyze stack parameter
+	;--------------------------------------------------
+	pop	dword cs:[cf32_target_eip]
+	pop	 word cs:[cf32_target_cs]
+
+	pop	eax		; selector structure pointer
+	test	eax, eax
+	jz	.default
+
+	push	ebx
+	mov	bx, ax
+	shr	eax, 16
+	mov	es, ax
+
+	mov	ax, es:[bx + 06h]
+	mov	[cf32_ds_32], ax
+	mov	ax, es:[bx + 04h]
+	mov	[cf32_es_32], ax
+	mov	ax, es:[bx + 02h]
+	mov	[cf32_fs_32], ax
+	mov	ax, es:[bx + 00h]
+	mov	[cf32_gs_32], ax
+
+	pop	ebx
+	jmp	short .set_selector_end
+
+.default:
+	mov	ax, F386_ds
+	mov	[cf32_ds_32], ax
+	mov	[cf32_es_32], ax
+	mov	[cf32_fs_32], ax
+	mov	[cf32_gs_32], ax
+.set_selector_end:
+
+	;--------------------------------------------------
+	; save to stack
+	;--------------------------------------------------
+	mov	[si+08h], esp		; save for recovery
+	mov	[si+0ch], ss
+	mov	word [si+0eh], 0	; *** for Tsugaru bug
+
+	push	dword [si+10h]		; eax
+	push	dword [si+14h]		; esi
+
+	;--------------------------------------------------
+	; calc stack pointer linear address
+	;--------------------------------------------------
 	xor	eax, eax
-	mov	ax, ss
-	mov	[cf32_ss16],  eax	;save SS
+	mov	 ax, ss
 	shl	eax, 4
 	add	eax, esp
-	mov	[cf32_esp32], eax	;linear adddress of ss:esp
+	mov	[cf32_esp], eax		;linear adddress of ss:esp
 
-	mov   d [to_PM_EIP],offset .32	; jmp to
+	;--------------------------------------------------
+	; jmp to protect mode
+	;--------------------------------------------------
+	mov   d [to_PM_EIP], offset .in_32	; jmp to
 	mov	esi, [to_PM_data_ladr]
 	mov	ax,0de0ch
-	int	67h			; VCPI call
+	int	67h				; VCPI call
 
-
-	align 4
+;--------------------------------------------------------------------
 BITS	32
-.32:
-	mov	eax,F386_ds		;
-	mov	  ds,ax			;ds ロード
-	mov	  es,ax			;
-	mov	  fs,ax			;
-	mov	  gs,ax			;
-	lss	esp, [cf32_esp32]	;ss:esp を設定
+proc4 .in_32
+	lss	esp, cs:[cf32_esp]
+	mov	 ds, cs:[cf32_ds_32]
+	mov	 es, cs:[cf32_es_32]
+	mov	 fs, cs:[cf32_fs_32]
+	mov	 gs, cs:[cf32_gs_32]
 
 	pop	esi
 	pop	eax
-	call	far [cf32_target_eip]
+	call	far [cs:cf32_target_eip]
+	sub	esp, 14		; V86 caller CS:IP and stack parameter area
 	push	eax
 	push	esi
-	mov	esi, esp
+	pushfw		; stack 24 byte
+	%assign .st_diff	24
 
-	mov	eax,[V86_cs]		;V86時 cs,ds
-	push	eax			;** V86 gs
-	push	eax			;** V86 fs
+	;--------------------------------------------------
+	; recovery V86 stack
+	;--------------------------------------------------
+	push	F386_ds
+	pop	ds
+
+	cli
+	mov	esi, [sw_stack_bottom]	;esi = current switch stack top
+	mov	eax, [esi + 18h]	;ret CS:IP
+	mov	[esp +.st_diff -14],eax	;save to V86 stack
+
+	;--------------------------------------------------
+	; jmp to V86
+	;--------------------------------------------------
+	lss	esp, [VCPI_stack_adr]	;switch stack
+
+	mov	eax,[V86_cs]
+	push	dword [esi + 06h]	;** V86 gs
+	push	dword [esi + 04h]	;** V86 fs
 	push	eax			;** V86 ds
-	push	eax			;** V86 es
+	push	dword [esi + 02h]	;** V86 es
 
-	push	d [cf32_ss16]		;** V86 ss
-	push	eax			;** V86 sp // dummy
-	pushfd				;eflags
-	push	eax			;** V86 CS
-	push	offset .ret_PM	;** V86 IP
-
-	mov	eax, [cf32_ss16]
-	shl	eax, 4
-	sub	esi, eax
-	mov	[esp + 0ch], esi	; Fix V86 sp
+	push	dword [esi + 0ch]	;** V86 ss
+	mov	eax,  [esi + 08h]	;original V86 esp
+	sub	eax, .st_diff
+	push	eax			;** V86 sp
+	pushf				;eflags (not use?)
+	push	dword [V86_cs]		;** V86 CS
+	push	offset .ret_PM		;** V86 IP
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [VCPI_entry]	;VCPI far call
 
-
-	align	4
+;--------------------------------------------------------------------
 BITS	16
-.ret_PM:
+proc4 .ret_PM
+	mov	si, [sw_stack_bottom]	; get current swtich stack top
+	; [si]
+	;	+00 w ds
+	;	+1c w flags
+	pop	ax			; ax=flags
+	push	bx
+	mov	bx, [si + 1ch]		; bx=caller flags
+	and	bx, 0f200h		; IF and system flag
+	and	ax, 1101_1111_1111b	; other flags
+	pop	bx
+	push	ax			; save flags
+
+	call	free_sw_stack_16
+
+	mov	ds, [si]
+	popf
 	pop	esi
 	pop	eax
-
-	pop	gs
-	pop	fs
-	pop	es
-	pop	ds
 	retf
 
 
 BITS	32
 ;******************************************************************************
-;■データ
+; DATA
 ;******************************************************************************
 segdata	data class=DATA align=4
 
@@ -570,17 +692,22 @@ cv86_copy_size	dd	0	; copy bytes
 ;------------------------------------------------------------------------------
 ; Real mode interrupt hook routines, for call to 32bit from V86.
 ;------------------------------------------------------------------------------
-rint_labels_adr	dd	0
-rint_labels_top	dd	0		; rint_labels_adr +3
+V86int_table_adr	dd	0
+V86int_table_top	dd	0	; V86int_table_adr +3
 
 ;------------------------------------------------------------------------------
 ; call protect mode routeine from V86
 ;------------------------------------------------------------------------------
-cf32_ss16	dd	0		;
-cf32_esp32	dd	0		;in 32bit linear address
+cf32_esp	dd	0		;in 32bit linear address
 		dd	DOSMEM_sel	;for lss
+
 cf32_target_eip	dd	0		;call target entry
 cf32_target_cs	dd	0		;
+
+cf32_ds_32	dw	0
+cf32_es_32	dw	0
+cf32_fs_32	dw	0
+cf32_gs_32	dw	0
 
 ;******************************************************************************
 ;******************************************************************************

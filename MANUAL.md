@@ -173,22 +173,18 @@ If you have requests for implementation, please contact us.
 ## Incompatible Functions
 
 - int 21h
-	- AX=250Dh	- Get real mode link info. EAX's procedure do not support stack copying.
-	- AH=09h	- Print string. If the data size exceeds the "call buffer size", the excess data will be truncated.
-	- AH=44h	- IOCTRL. Not support buffer functions.
-	- AH=49h	- Free selector. Do not free memory, only disable the selector.
-	- AH=4Ah	- Resize selector. Shrinking does not free up memory. Do not manipulate alias selectors.
-- When issuing a DOS function, the carry flag may change even though it should originally be saved.
+	- AH=09h: Print string. If the data size exceeds the "call buffer size", the excess data will be truncated.
+	- AH=44h: IOCTRL. Not support buffer functions.
+	- AH=49h: Free selector. Do not free memory, only disable the selector.
+	- AH=4Ah: Resize selector. Shrinking does not free up memory. Do not manipulate alias selectors.
 
 非互換ファンクション。
 
 - int 21h
-	- AX=250Dh	- リアルモードリンク情報取得。EAXで返されるプロシジャは、スタックコピーをサポートしません。
-	- AH=09h	- 文字列出力。データがコールバッファサイズを越えた場合、超えたデータは無視される。
-	- AH=44h	- IOCTRL。バッファを使用するものは未サポート。
-	- AH=49h	- セレクタの開放。メモリを開放せず、セレクタを無効化するのみ。
-	- AH=4Ah	- セレクタのリサイズ。縮めてもメモリを開放しない。エイリアスセレクタは操作しない。
-- DOSファンクションにて、本来キャリーフラグが保存されるべき状況において、キャリーフラグが変化してしまうことがあります。
+	- AH=09h: 文字列出力。データがコールバッファサイズを越えた場合、超えたデータは無視される。
+	- AH=44h: IOCTRL。バッファを使用するものは未サポート。
+	- AH=49h: セレクタの開放。メモリを開放せず、セレクタを無効化するのみ。
+	- AH=4Ah: セレクタのリサイズ。縮めてもメモリを開放しない。エイリアスセレクタは操作しない。
 
 ## Known issues
 
