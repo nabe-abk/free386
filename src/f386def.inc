@@ -6,10 +6,10 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.90dev 2023-12-25'
+%define	VER_STRING	'Ver0.90dev 2023-12-27'
 Major_ver	equ		00h
 Minor_ver	equ		90h
-F386_Date	equ		20231225h	;Release date
+F386_Date	equ		20231227h	;Release date
 
 ;==============================================================================
 ; RELEASE and DEBUG setting
@@ -99,8 +99,8 @@ GP_BUFFERS	equ	4	; number of general purpose buffers, max 32
 GP_BUFFER_SIZE	equ	400h	; 1KB
 
 V86_stack_size	equ	 200h	; byte
-PM_stack_size	equ	 380h	; byte
-VCPI_stack_size	equ	  80h	; VCPI call(to V86) dedicated stack
+PM_stack_size	equ	 300h	; byte
+VCPI_stack_size	equ	 100h	; VCPI call(to V86) dedicated stack
 
 SW_stack_size	equ	200h	; CPU switch stack size
 SW_max_nest	equ	4	; CPU switch max nest
