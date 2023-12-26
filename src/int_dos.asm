@@ -142,7 +142,7 @@ int_21h_unknown:
 ;==============================================================================
 ;・int 21h / テーブルジャンプ処理
 ;==============================================================================
-proc32 PM_int_21h
+proc4 PM_int_21h
 	call_RegisterDumpInt	21h
 
     %if (int_21h_fn_MAX < 0ffh)
@@ -291,7 +291,7 @@ int_21h_09h:
 ;------------------------------------------------------------------------------
 %if PRINT_TO_FILE
 
-proc32 int_21h_09h_output_file
+proc4 int_21h_09h_output_file
 	; 強制ファイル出力
 	pushad
 	push	ds
@@ -368,7 +368,7 @@ proc32 int_21h_09h_output_file
 ;------------------------------------------------------------------------------
 %if PRINT_TSUGARU
 
-proc32 int_21h_09h_output_tsugaru
+proc4 int_21h_09h_output_tsugaru
 	pushad
 	push	ds
 	push	es
@@ -820,7 +820,7 @@ int_21h_44h:
 ; in	ds:esi	64 byte buffer
 ;	    dl	drive number
 ;
-proc32 int_21h_47h
+proc4 int_21h_47h
 	push	ecx
 	push	edx
 	push	edi

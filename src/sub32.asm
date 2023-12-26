@@ -25,7 +25,7 @@ seg32	text32 class=CODE align=4 use32
 ;register dump
 ;##############################################################################
 ;------------------------------------------------------------------------------
-proc32 register_dump_iret
+proc4 register_dump_iret
 ;------------------------------------------------------------------------------
 	; stack	+00h eip
 	;	+04h cs
@@ -63,7 +63,7 @@ proc32 register_dump_iret
 
 
 ;------------------------------------------------------------------------------
-proc32 set_dump_head_is_reg
+proc4 set_dump_head_is_reg
 ;------------------------------------------------------------------------------
 	; edi = ebp = buffer address
 	mov	esi, offset regdump_hr
@@ -73,7 +73,7 @@ proc32 set_dump_head_is_reg
 	ret
 
 ;------------------------------------------------------------------------------
-proc32 set_dump_head_is_fault
+proc4 set_dump_head_is_fault
 ;------------------------------------------------------------------------------
 	; ebx = int number
 	; edx = error code
@@ -118,7 +118,7 @@ proc32 set_dump_head_is_fault
 	ret
 
 ;------------------------------------------------------------------------------
-proc32 copy_esi_to_edi
+proc4 copy_esi_to_edi
 ;------------------------------------------------------------------------------
 .loop:
 	lodsb
@@ -136,7 +136,7 @@ proc32 copy_esi_to_edi
 ; in	 ds = F386_ds
 ; out	eax = destroy
 ;
-proc32 register_dump
+proc4 register_dump
 	call	get_gp_buffer_32
 	test	eax, eax
 	jnz	.step		; success
@@ -285,7 +285,7 @@ proc32 register_dump
 ;##############################################################################
 %if INT_HOOK
 ;------------------------------------------------------------------------------
-proc32 set_dump_head_is_int
+proc4 set_dump_head_is_int
 ;------------------------------------------------------------------------------
 	; ecx = error code
 	; edi = ebp = buffer address
@@ -304,7 +304,7 @@ proc32 set_dump_head_is_int
 
 %if INT_HOOK_RETV
 ;------------------------------------------------------------------------------
-proc32 set_dump_head_is_return
+proc4 set_dump_head_is_return
 ;------------------------------------------------------------------------------
 	; ecx = error code
 	; edi = ebp = buffer address
@@ -314,7 +314,7 @@ proc32 set_dump_head_is_return
 %endif
 
 ;------------------------------------------------------------------------------
-proc32 register_dump_from_int
+proc4 register_dump_from_int
 ;------------------------------------------------------------------------------
 	push	set_dump_head_is_int
 	push	ds
@@ -461,7 +461,7 @@ proc32 register_dump_from_int
 ; in	ecx = dump bytes
 ;
 %if PRINT_TSUGARU && DUMP_DS_EDX
-proc32 debug_dump_ds_edx
+proc4 debug_dump_ds_edx
 	pushf
 	;
 	; target AH
@@ -505,7 +505,7 @@ proc32 debug_dump_ds_edx
 ; ret	cy=0	fs:[edx] target env value
 ;	cy=1	fs:[edx] env end after "00h 00h" or zero
 ;
-proc32 search_env
+proc4 search_env
 	push	eax
 	push	ebx
 	push	ecx
@@ -589,7 +589,7 @@ proc32 search_env
 ;	cy=0	found: store [edi] found file name
 ;	cy=1	not found
 ;
-proc32 search_path_env
+proc4 search_path_env
 	pusha
 
 	call	search_env	; fs:[edx] = ENV string
@@ -665,7 +665,7 @@ proc32 search_path_env
 ; ret	cy=0	success
 ;	cy=1	fail
 ;
-proc32 check_readable_file
+proc4 check_readable_file
 	push	eax
 	push	ebx
 	push	edx
@@ -706,7 +706,7 @@ proc32 check_readable_file
 ;------------------------------------------------------------------------------
 ;●EXP ファイルのロード
 ;------------------------------------------------------------------------------
-proc32 load_exp
+proc4 load_exp
 	push	ds			;最後に積むこと
 	mov	es,[esp]		;es に設定
 
@@ -851,7 +851,7 @@ proc32 load_exp
 	jmp	short .fclose_end	;ファイルをクローズしてから終了
 
 
-proc32 .calc_4Kmem_eax_ecx
+proc4 .calc_4Kmem_eax_ecx
 	; in eax + ecx
 	add	eax, ecx
 	jc	.over
@@ -871,7 +871,7 @@ proc32 .calc_4Kmem_eax_ecx
 ;	cmp	eax,00013350H	;P3 形式['P3']・フラットモデル[w (0001)]
 ;	jne	check_MZ	;P3 でなければ MZヘッダか確認 (jmp)
 ;
-proc32 .load_MZ_exp
+proc4 .load_MZ_exp
 
 	;////////////////////////////////////////////////////
 	;MZ(MP) ヘッダに対応しない場合
@@ -1279,7 +1279,7 @@ make_cs_ds:
 ;		edx	ロードプログラム EIP
 ;		ebp	ロードプログラム ESP
 ;
-proc32 run_exp
+proc4 run_exp
 	mov	eax,gs			;DS
 	mov	 ss,ax			;
 	mov	esp,ebp			;スタック切り替え

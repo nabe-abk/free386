@@ -19,7 +19,7 @@ seg16	text class=CODE align=4 use16
 ;	cx = length of parameter
 ;	bp = remain length
 ;
-proc16 get_next_parameter
+proc2 get_next_parameter
 	push	ax
 	xor	bx, bx
 .loop:
@@ -59,7 +59,7 @@ proc16 get_next_parameter
 ;
 ; ret	 di = last store address +1
 ;
-proc16 bin2hex_16
+proc2 bin2hex_16
 	push	bx
 	push	cx
 	push	dx
@@ -101,7 +101,7 @@ BITS	32
 ;------------------------------------------------------------------------------
 ;	ds:[edx]  strings (Null determinant)
 ;
-proc32 print_string_32
+proc4 print_string_32
 	push	eax
 	push	ebx
 	push	edx
@@ -137,7 +137,7 @@ proc32 print_string_32
 ;	ecx = number of digits
 ; ret	edi = last store address +1
 ;
-proc32 bin2dec_32
+proc4 bin2dec_32
 	push	eax
 	push	ebx
 	push	ecx
@@ -203,7 +203,7 @@ proc32 bin2dec_32
 ;
 ; ret	edi = last store address +1
 ;
-proc32 bin2hex_32
+proc4 bin2hex_32
 	push	ebx
 	push	ecx
 	push	edx
@@ -241,21 +241,21 @@ proc32 bin2hex_32
 ; in	eax	value
 ;	edi	target
 ;
-proc32 rewrite_next_hash_to_hex
+proc4 rewrite_next_hash_to_hex
 	push	ecx
 	call	count_num_of_next_hash
 	call	bin2hex_32
 	pop	ecx
 	ret
 
-proc32 rewrite_next_hash_to_dec
+proc4 rewrite_next_hash_to_dec
 	push	ecx
 	call	count_num_of_next_hash
 	call	bin2dec_32
 	pop	ecx
 	ret
 
-proc32 count_num_of_next_hash
+proc4 count_num_of_next_hash
 .search_loop:
 	inc	edi
 	cmp	b [edi], '#'

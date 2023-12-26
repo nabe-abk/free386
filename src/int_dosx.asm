@@ -9,7 +9,7 @@
 ;------------------------------------------------------------------------------
 ;・Verison 情報取得  AH=30h
 ;------------------------------------------------------------------------------
-proc32 int_21h_30h
+proc4 int_21h_30h
 	clear_cy	; stack eflags clear
 
 	;eax の上位16bit に 'DX' を入れる
@@ -56,9 +56,9 @@ proc32 int_21h_30h
 ;------------------------------------------------------------------------------
 ;・プログラム終了  AH=00h,4ch
 ;------------------------------------------------------------------------------
-proc8 int_21h_00h
+proc1 int_21h_00h
 	xor	al,al		;リターンコード = 0 / DOS互換
-proc32 int_21h_4ch
+proc4 int_21h_4ch
 	add	esp,12		;スタック除去
 	jmp	exit_32		;DOS-Extender 終了処理
 
@@ -67,7 +67,7 @@ proc32 int_21h_4ch
 ;------------------------------------------------------------------------------
 ;・LDT内にセレクタを作成しメモリを確保  AH=48h
 ;------------------------------------------------------------------------------
-proc32 int_21h_48h
+proc4 int_21h_48h
 	push	esi
 	push	edi
 	push	ecx
@@ -120,7 +120,7 @@ proc32 int_21h_48h
 ;・LDT内のセレクタを削除しメモリを解放  AH=49h
 ;------------------------------------------------------------------------------
 ; ※メモリ解放をしていない
-proc32 int_21h_49h
+proc4 int_21h_49h
 	
 	push	eax
 	push	ebx
@@ -153,7 +153,7 @@ proc32 int_21h_49h
 ;	incompatible: not free memory
 ;	非互換: メモリ解放機能なし
 ;
-proc32 int_21h_4ah
+proc4 int_21h_4ah
 	push	eax
 	push	ebx
 	push	ecx
@@ -292,7 +292,7 @@ proc32 int_21h_4ah
 ;******************************************************************************
 ;・DOS-Extender functions  AH=25h,35H
 ;******************************************************************************
-proc32 DOS_Extender_fn
+proc4 DOS_Extender_fn
 	push	eax			;
 
 	cmp	al,DOSX_fn_MAX		;テーブル最大値
@@ -336,7 +336,7 @@ DOSX_fn_2516h:		;Ver2.2以降  自分自身のメモリをLDTから全て解放(?)
 ;------------------------------------------------------------------------------
 ;・未知のファンクション
 ;------------------------------------------------------------------------------
-proc32 DOSX_unknown
+proc4 DOSX_unknown
 	mov	eax,0a5a5a5a5h		;DOS-Extender のマニュアルの記述どおり
 	set_cy
 	iret
@@ -344,7 +344,7 @@ proc32 DOSX_unknown
 ;------------------------------------------------------------------------------
 ;・V86←→Protect データ構造体のリセット  AX=2501h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2501h
+proc4 DOSX_fn_2501h
 	push	ds
 
 	push	F386_ds
@@ -361,7 +361,7 @@ proc32 DOSX_fn_2501h
 ;------------------------------------------------------------------------------
 ;・Protect モードの割り込みベクタ取得  AX=2502h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2502h
+proc4 DOSX_fn_2502h
 	push	ecx
 	push	ds
 
@@ -402,7 +402,7 @@ proc32 DOSX_fn_2502h
 ;------------------------------------------------------------------------------
 ;・リアル(V86) モードの割り込みベクタ取得  AX=2503h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2503h
+proc4 DOSX_fn_2503h
 	push	ds
 	push	ecx
 
@@ -424,7 +424,7 @@ proc32 DOSX_fn_2503h
 ; in 	cl     = interrupt number
 ;	ds:edx = entry point
 ;
-proc32 DOSX_fn_2504h
+proc4 DOSX_fn_2504h
 	push	eax
 	push	ecx
 	push	ds
@@ -476,12 +476,12 @@ proc32 DOSX_fn_2504h
 ; in	 cl = interrupt number
 ;	ebx = handler address / SEG:OFF
 ;
-proc32 DOSX_fn_2505h
+proc4 DOSX_fn_2505h
 	call	set_V86_vector
 	clear_cy
 	iret
 
-proc32 set_V86_vector
+proc4 set_V86_vector
 	push	ds
 	push	ebx
 	push	ecx
@@ -506,7 +506,7 @@ proc32 set_V86_vector
 ;------------------------------------------------------------------------------
 ;・常にプロテクトモードで発生する割り込みの設定  AX=2506h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2506h
+proc4 DOSX_fn_2506h
 	push	ebx
 	push	ecx
 	push	esi
@@ -519,7 +519,7 @@ proc32 DOSX_fn_2506h
 
 	mov	ebx,[V86_cs]		;V86 ベクタ CS
 	shl	ebx,16			;上位へ
-	mov	esi,[rint_labels_adr]	;int 0    の hook ルーチンアドレス
+	mov	esi,[V86int_table_adr]	;int 0    の hook ルーチンアドレス
 	lea	 bx,[esi+ecx*4]		;int cl 番の hook ルーチンアドレス
 	call	set_V86_vector		;ベクタ設定
 
@@ -533,7 +533,7 @@ proc32 DOSX_fn_2506h
 ;------------------------------------------------------------------------------
 ;・リアル(V86)モードとプロテクトモードの割り込み設定　AX=2507h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2507h
+proc4 DOSX_fn_2507h
 	;call	set_V86_vector
 	;jmp	DOSX_fn_2504h	;プロテクトモードの割り込み設定
 
@@ -546,7 +546,7 @@ proc32 DOSX_fn_2507h
 ;------------------------------------------------------------------------------
 ;・セグメントセレクタのベースリニアアドレスを取得  AX=2508h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2508h
+proc4 DOSX_fn_2508h
 	verr	bx		;セレクタが有効か?
 	jnz	short .void	;無効
 
@@ -577,7 +577,7 @@ proc32 DOSX_fn_2508h
 ;------------------------------------------------------------------------------
 ;・リニアアドレスから物理アドレスへの変換　AX=2509h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2509h
+proc4 DOSX_fn_2509h
 	push	ecx
 	push	edx
 	push	ds
@@ -632,7 +632,7 @@ proc32 DOSX_fn_2509h
 ;------------------------------------------------------------------------------
 ;・物理アドレスのマッピング　AX=250ah
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_250ah
+proc4 DOSX_fn_250ah
 	push	ds
 	push	esi
 	push	edi
@@ -711,7 +711,7 @@ proc32 DOSX_fn_250ah
 ;------------------------------------------------------------------------------
 ;・ハードウェア割り込みベクタの取得　AX=250ch
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_250ch
+proc4 DOSX_fn_250ch
 
 	%ifdef USE_VCPI_8259A_API
 		mov	ax,[cs:vcpi_8259m]
@@ -732,7 +732,7 @@ proc32 DOSX_fn_250ch
 ;	   ebx = Seg:Off - 16bit buffer address
 ;	es:edx = buffer protect mode address
 ;
-proc32 DOSX_fn_250dh
+proc4 DOSX_fn_250dh
 	mov	ebx, d [cs:user_cbuf_adr16]
 	movzx	ecx, b [cs:user_cbuf_pages]
 	shl	ecx, 12				; page to byte
@@ -743,7 +743,7 @@ proc32 DOSX_fn_250dh
 
 	mov	 ax, [cs:V86_cs]
 	shl	eax, 16
-	mov	 ax, offset callf32_from_V86
+	mov	 ax, offset call32_from_V86
 
 	clear_cy
 	iret
@@ -757,7 +757,7 @@ proc32 DOSX_fn_250dh
 ;
 ;	Ret:	ecx=seg:off
 ;
-proc32 DOSX_fn_250fh
+proc4 DOSX_fn_250fh
 	push	eax
 	push	ebp
 	push	esi
@@ -833,11 +833,14 @@ proc32 DOSX_fn_250fh
 ; ret	 cy = 0	success
 ;	 cy = 1	fail. eax = 1 not enough real-mode stack space
 ;
-%define	COPY_STACK_MAX	(SW_stack_size - 40h)
+%define	COPY_STACK_MAX_WORDS	((SW_stack_size - 40h)/2)
 
-proc32 DOSX_fn_250eh
+proc4 DOSX_fn_250eh
 	start_sdiff
 	pushf_x
+	cmp	ecx, COPY_STACK_MAX_WORDS
+	ja	.fail
+
 	push_x	eax
 	push_x	ecx
 	push_x	ds
@@ -850,11 +853,9 @@ proc32 DOSX_fn_250eh
 	shl	ecx, 1				; ecx is copy word count
 	mov	[cv86_copy_size],  ecx
 
-	cmp	ecx, COPY_STACK_MAX
 	pop_x	ds
 	pop_x	ecx
 	pop_x	eax
-	ja	.fail
 	popf_x
 	end_sdiff
 
@@ -880,11 +881,14 @@ proc32 DOSX_fn_250eh
 ;	   edx = unchange
 ;	cy = 1	fail. eax = 1 not enough real-mode stack space
 ;
-proc32 DOSX_fn_2510h
+proc4 DOSX_fn_2510h
 	call_DumpDsEdx	18h		; dump, if set DUMP_DS_EDX
 
 	start_sdiff
 	push_x	es
+	pushf_x
+	cmp	ecx, COPY_STACK_MAX_WORDS
+	ja	.fail
 
 	push	F386_ds
 	pop	es
@@ -892,7 +896,6 @@ proc32 DOSX_fn_2510h
 	;--------------------------------------------------
 	; check copy stack size
 	;--------------------------------------------------
-	pushf_x
 	push_x	ecx
 
 	lea	eax, [esp + .sdiff + 0ch]
@@ -900,9 +903,7 @@ proc32 DOSX_fn_2510h
 	shl	ecx, 1				; ecx is copy word count
 	mov	es:[cv86_copy_size],  ecx	; copy bytes
 
-	cmp	ecx, COPY_STACK_MAX
 	pop_x	ecx
-	ja	.fail
 	popf_x
 
 	;--------------------------------------------------
@@ -960,6 +961,8 @@ proc32 DOSX_fn_2510h
 	;--------------------------------------------------
 	; return
 	;--------------------------------------------------
+	mov	ebx, [edx + 0ch]
+
 	pop_x	es
 	end_sdiff
 
@@ -973,7 +976,6 @@ proc32 DOSX_fn_2510h
 	set_cy
 	iret
 
-
 ;------------------------------------------------------------------------------
 ;・リアルモード割り込みの実行　AX=2511h
 ;------------------------------------------------------------------------------
@@ -986,7 +988,7 @@ proc32 DOSX_fn_2510h
 ;	+0ah d eax
 ;	+0eh d edx
 ;
-proc32 DOSX_fn_2511h
+proc4 DOSX_fn_2511h
 	call_DumpDsEdx	12h		; dump, if set DUMP_DS_EDX
 
 	push	es
@@ -1051,7 +1053,7 @@ proc32 DOSX_fn_2511h
 ;	cl = ディスクリプタ内 +5 byte 目にセットする値
 ;	ch = bit 6 のみ意味を持ち、USE属性(16bit/32bit)を指定
 ;
-proc32 DOSX_fn_2513h
+proc4 DOSX_fn_2513h
 	push	ds
 	push	edx
 	push	ecx
@@ -1116,7 +1118,7 @@ proc32 DOSX_fn_2513h
 ;------------------------------------------------------------------------------
 ;・セグメント属性の変更　AX=2514h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2514h
+proc4 DOSX_fn_2514h
 	push	ecx
 	push	ebx
 	push	eax
@@ -1161,7 +1163,7 @@ proc32 DOSX_fn_2514h
 ;------------------------------------------------------------------------------
 ;・セグメント属性の取得　AX=2515h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_2515h
+proc4 DOSX_fn_2515h
 	push	ebx
 	push	eax
 
@@ -1193,7 +1195,7 @@ proc32 DOSX_fn_2515h
 ;	ecx = real mode address, Seg:Off
 ;	edx = size (byte)
 ;
-proc32 DOSX_fn_2517h
+proc4 DOSX_fn_2517h
 	mov	eax, DOSMEM_sel
 	mov	 es, ax
 	mov	ebx, d [cs:user_cbuf_ladr]
@@ -1209,7 +1211,7 @@ proc32 DOSX_fn_2517h
 ;------------------------------------------------------------------------------
 ;・DOSメモリブロックアロケーション　AX=25c0h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_25c0h
+proc4 DOSX_fn_25c0h
 	mov	ah,48h
 	jmp	call_V86_int21_iret
 
@@ -1220,12 +1222,12 @@ proc32 DOSX_fn_25c0h
 ;------------------------------------------------------------------------------
 ;・MS-DOSメモリブロックのサイズ変更　AX=25c2h
 ;------------------------------------------------------------------------------
-proc32 DOSX_fn_25c1h
+proc4 DOSX_fn_25c1h
 	push	eax
 	mov	ah,49h		; free memory block
 	jmp	short DOSX_fn_25c2h.step
 
-proc32 DOSX_fn_25c2h		; resize memory block
+proc4 DOSX_fn_25c2h		; resize memory block
 	push	eax
 	mov	ah,49h
 .step:

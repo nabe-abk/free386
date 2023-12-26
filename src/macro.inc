@@ -8,16 +8,16 @@
 %define	offset
 %define	byte_x(x)	byte ((x) - 100h)
 
-%macro	proc8	1
+%macro	proc1	1
 	global	%1
 %1:
 %endmacro
-%macro	proc16	1
+%macro	proc2	1
 	global	%1
 	align	2
 %1:
 %endmacro
-%macro	proc32	1
+%macro	proc4	1
 	global	%1
 	align	4
 %1:
@@ -150,12 +150,6 @@ cy_clear:	;
 	set_cy
 	iret
 %endmacro
-
-%imacro	iret_set_flags 0
-%endmacro
-
-
-
 
 ;------------------------------------------------------------------------------
 ; interrupt label call

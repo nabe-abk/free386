@@ -9,7 +9,7 @@ seg16	text class=CODE align=4 use16
 ;Ret	Cy=0	TOWNS かもしれない
 ;	Cy=1	TOWNS でないかも?
 ;
-proc32 check_TOWNS_16
+proc4 check_TOWNS_16
 	in	al,30h		;CPU 識別レジスタ
 	test	al,al		;=and／値 check
 	jz	.not_fm		;0 なら FM シリーズでない
@@ -35,7 +35,7 @@ proc32 check_TOWNS_16
 ;==============================================================================
 ; ※CALLバッファに保存する
 ;
-proc32 init_TOWNS_16
+proc4 init_TOWNS_16
 	;
 	; 386SX判定
 	;
@@ -72,7 +72,7 @@ proc32 init_TOWNS_16
 ;★CoCo情報の保存
 ;==============================================================================
 ; ※CALLバッファに保存する
-proc32 init_CoCo
+proc4 init_CoCo
 	mov	ax, 0c000h	; CoCo存在確認
 	int	8eh
 	test	ah, ah
@@ -103,7 +103,7 @@ proc32 init_CoCo
 	; [Regist] real mode to 32bit mode far call routine
 	;
 	mov	dx, cs
-	mov	bx, offset callf32_from_V86
+	mov	bx, offset call32_from_V86
 	mov	ax, 0c207h
 	int	8eh
 
@@ -118,7 +118,7 @@ BITS	32
 ;==============================================================================
 ;★T-OS のメモリ周り設定
 ;==============================================================================
-proc32 init_TOWNS_32
+proc4 init_TOWNS_32
 	mov	ebx,offset T_OS_memory_map
 
 	mov	al, [cpu_is_386sx]
@@ -164,7 +164,7 @@ proc32 init_TOWNS_32
 	;------------------------------------------
 	mov	edi,[GDT_adr]		;GDT アドレスロード
 	mov	 al,[edi + F386_ds +5]	;タイプフィールドロード
-	test	 al,01
+	test	 al,01			;check access bit
 	jnz	.not_emulator
 
 	push	es
@@ -188,7 +188,7 @@ proc32 init_TOWNS_32
 ;------------------------------------------------------------------------------
 ; NSD driver setup and wakeup
 ;------------------------------------------------------------------------------
-proc32 wakeup_nsdd
+proc4 wakeup_nsdd
 	mov	eax, LDT_sel
 	mov	  fs,ax
 
@@ -233,7 +233,7 @@ proc32 wakeup_nsdd
 	ret
 
 
-proc32 send_command_to_nsdd
+proc4 send_command_to_nsdd
 	;  al = command
 	; ebx = code selector
 	push	gs
@@ -293,7 +293,7 @@ TOWNS_CMOS_READ:
 ;==============================================================================
 ;★TOWNS の終了処理
 ;==============================================================================
-proc32 exit_TOWNS_32
+proc4 exit_TOWNS_32
 	;------------------------------------------
 	;NSDD 終了処理
 	;------------------------------------------
@@ -360,7 +360,7 @@ proc32 exit_TOWNS_32
 
 .res_v:	push	es
 	mov	eax,120h		;VRAM セレクタ
-	mov	  es,ax			;Load
+	mov	 es,ax			;Load
 	xor	edi,edi			;edi = 0
 	mov	ecx,512*1024 / 4	;512 KB
 	xor	eax,eax			;塗りつぶす値
@@ -373,7 +373,7 @@ proc32 exit_TOWNS_32
 ;------------------------------------------------------------------------------
 ;★NSDドライバを sleep させる
 ;------------------------------------------------------------------------------
-proc32 sleep_nsdd
+proc4 sleep_nsdd
 	mov	ax, 0c003h
 	int	8eh
 	test	ah, ah
@@ -567,7 +567,7 @@ BITS	16
 ;==============================================================================
 ;exit process for TOWNS on 16bit mode
 ;==============================================================================
-proc32 exit_TOWNS_16
+proc4 exit_TOWNS_16
 	cmp	b [load_nsdd], 0
 	jz	short .no_nsdd
 	;

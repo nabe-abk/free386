@@ -107,7 +107,7 @@ start:
 ;------------------------------------------------------------------------------
 ;●パラメタ確認 (free386 への動作指定)
 ;------------------------------------------------------------------------------
-proc16 parameter_check
+proc2 parameter_check
 	mov	si, 81h			;argument string pointer
 	mov	bp, 7fh			;argument max length
 	xor	bx, bx
@@ -248,7 +248,7 @@ proc16 parameter_check
 ;------------------------------------------------------------------------------
 ;●タイトル表示
 ;------------------------------------------------------------------------------
-proc16 print_title
+proc2 print_title
 	mov	al,[show_title]	;タイトル表示する?
 	test	al,al		;値 check
 	jz	.no_title	;0 なら表示せず
@@ -270,7 +270,7 @@ proc16 print_title
 ;------------------------------------------------------------------------------
 %if MACHINE_CODE			;機種汎用でない
 
-proc8 machine_check
+proc1 machine_check
 	mov	al,[check_MACHINE]	;機種判別フラグ
 	test	al,al			;値確認
 	jz	.no_check		;0 ならチェックしない
@@ -295,7 +295,7 @@ proc8 machine_check
 ;●VCPI の存在確認
 ;------------------------------------------------------------------------------
 %if CHECK_EMS
-proc8 check_ems_driver
+proc1 check_ems_driver
 	;
 	; check EMS
 	;
@@ -384,7 +384,7 @@ get_vcip_memory_size:
 ;------------------------------------------------------------------------------
 ; Memory setting
 ;------------------------------------------------------------------------------
-proc8 memory_setting
+proc1 memory_setting
 	;//////////////////////////////////////////////////
 	; Save real mode interrupt table: 0000:0000-03ff
 	;//////////////////////////////////////////////////
@@ -511,7 +511,7 @@ XMS_setup:
 ;●拡張メモリの確保 (use XMS2.0) / Max 64MB
 ;------------------------------------------------------------------------------
 %if USE_XMS20
-proc8 get_EMB_XMS20
+proc1 get_EMB_XMS20
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
 	PRINT16	msg_06		;'Found XMS 2.0'
@@ -546,7 +546,7 @@ get_EMB_failed:
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS3.0)
 ;------------------------------------------------------------------------------
-proc8 get_EMB_XMS30
+proc1 get_EMB_XMS30
 	test	al,al		;冗長な表示?
 	jz	.step		;0 なら jmp
 	PRINT16	msg_07		;'Found XMS 3.0'
@@ -571,7 +571,7 @@ proc8 get_EMB_XMS30
 ;------------------------------------------------------------------------------
 ;●確保した拡張メモリのロック と 拡張メモリの初期情報設定
 ;------------------------------------------------------------------------------
-proc8 lock_EMB
+proc1 lock_EMB
 	mov	ah,0ch		;EMB memory lock
 	XMS_function		;
 	test	ax,ax		;ax = 0?
@@ -610,7 +610,7 @@ proc8 lock_EMB
 ;------------------------------------------------------------------------------
 ; alloc user call buffer
 ;------------------------------------------------------------------------------
-proc8 alloc_user_call_buffer
+proc1 alloc_user_call_buffer
 	movzx	ax, b [user_cbuf_pages]
 	test	ax, ax
 	jz	.use_internal_buffer
@@ -639,7 +639,7 @@ proc8 alloc_user_call_buffer
 ;------------------------------------------------------------------------------
 ; initalize page directory and first page table
 ;------------------------------------------------------------------------------
-proc8 init_page_directory
+proc1 init_page_directory
 	mov	ax,  2			;page dir + page table 0
 	mov	cl, 13			;error code: 'Page table allocation failed'
 	call	dos_malloc_page
@@ -681,7 +681,7 @@ proc8 init_page_directory
 ;	additional page tables are required in DOS memory.
 ;  拡張メモリが4MB以上使われている時、DOSメモリ内に追加ページテーブルが必要。
 ;
-proc8 alloc_page_table
+proc1 alloc_page_table
 	mov	eax, [EMB_physi_adr]	; free memory's phisical address
 	add	eax, 0fffh		; 4KB Unit
 	shr	eax, 22			; to need page tables
@@ -727,7 +727,7 @@ proc8 alloc_page_table
 ;------------------------------------------------------------------------------
 ; [VCPI] get protected mode interface
 ;------------------------------------------------------------------------------
-proc8 get_VCPI_interface
+proc1 get_VCPI_interface
 	push	es
 
 	mov	ax, [page_dir_seg]	;page directory segment
@@ -778,7 +778,7 @@ proc8 get_VCPI_interface
 ;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え準備
 ;------------------------------------------------------------------------------
-proc8 setup_PM_struct
+proc1 setup_PM_struct
 	mov	eax,[top_ladr]		;プログラム先頭リニアアドレス
 	mov	ecx,[GDT_adr]		;GDT オフセット
 	mov	edx,[IDT_adr]		;IDT オフセット
@@ -804,7 +804,7 @@ proc8 setup_PM_struct
 ;------------------------------------------------------------------------------
 ;GDT 内の LDT / IDT / TSS / DOSメモリ セレクタの設定
 ;
-proc8 setup_LDT_IDT_TSS
+proc1 setup_LDT_IDT_TSS
 
 	mov	 di,[GDT_adr]	;GDT のオフセット
 	mov	ebx,[top_ladr]	;このプログラムの先頭リニアアドレス(bit 31-0)
@@ -899,7 +899,7 @@ proc8 setup_LDT_IDT_TSS
 ;	dw	F386_cs		;selctor
 ;	dw	0ee00h		;属性 (386割り込みゲート) / 特権レベル3
 ;	dw	00000h		;offset  bit 16-31
-proc8 setup_IDT
+proc1 setup_IDT
 	mov	 ax,F386_cs	;セレクタ
 	shl	eax,16		;上位へ
 	mov	edx,0ee00h	;386割り込みゲート / 特権レベル3
@@ -938,7 +938,7 @@ proc8 setup_IDT
 ;------------------------------------------------------------------------------
 ; Hardware interrupt IDT setup
 ;------------------------------------------------------------------------------
-proc8 setup_hardware_int_IDT
+proc1 setup_hardware_int_IDT
 
 %ifdef USE_VCPI_8259A_API
 	mov	ax,0de0ah		;VCPI function  0Ah
@@ -973,7 +973,7 @@ proc8 setup_hardware_int_IDT
 ;------------------------------------------------------------------------------
 ;●hook int 24h
 ;------------------------------------------------------------------------------
-proc8 setup_int_24h
+proc1 setup_int_24h
 
 	mov	ax, 3524h		; read int 24h
 	int	21h
@@ -987,7 +987,7 @@ proc8 setup_int_24h
 ;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え
 ;------------------------------------------------------------------------------
-proc8 cpu_mode_change
+proc1 cpu_mode_change
 
 	mov	ax,0de0ch		;VCPI function  0Ch
 	mov	esi,[top_ladr]		;プログラム先頭リニアアドレス
@@ -1042,7 +1042,7 @@ free_EMB:
 ;------------------------------------------------------------------------------
 ; hook for int 24
 ;------------------------------------------------------------------------------
-proc16 hook_int_24h
+proc2 hook_int_24h
 	pushf
 	call	far [cs:DOS_int24h_adr]
 
@@ -1059,7 +1059,7 @@ proc16 hook_int_24h
 ;==============================================================================
 ;■プログラムの終了 (16 bit)
 ;==============================================================================
-proc16 exit_16
+proc2 exit_16
 	;////////////////////////////////////////////////////////////
 	;/// 割り込みマスク復元 /////////////////////////////////////
 	%if Restore8259A && I8259A_IMR_S
@@ -1099,7 +1099,7 @@ proc16 exit_16
 ;------------------------------------------------------------------------------
 ; in	ah = Free386's internal error code
 ;
-proc16 error_exit_16
+proc2 error_exit_16
 	;
 	; search error message
 	;

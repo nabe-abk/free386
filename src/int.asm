@@ -30,7 +30,7 @@ seg32	text32 class=CODE align=4 use32
 ; Dummy for chain dos handler
 ;------------------------------------------------------------------------------
 ;
-proc32 PM_int_dummy
+proc4 PM_int_dummy
 	push	ebx
 	push	ds
 
@@ -54,7 +54,7 @@ proc32 PM_int_dummy
 ;
 %define calc_CPU_int_adr(x,y)	PM_int_00h + x*4 + y*4
 
-proc32 cpu_double_fault
+proc4 cpu_double_fault
 	lss	esp, cs:[VCPI_stack_adr]	; load safety stack pointer
 	pushf					; eflags
 	push	-1				; cs
@@ -62,7 +62,7 @@ proc32 cpu_double_fault
 	push	byte 08h			; int number
 	jmp	cpu_fault
 
-proc32 cpu_stack_fault
+proc4 cpu_stack_fault
 	lss	esp, cs:[VCPI_stack_adr]	; load safety stack pointer
 	pushf					; eflags
 	push	-1				; cs
@@ -71,7 +71,7 @@ proc32 cpu_stack_fault
 	jmp	cpu_fault
 
 
-proc32 PM_int_00h
+proc4 PM_int_00h
 	; 00h: Zero Divide Error
 	; 01h: Debug Exceptions
 	; 02h: NMI
@@ -193,7 +193,7 @@ proc32 PM_int_00h
 	;	+08h	cs
 	;	+04h	eip
 	;stack	+00h	int number
-proc32 cpu_fault
+proc4 cpu_fault
 	push	eax
 	mov	eax, [esp+4]		; eax = int number
 	mov	dword [esp+4], 0	; error code = 0
@@ -205,7 +205,7 @@ proc32 cpu_fault
 	;	+08h	eip
 	;	+04h	error code
 	;stack	+00h	int number
-proc32 cpu_fault_with_error_code
+proc4 cpu_fault_with_error_code
 	push	ds
 	push	F386_ds
 	pop	ds
@@ -253,7 +253,7 @@ proc32 cpu_fault_with_error_code
 ;------------------------------------------------------------------------------
 ; Hardware Interrupt / Master
 ;------------------------------------------------------------------------------
-proc32 HW_int_master_table
+proc4 HW_int_master_table
 	push	byte 0
 	jmp	short HW_int_master_common
 	push	byte 1
@@ -271,7 +271,7 @@ proc32 HW_int_master_table
 	push	byte 7
 	; jmp	short HW_int_master_common
 
-proc32 HW_int_master_common
+proc4 HW_int_master_common
 	;///////////////////////////////////////////////
 	; common routine
 	;///////////////////////////////////////////////
@@ -333,7 +333,7 @@ proc32 HW_int_master_common
 ;------------------------------------------------------------------------------
 ; Hardware Interrupt / Slave
 ;------------------------------------------------------------------------------
-proc32 HW_int_slave_table
+proc4 HW_int_slave_table
 	push	byte 0
 	jmp	short HW_int_slave_common
 	push	byte 1
@@ -351,7 +351,7 @@ proc32 HW_int_slave_table
 	push	byte 7
 	; jmp	short HW_int_slave_common
 
-proc32 HW_int_slave_common
+proc4 HW_int_slave_common
 	;///////////////////////////////////////////////
 	; common routine
 	;///////////////////////////////////////////////

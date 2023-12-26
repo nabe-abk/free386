@@ -6,7 +6,7 @@ BITS	32
 ;==============================================================================
 ;★プロテクトモード スタートラベル
 ;==============================================================================
-proc32 start32
+proc4 start32
 	mov	ebx,F386_ds		;ds セレクタ
 	mov	 ds,bx			;ds ロード
 	mov	 es,bx			;es
@@ -84,7 +84,7 @@ Debug_code:
 ;------------------------------------------------------------------------------
 ; Memory infomation
 ;------------------------------------------------------------------------------
-proc8 memory_infomation
+proc1 memory_infomation
 	cmp	b [verbose], 0
 	jz	near .skip
 
@@ -120,7 +120,7 @@ proc8 memory_infomation
 ;------------------------------------------------------------------------------
 ; more memory infomation
 ;------------------------------------------------------------------------------
-proc8 more_memory_infomation
+proc1 more_memory_infomation
 	cmp	b [verbose], 1
 	jbe	near .skip
 
@@ -163,7 +163,7 @@ proc8 more_memory_infomation
 	call	rewrite_next_hash_to_hex
 
 	; Real mode interrupt hook routines
-	mov	eax, [rint_labels_adr]
+	mov	eax, [V86int_table_adr]
 	call	rewrite_next_hash_to_hex
 	add	eax, IntVectors *4 -1
 	call	rewrite_next_hash_to_hex
@@ -243,7 +243,7 @@ proc8 more_memory_infomation
 ;------------------------------------------------------------------------------
 ;●全メモリを示すセレクタを作成
 ;------------------------------------------------------------------------------
-proc8 make_all_mem_sel
+proc1 make_all_mem_sel
 	mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
 	mov	edx,ecx
 	mov	edi,[work_adr]		;ワークメモリ
@@ -342,7 +342,7 @@ patch_for_386sx:
 ;------------------------------------------------------------------------------
 ; copy exp name to work
 ;------------------------------------------------------------------------------
-proc8 copy_exp_filename_to_work
+proc1 copy_exp_filename_to_work
 	mov	esi, [exp_name_adr]	; file name, no terminate
 	mov	ecx, [exp_name_len]	;
 	mov	edi, [work_adr]
@@ -383,7 +383,7 @@ proc8 copy_exp_filename_to_work
 ;------------------------------------------------------------------------------
 ; copy parameter PSP to PSP
 ;------------------------------------------------------------------------------
-proc8 copy_exp_pamameter
+proc1 copy_exp_pamameter
 	mov	edi, 81h
 	mov	ecx, 7eh
 
@@ -413,7 +413,7 @@ proc8 copy_exp_pamameter
 ;------------------------------------------------------------------------------
 ;	ENV領域が足りず書ききれない場合は、途中で諦める。
 ;
-proc32 rewrite_command_name
+proc4 rewrite_command_name
 	mov	ebx, err_00		; set non exists ENV name string
 	call	search_env		; ret fs:[edx] is ENV end
 
@@ -444,7 +444,7 @@ proc32 rewrite_command_name
 ;------------------------------------------------------------------------------
 ; Completes EXP file extensions
 ;------------------------------------------------------------------------------
-proc8 completes_exp_file_name
+proc1 completes_exp_file_name
 	mov	edi, [exp_name_fname_offset]
 .loop:
 	mov	al, [edi]
@@ -467,7 +467,7 @@ proc8 completes_exp_file_name
 ;------------------------------------------------------------------------------
 ; search exp file
 ;------------------------------------------------------------------------------
-proc8 search_exp_file
+proc1 search_exp_file
 	;--------------------------------------------------
 	; read command line name
 	;--------------------------------------------------
@@ -543,12 +543,12 @@ proc8 search_exp_file
 ;------------------------------------------------------------------------------
 ;●プログラムの終了(32bit)
 ;------------------------------------------------------------------------------
-proc32 abort_32
+proc4 abort_32
 	mov	ah, 25
 	jmp	short error_exit_32
-proc32 exit_32
+proc4 exit_32
 	mov	ah, 0
-proc32 error_exit_32
+proc4 error_exit_32
 	cli
 	cld
 	mov	bx,F386_ds		;ds 復元

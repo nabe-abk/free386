@@ -18,14 +18,14 @@ seg16	text class=CODE align=4 use16
 ;		cl = error code (for allocation failure)
 ;	out	di = offset
 ;
-proc32 heap_malloc
+proc4 heap_malloc
 	mov	di,[free_heap_top]	;上位空きメモリ割り当て
 	add	[free_heap_top],ax	;サイズ分加算
 	jc	heap_alloc_error
 	jmp	short check_heap_mem
 
 	align	4
-proc32 stack_malloc			;下位からのメモリ割り当て
+proc4 stack_malloc			;下位からのメモリ割り当て
 	mov	di,[free_heap_bottom]	;最下位空きメモリ
 	sub	[free_heap_bottom],ax	;新たな値を記録
 	; jmp	short check_heap_mem
@@ -49,12 +49,12 @@ heap_alloc_error:
 ;------------------------------------------------------------------------------
 ; heap memory functions with zero fill
 ;------------------------------------------------------------------------------
-proc32 heap_calloc
+proc4 heap_calloc
 	push	w (mem_clear)		;戻りラベル
 	jmp	heap_malloc
 
 	align	4
-proc32 stack_calloc
+proc4 stack_calloc
 	std
 	push	w (mem_clear)		;戻りラベル
 	jmp	stack_malloc
@@ -82,7 +82,7 @@ mem_clear:		;メモリの 0 クリア
 ;------------------------------------------------------------------------------
 ;alloc memory from DOS
 ;------------------------------------------------------------------------------
-proc32 init_dos_malloc
+proc4 init_dos_malloc
 	xor	eax, eax
 	xor	ebx, ebx
 
@@ -155,7 +155,7 @@ proc32 init_dos_malloc
 ;		 cl = error code (for allocation failure)
 ;	out	edi = liner address
 ;
-proc32 dos_malloc_page
+proc4 dos_malloc_page
 	cmp	[DOS_mem_pages], ax
 	jb	.error
 
@@ -184,8 +184,8 @@ BITS	32
 ;==============================================================================
 ; out	eax = buffer pointer, 0 is failed
 ;
-proc32 get_gp_buffer_32
-	pushfd
+proc4 get_gp_buffer_32
+	pushf
 	push	ebx
 	push	ecx
 	push	ds
@@ -220,7 +220,7 @@ proc32 get_gp_buffer_32
 	pop	ds
 	pop	ecx
 	pop	ebx
-	popfd
+	popf
 	ret
 .fail:
 	xor	eax, eax
@@ -233,8 +233,8 @@ proc32 get_gp_buffer_32
 ; out	eax = 0 success
 ;	    = 1 failed
 ;
-proc32 free_gp_buffer_32
-	pushfd
+proc4 free_gp_buffer_32
+	pushf
 	push	ebx
 	push	ecx
 	push	ds
@@ -266,7 +266,7 @@ proc32 free_gp_buffer_32
 	pop	ds
 	pop	ecx
 	pop	ebx
-	popfd
+	popf
 	ret
 
 .fail:
@@ -277,7 +277,7 @@ proc32 free_gp_buffer_32
 ;==============================================================================
 ; clear general purpose buffer
 ;==============================================================================
-proc32 clear_gp_buffer_32
+proc4 clear_gp_buffer_32
 	mov	d [gp_buffer_used],   0
 	mov	d [gp_buffer_remain], GP_BUFFERS
 	ret
@@ -291,7 +291,7 @@ proc32 clear_gp_buffer_32
 %if 0	; not use
 
 BITS	16
-proc16 get_gp_buffer_16
+proc2 get_gp_buffer_16
 	pushf
 	push	ebx
 	push	ecx
@@ -335,7 +335,7 @@ proc16 get_gp_buffer_16
 ; out	ax = 0 success
 ;	   = 1 failed
 ;
-proc32 free_gp_buffer_16
+proc4 free_gp_buffer_16
 	pushf
 	push	ebx
 	push	ecx
@@ -381,8 +381,8 @@ BITS	32
 ; in	-
 ; out	eax	new stack pointer
 ;
-proc32 alloc_sw_stack_32
-	pushfd
+proc4 alloc_sw_stack_32
+	pushf
 
 	cli
 	cmp	b [sw_cpumode_nest], SW_max_nest
@@ -392,7 +392,7 @@ proc32 alloc_sw_stack_32
 	mov	eax, [sw_stack_bottom]
 	sub	d [sw_stack_bottom], SW_stack_size
 
-	popfd
+	popf
 	ret
 
 .error:
@@ -403,8 +403,8 @@ proc32 alloc_sw_stack_32
 ; free SW stack memory
 ;==============================================================================
 ;
-proc32 free_sw_stack_32
-	pushfd
+proc4 free_sw_stack_32
+	pushf
 
 	cli
 	cmp	b [sw_cpumode_nest], 0
@@ -413,7 +413,7 @@ proc32 free_sw_stack_32
 
 	add	d [sw_stack_bottom], SW_stack_size
 
-	popfd
+	popf
 	ret
 
 .error:
@@ -423,13 +423,57 @@ proc32 free_sw_stack_32
 ;==============================================================================
 ; clear SW stack
 ;==============================================================================
-proc32 clear_sw_stack_32
+proc4 clear_sw_stack_32
 	push	eax
 	mov	eax, [sw_stack_bottom_orig]
 	mov	[sw_stack_bottom], eax
 
 	mov	b [sw_cpumode_nest], 0
 	pop	eax
+	ret
+
+
+;==============================================================================
+; allocation from heap (16bits)
+;==============================================================================
+; in	-
+; out	ax	new stack pointer
+;
+BITS	16
+proc4 alloc_sw_stack_16
+	pushf
+
+	cli
+	cmp	b [sw_cpumode_nest], SW_max_nest
+	jae	short .error
+	inc	b [sw_cpumode_nest]
+
+	mov	eax, [sw_stack_bottom]
+	sub	d [sw_stack_bottom], SW_stack_size
+
+	popf
+	ret
+
+.error:
+	xor	ax, ax
+	popf
+	ret
+
+;==============================================================================
+; free SW stack memory
+;==============================================================================
+;
+proc4 free_sw_stack_16
+	pushf
+
+	cli
+	cmp	b [sw_cpumode_nest], 0
+	je	short .error
+	dec	b [sw_cpumode_nest]
+
+	add	d [sw_stack_bottom], SW_stack_size
+.error:
+	popf
 	ret
 
 

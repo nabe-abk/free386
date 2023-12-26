@@ -19,6 +19,8 @@ extern	 free_gp_buffer_16
 extern	alloc_sw_stack_32
 extern	 free_sw_stack_32
 extern	clear_sw_stack_32
+extern	alloc_sw_stack_16
+extern	 free_sw_stack_16
 
 extern	free_heap_top
 extern	free_heap_bottom

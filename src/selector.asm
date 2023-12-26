@@ -188,7 +188,7 @@ make_selector_4k:
 ;	Ret	Cy = 0 成功
 ;		Cy = 1 ページテーブルが足りない
 ;
-proc32 set_physical_mem
+proc4 set_physical_mem
 	test	ecx,ecx		;割りつけページ数が 0
 	jz	NEAR .ret	;何もせず ret
 
