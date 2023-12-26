@@ -34,7 +34,7 @@ global		free_RAM_pages
 global		to_PM_EIP
 global		to_PM_data_ladr
 global		VCPI_entry
-global		VCPI_stack_adr
+global		safe_stack_adr
 global		V86_cs
 
 ;--- for int.asm ----------------------------------
@@ -373,7 +373,7 @@ get_vcip_memory_size:
 
 	mov	ax,VCPI_stack_size	;CPU Prot->V86 Ø‚èŠ·‚¦ê—p stack
 	call	stack_malloc		;‰ºˆÊƒƒ‚ƒŠŠ„‚è“–‚Ä
-	mov	[VCPI_stack_adr],di	;‹L˜^
+	mov	[safe_stack_adr],di	;‹L˜^
 
 	; CPU mode change stack
 	mov	ax, SW_stack_size * SW_max_nest

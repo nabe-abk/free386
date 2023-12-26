@@ -51,7 +51,7 @@ user_cbuf_ladr	dd	0		; linear address
 ; memory information
 ;--------------------------------------------------------------------
 	align	4
-VCPI_stack_adr	dd	0		;V86 モード切り換え時のみ
+safe_stack_adr	dd	0		;V86 モード切り換え時のみ
 		dw	F386_ds		;　使用するスタック
 
 PM_stack_adr	dd	0		;プロテクトモード時のスタック
@@ -166,7 +166,7 @@ msg_02	db	'	program code	: 0100 - #### / cs=ds=####',13,10
 	db	'	call buffer     : #### - #### / ##### byte',13,10
 	db	'	general work mem: #### - ####',13,10
 	db	'	CPU switch stack: #### - #### / ##### byte * ','0' + SW_max_nest,13,10
-	db	'	VCPI,32,16 stack: #### - #### - #### - ffff',13,10
+	db	'	safe,32,16 stack: #### - #### - #### - ffff',13,10
 	db	'	user call buffer: ####:#### - / ##### byte',13,10
 	db	'$'
 

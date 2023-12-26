@@ -603,7 +603,7 @@ proc4 .in_32
 	;--------------------------------------------------
 	; jmp to V86
 	;--------------------------------------------------
-	lss	esp, [VCPI_stack_adr]	;switch stack
+	lss	esp, [safe_stack_adr]	;switch stack
 
 	mov	eax,[V86_cs]
 	push	dword [esi + 06h]	;** V86 gs

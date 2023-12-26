@@ -206,7 +206,7 @@ proc1 more_memory_infomation
 	mov	eax,  SW_stack_size
 	call	rewrite_next_hash_to_dec
 
-	mov	eax, [VCPI_stack_adr]
+	mov	eax, [safe_stack_adr]
 	sub	eax,  VCPI_stack_size
 	call	rewrite_next_hash_to_hex
 

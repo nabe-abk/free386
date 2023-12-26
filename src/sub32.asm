@@ -154,49 +154,37 @@ proc4 register_dump
 	;	[dump_orig_esp]
 	;	[dump_orig_ss]
 .step:
+	start_sdiff
 	cld
-	pusha					; 20h bytes
-	push	es
+	pusha_x					; 20h bytes
 	%assign buf_adr		-4		; buffer address (eax)
-	%assign	sdiff		 24h
+	push_x	es
 
 	mov	eax, cr3
-	push	eax
+	push_x	eax
 	mov	eax, cr2
-	push	eax
+	push_x	eax
 	mov	eax, cr0
-	push	eax				; 0ch bytes
+	push_x	eax				; 0ch bytes
 
-	%assign	sdiff	sdiff + 0ch
+	push_x	dword [esp + .sdiff + 20h]	; eflags
+	push_x	ebp
+	push_x	edi
+	push_x	esi
+	push_x	edx
+	push_x	ecx
+	push_x	ebx
 
-	push	dword [esp + sdiff + 20h]	; eflags
-	push	ebp
-	push	edi
-	push	esi				; esi
+	push_x	dword [esp + .sdiff + 04h]	; eax
+	push_x	gs
+	push_x	fs
+	push_x	es
 
-	push	edx
-	push	ecx
-	push	ebx
-
-	%assign	sdiff	sdiff + 1ch
-
-	push	dword [esp + sdiff + 04h]	; eax
-	push	gs
-	push	fs
-	push	es
-
-	%assign	sdiff	sdiff + 10h
-
-	push	dword [esp + sdiff + 08h]	; ds
-	push	dword [dump_orig_esp]
-	push	dword [dump_orig_ss]
-
-	%assign	sdiff	sdiff + 0ch
-
-	push	dword [esp + sdiff + 18h]	; eip
-	%assign	sdiff	sdiff + 04h
-	push	dword [esp + sdiff + 1ch]	; cs
-	%assign	sdiff	sdiff + 04h
+	push_x	dword [esp + .sdiff + 08h]	; ds
+	push_x	dword [dump_orig_esp]
+	push_x	dword [dump_orig_ss]
+	push_x	dword [esp + .sdiff + 18h]	; eip
+	push_x	dword [esp + .sdiff + 1ch]	; cs
 
 	push	ds
 	pop	es				; set es
@@ -204,7 +192,7 @@ proc4 register_dump
 	;------------------------------------------------------------
 	; set flags
 	;------------------------------------------------------------
-	mov	eax, [esp + sdiff + 20h]	; eflags
+	mov	eax, [esp + .sdiff + 20h]	; eflags
 	mov	edx, offset regdump_flags +1
 	mov	 cl, '0'
 
@@ -246,13 +234,13 @@ proc4 register_dump
 	;------------------------------------------------------------
 	; make message data
 	;------------------------------------------------------------
-	mov	ebp, [esp + sdiff + buf_adr]	; save buffer pointer
+	mov	ebp, [esp + .sdiff + buf_adr]	; save buffer pointer
 	mov	edi, ebp
 
-	mov	ebx, [esp + sdiff + 10h]	; interrupt number
-	mov	ecx, [esp + sdiff + 14h]	; error code
+	mov	ebx, [esp + .sdiff + 10h]	; interrupt number
+	mov	ecx, [esp + .sdiff + 14h]	; error code
 
-	call	near [esp + sdiff + 0ch]	; header set handler
+	call	near [esp + .sdiff + 0ch]	; header set handler
 
 	push	edi
 	mov	esi, offset regdump_msg
@@ -264,6 +252,7 @@ proc4 register_dump
 	; rewrite register value
 	;------------------------------------------------------------
 	mov	ecx, 19
+	%assign	.sdiff	.sdiff - 19*4
 .loop_regs:
 	pop	eax
 	call	rewrite_next_hash_to_hex
@@ -275,10 +264,10 @@ proc4 register_dump
 	mov	eax, ebp
 	call	free_gp_buffer_32
 
-	pop	es
-	popa
+	pop_x	es
+	popa_x
+	end_sdiff
 	ret
-
 
 ;##############################################################################
 ; register dump for interrupt hook

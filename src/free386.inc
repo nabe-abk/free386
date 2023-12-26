@@ -15,7 +15,7 @@ extern		free_RAM_pages
 extern		to_PM_EIP
 extern		to_PM_data_ladr
 extern		VCPI_entry
-extern		VCPI_stack_adr
+extern		safe_stack_adr
 extern		V86_cs
 
 ;--- for int.asm ----------------------------------

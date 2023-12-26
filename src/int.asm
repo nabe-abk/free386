@@ -55,7 +55,7 @@ proc4 PM_int_dummy
 %define calc_CPU_int_adr(x,y)	PM_int_00h + x*4 + y*4
 
 proc4 cpu_double_fault
-	lss	esp, cs:[VCPI_stack_adr]	; load safety stack pointer
+	lss	esp, cs:[safe_stack_adr]	; load safety stack pointer
 	pushf					; eflags
 	push	-1				; cs
 	push	-1				; eip
@@ -63,7 +63,7 @@ proc4 cpu_double_fault
 	jmp	cpu_fault
 
 proc4 cpu_stack_fault
-	lss	esp, cs:[VCPI_stack_adr]	; load safety stack pointer
+	lss	esp, cs:[safe_stack_adr]	; load safety stack pointer
 	pushf					; eflags
 	push	-1				; cs
 	push	-1				; eip
@@ -189,10 +189,10 @@ proc4 PM_int_00h
 	push	byte 1fh
 	;jmp	short cpu_fault
 
-	;	+0ch	eflags
-	;	+08h	cs
-	;	+04h	eip
 	;stack	+00h	int number
+	;	+04h	eip
+	;	+08h	cs
+	;	+0ch	eflags
 proc4 cpu_fault
 	push	eax
 	mov	eax, [esp+4]		; eax = int number
@@ -200,11 +200,11 @@ proc4 cpu_fault
 	xchg	[esp], eax		; recovery eax
 
 	;
-	;	+10h	eflags
-	;	+0ch	cs
-	;	+08h	eip
-	;	+04h	error code
 	;stack	+00h	int number
+	;	+04h	error code
+	;	+08h	eip
+	;	+0ch	cs
+	;	+10h	eflags
 proc4 cpu_fault_with_error_code
 	push	ds
 	push	F386_ds
@@ -215,16 +215,17 @@ proc4 cpu_fault_with_error_code
 	push	ss
 	pop	dword [dump_orig_ss]
 
-	;	+18h	eflags
-	;	+14h	cs
-	;	+10h	eip
-	;	+0ch	error code
-	;	+08h	int number
-	;	+04h	ds
 	;stack	+00h	eax
+	;	+04h	ds
+	;	+08h	int number
+	;	+0ch	error code
+	;	+10h	eip
+	;	+14h	cs
+	;	+18h	eflags
 	;
-	lss	esp,[PM_stack_adr]	; load safety stack
-	lds	eax,[dump_orig_esp]	; ds:eax <- old stack
+	lss	esp, [safe_stack_adr]	; load safety stack pointer
+	add	esp, 20h		;   for cpu_double_fault
+	lds	eax, [dump_orig_esp]	; ds:eax <- old stack
 	;
 	; copy stack info
 	;
