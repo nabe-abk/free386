@@ -158,7 +158,10 @@ proc2 parameter_check
 	jne	.end_paras		;
 
 	mov	eax,[si+1]		;load 4 byte
-
+	cmp	ah, 20h
+	ja	.skip
+	mov	ah, 0			;rewrite CR and other
+.skip:
 	jmp	short .sp_param		;for short jump
 	.sp_param_return:		;
 
@@ -233,7 +236,7 @@ proc2 parameter_check
 	; -i?
 	;///////////////////////////////
 .para_i:
-	and	ah,01			;-i? / al = ?
+	and	ah,01h			;-i? / al = ?
 	mov	b [check_MACHINE],ah
 	jmp	short .loop
 
