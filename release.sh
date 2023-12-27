@@ -22,7 +22,7 @@ done
 cd src
 
 make -f makefile.lin clean
-make -f makefile.lin BUILD_TARGET=TOWNS
+make -f makefile.lin BUILD_TARGET=TOWNS RELEASE=1
 
 echo mv ../free386.com ../bin/TOWNS
      mv ../free386.com ../bin/TOWNS
@@ -31,7 +31,7 @@ echo
 # for PC-98
 
 make -f makefile.lin clean
-make -f makefile.lin BUILD_TARGET=PC_98
+make -f makefile.lin BUILD_TARGET=PC_98 RELEASE=1
 
 echo mv ../free386.com ../bin/PC-98
      mv ../free386.com ../bin/PC-98
@@ -40,7 +40,7 @@ echo
 # for PC/AT
 
 make -f makefile.lin clean
-make -f makefile.lin BUILD_TARGET=AT
+make -f makefile.lin BUILD_TARGET=AT RELEASE=1
 
 echo mv ../free386.com ../bin/AT
      mv ../free386.com ../bin/AT
@@ -49,7 +49,7 @@ echo
 # for DOS general
 
 make -f makefile.lin clean
-make -f makefile.lin BUILD_TARGET=gen
+make -f makefile.lin BUILD_TARGET=gen RELEASE=1
 
 echo mv ../free386.com ../bin
      mv ../free386.com ../bin

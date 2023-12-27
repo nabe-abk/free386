@@ -8,21 +8,21 @@ echo '******************************************************************'
 cd `dirname $0`
 cd src
 
-OPT=
+BUILD_TARGET=default
 if [ "$1" = "towns" ]; then
-	OPT="FREE386_TARGET=towns"
+	export BUILD_TARGET=towns
 	shift
 
 elif [ "$1" = "98" -o "$1" = "pc98" ]; then
-	OPT="FREE386_TARGET=98"
+	export BUILD_TARGET=98
 	shift
 
 elif [ "$1" = "at" ]; then
-	OPT="FREE386_TARGET=at"
+	export BUILD_TARGET=at
 	shift
 
 elif [ "$1" = "gen" -o "$1" = "uni" ]; then
-	OPT="FREE386_TARGET=gen"
+	export BUILD_TARGET=gen
 	shift
 fi
 
@@ -31,4 +31,7 @@ make -f makefile.lin $OPT $@
 if [ "$1" = "clean" ]; then
 	cd ..
 	rm -f free386.com free386.map
+else
+	echo
+	echo Build target is $BUILD_TARGET
 fi

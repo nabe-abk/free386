@@ -10,7 +10,8 @@ TARGET = ../free386.com
 ASM    = nasm
 ASMOP  = -f obj
 
-ASMOP +=$(if $(FREE386_TARGET),-DBUILD_TARGET=$(FREE386_TARGET),)
+ASMOP +=$(if $(BUILD_TARGET),-DBUILD_TARGET=$(BUILD_TARGET),)
+ASMOP +=$(if $(RELEASE),     -DRELEASE,)
 
 #///////////////////////////////////////////////////////////////////
 # flatlink
@@ -27,10 +28,11 @@ LINKOP =
 #------------------------------------------------------------------------------
 RM = rm -f
 
+default: all
 all: $(TARGET)
 
 clean:
-	$(RM) *.obj
+	$(RM) *.obj *.OBJ
 ##	$(RM) $(TARGET) $(TARGET:%.com=%.map)
 
 #------------------------------------------------------------------------------

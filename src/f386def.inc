@@ -12,14 +12,19 @@ Minor_ver	equ		90h
 F386_Date	equ		20231227h	;Release date
 
 ;==============================================================================
-; RELEASE and DEBUG setting
+; Default build target
 ;==============================================================================
 %ifndef BUILD_TARGET
 		; Target Machine / If all of zero, for DOS general purpose.
 %define	TOWNS		1	; for FM TOWNS binary
 %define	PC_98		0	; for PC-9801/9821 binary
 %define	PC_AT		0	; for PC/AT binary
+%endif
 
+;==============================================================================
+; RELEASE or DEVELOP setting
+;==============================================================================
+%ifndef RELEASE
 		; for DEVELOP build
 INT_HOOK	equ	0	; Interrupt hook and register dump
 INT_HOOK_RETV	equ	1	; 	with return value dump
@@ -43,7 +48,7 @@ INT_HOOK_EX_CS	equ	0
 INT_HOOK_F386	equ	0
 PRINT_TO_FILE	equ	0
 PRINT_TSUGARU	equ	0
-DUMP_DSEDX	equ	0
+DUMP_DS_EDX	equ	0
 
 %endif
 

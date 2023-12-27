@@ -342,12 +342,12 @@ proc4 int_from_V86
 	mov	cs:[tmp_eax], eax
 	xor	ax, ax
 
-	push	ax		; reserved
-	mov	cs:[tmp_esp], esp
-
 	;--------------------------------------------------
 	; make PM->V86 stack
 	;--------------------------------------------------
+	push	ax		; reserved
+	mov	cs:[tmp_esp], esp
+
 	push	ax		;
 	push	gs		;
 	push	ax		;

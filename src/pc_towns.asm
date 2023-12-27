@@ -10,24 +10,23 @@ seg16	text class=CODE align=4 use16
 ;	Cy=1	TOWNS でないかも?
 ;
 proc4 check_TOWNS_16
-	in	al,30h		;CPU 識別レジスタ
-	test	al,al		;=and／値 check
-	jz	.not_fm		;0 なら FM シリーズでない
-	inc	al		;+1 する
-	jz	.not_fm		;0ffh でも FM シリーズでない
+	in	al,30h		;CPU register
+	test	al,al
+	jz	.not_fm		;0 is not FM series
+	inc	al		;
+	jz	.not_fm		;0ffh is not FM series
 
-	;FM だけど TOWNS??
-	mov	dx,020eh	;ドライブスイッチレジスタ(TOWNS のみ)
-	in	al,dx		;内蔵FD と 外付FD を交換できる
-	and	al,0feh		;bit 7～1 を and する
-	jnz	.not_TOWNS	;all 0 でなければ TOWNS ではない
+	mov	dx,020eh	;Drive switch register
+	in	al,dx		;
+	and	al,0feh		;
+	jnz	.not_TOWNS	;all 0 is TOWNS
 
-	clc	;成功
+	clc
 	ret
 
 .not_fm:
 .not_TOWNS:
-	stc	;失敗
+	stc
 	ret
 
 ;==============================================================================

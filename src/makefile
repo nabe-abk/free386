@@ -10,6 +10,10 @@ TARGET = ..\free386.com
 ASM    = ..\bin\free386 -q ..\tools\nasm
 ASMOP  = -f obj
 
+#ifdef BUILD_TARGET
+ASMOP += -DBUILD_TARGET=$(BUILD_TARGET)
+#endif
+
 #////////////////////////////////////////////////////////////////////
 # for flatlink.exp
 #////////////////////////////////////////////////////////////////////
@@ -31,11 +35,12 @@ LINKOP =
 #------------------------------------------------------------------------------
 RM = del
 
+default: all
 all: $(TARGET)
 
 clean:
-	$(RM) *.obj
-	$(RM) objs
+	$(RM) *.OBJ
+	$(RM) OBJS
 #	$(RM) $(TARGET)
 #	$(RM) ..\free386.map
 
@@ -71,9 +76,9 @@ free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc
 	$(ASM) $(ASMOP) free386.asm
 
 $(TARGET): start.obj sub.obj memory.obj selector.obj sub32.obj call_v86.obj int.obj pc.obj free386.obj
-	echo $< >objs
-	$(LINK) $(LINKOP) -o $@ @objs
-	$(RM) objs
+	echo $< >OBJS
+	$(LINK) $(LINKOP) -o $@ @OBJS
+	$(RM) OBJS
 
 ### CAUTION!) free386.obj needs to be linked at the last. #####################
 

@@ -15,21 +15,23 @@ seg16	text class=CODE align=4 use16
 ;	Cy=1	PC-98 じゃない可能性が大きい
 ;
 proc2 check_PC98_16
-	xor	ah,ah		;AH = 0
-%rep	2		;偶数回繰り返し（4の倍数 を指定すると98で謎の誤判別）
-	in	al,73h		;タイマ カウンタ#01
- 	xor	ah,al		;xor
-	in	al,75h		;タイマ カウンタ#02
- 	xor	ah,al		;xor
-%endrep
+	xor	bx,bx
+	mov	cx,6
+	; Do not use multiples of 4.
+	; "multiple of 4" is result 0 on timer#01/02
+.loop:
+	in	al,71h		;timer #00
+	xor	bl,al		;xor
+	in	al,73h		;timer #01
+	xor	bh,al		;xor
+	loop	.loop
 
- 	test	ah,ah		;値確認
-	jz	.not_pc98	;0 なら PC-98 ではない
-	clc	;成功
-	ret
-
+ 	test	bx,bx
+ 	jz	.not_pc98
+ 	clc
+ 	ret
 .not_pc98:
-	stc	;失敗
+	stc
 	ret
 
 	;*** 仕組み解説 ***

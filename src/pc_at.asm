@@ -14,9 +14,9 @@ proc2 check_AT_16
 	mov	cx,16
 .loop:
 	in	al,40h		;timer #00
- 	xor	bl,al		;xor
+	xor	bl,al		;xor
 	in	al,41h		;timer #01
- 	xor	bh,al		;xor
+	xor	bh,al		;xor
 	loop	.loop
 
  	test	bx,bx
