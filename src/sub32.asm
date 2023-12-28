@@ -323,7 +323,7 @@ proc4 register_dump_from_int
 	%assign	intnum_diff 	10h
 	%assign	ah_diff 	01h
 
-	push	d F386_ds
+	push	F386_ds
 	pop	ds
 	;
 	; target AH
@@ -421,7 +421,7 @@ proc4 register_dump_from_int
 	push	ds
 	push	eax
 
-	push	d F386_ds
+	push	F386_ds
 	pop	ds
 	mov	b [.in_dump], 0
 
@@ -1195,12 +1195,12 @@ make_cs_ds:
 	shr	eax,10			;eax = ページテーブル用に必要なメモリ
 	sub	ecx,eax			;空きページ数から引く
 	jb	.no_memory		;マイナスならエラー
-.do_alloc:
-	mov	ebp, [free_liner_adr]	;貼り付け先アドレスを保存
+proc1 .do_alloc
+	mov	ebp, [free_linear_adr]	;貼り付け先アドレスを保存
 	push	esi
 	and	esi, 0xfffff000		;ずらし量
 	add	esi, ebp		;空きリニアアドレスに加算
-	mov	[free_liner_adr], esi	;ずらす
+	mov	[free_linear_adr], esi	;ずらす
 	pop	esi
 
 	push	ecx

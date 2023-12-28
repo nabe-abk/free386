@@ -81,8 +81,7 @@ total_EMB_free	dd	0		;トータルの EMB 空きメモリサイズ(Kbyte)
 
 ;--------------------------------------------------------------------
 ;----- プロテクトメモリ管理情報 -------------------------------------
-;
-free_liner_adr	dd	0		;未定義(未使用)リニアアドレス (最低位)
+free_linear_adr	dd	0		;未定義(未使用)リニアアドレス (最低位)
 free_RAM_padr	dd	0		;空き先頭物理RAMページアドレス
 free_RAM_pages	dd	0		;利用可能な物理RAMページ数 (4KB単位)
 
@@ -123,7 +122,6 @@ VCPI_entry	dd	0		;VCPI サービスエントリ
 RVects_flag_tbl	resb	IntVectors/8	;書き換えフラグ テーブル
 RVects_save_adr	dd	0		;リアルモードベクタ保存のアドレス
 
-;
 ;--------------------------------------------------------------------
 ; VCPI data
 ;--------------------------------------------------------------------
@@ -144,7 +142,7 @@ to_PM_CS	dw	F386_cs
 ;==============================================================================
 P_title	db	'Free386(386|DOS-Extender) for '
 	db	MACHINE_STRING
-	db	' ',VER_STRING
+	db	' - ', VER_STRING,' ',DATE_STRING
 	db	' (C)nabe@abk',13,10,'$'
 seg_msg	db	'Code segment: '
 seg_hex	db	'####',13,10,'$'
@@ -196,7 +194,7 @@ err_xms_free	db	'XMS: XMS memory release failed',13,10,'$'
 
 err_msg_table:
 _e01	db	'Do not execute free386.exe (please run free386.com)',13,10,'$'
-_e02	db	'Incompatible binary! This binary is for ',MACHINE_STRING,'.',13,10
+_e02	db	'Incompatible binary! This binary for ',MACHINE_STRING,'.',13,10
 	db	'If you do not want to check the machine, please execute with the -i option.',13,10,'$'
 _e03	db	'EMS Device Header not found',13,10,'$'
 _e04	db	'VCPI not found',13,10,'$'

@@ -7,7 +7,7 @@ extern		GDT_adr
 extern		LDT_adr
 extern		IDT_adr
 extern		page_dir_ladr
-extern		free_liner_adr
+extern		free_linear_adr
 extern		free_RAM_padr
 extern		free_RAM_pages
 

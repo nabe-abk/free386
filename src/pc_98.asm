@@ -50,11 +50,11 @@ BITS	32
 ;★PC-98x1 の初期設定
 ;==============================================================================
 proc4 init_PC98_32
-	mov	eax,[free_liner_adr]	;空きリニアアドレス
+	mov	eax,[free_linear_adr]	;空きリニアアドレス
 	mov	ebx,0x1000000		;16MB
 	cmp	eax,ebx
 	ja	.liner_adr_ok		;16MB未満なら
-	mov	[free_liner_adr],ebx	;16MBに引き上げ
+	mov	[free_linear_adr],ebx	;16MBに引き上げ
 .liner_adr_ok:
 
 	;; 16 色 VRAM をリニアアドレス上に連続に張り付け

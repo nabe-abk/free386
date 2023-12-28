@@ -50,8 +50,7 @@ seg32	text32 class=CODE align=4 use32
 ;	edi = 構造体 offset
 ;
 ;mtask のものとは非互換！！
-	align	4
-make_selector:
+proc4 make_selector
 	push	ebx
 	push	ecx
 	push	edx
@@ -122,8 +121,7 @@ make_selector:
 ;	eax = selector
 ;	edi = 構造体 offset
 ;
-	align 4
-make_selector_4k:
+proc4 make_selector_4k
 	push	ebx
 	push	ecx
 	push	edx
@@ -177,7 +175,6 @@ make_selector_4k:
 	ret
 
 
-	align	4
 ;------------------------------------------------------------------------------
 ;●物理メモリを指定リニアアドレスに配置する
 ;------------------------------------------------------------------------------
@@ -273,7 +270,6 @@ proc4 set_physical_mem
 	jmp	.loop_start
 
 
-	align	4
 .no_free_memory:	;ページテーブル作成のためのメモリが不足
 	pop	es
 	popa
@@ -291,9 +287,8 @@ proc4 set_physical_mem
 ;			eax = 割り当てたページ数
 ;			esi = 割り当て先頭リニアアドレス
 ;		Cy = 1 ページテーブルが足りない (esi破壊)
-	
-	align	4
-alloc_DOS_mem:
+;
+proc4 alloc_DOS_mem
 	push	ebx
 	push	ecx
 	push	edx
@@ -307,7 +302,7 @@ alloc_DOS_mem:
 	mov	ecx,eax			;足りなければ、あるだけ貼り付け
 .enough:
 	mov	edx,[DOS_mem_ladr]	;DOSメモリ
-	mov	esi,[free_liner_adr]	;割りつけ先アドレス
+	mov	esi,[free_linear_adr]	;割りつけ先アドレス
 	call	set_physical_mem	;メモリ割り当て
 	jc	.no_free_memory		;メモリ不足エラー
 
@@ -315,7 +310,7 @@ alloc_DOS_mem:
 	mov	eax, ecx
 	shl	ecx, 12			;byte 単位へ
 	add	[DOS_mem_ladr]  ,ecx	;空きDOSメモリ
-	add	[free_liner_adr],ecx	;空きメモリアドレス更新
+	add	[free_linear_adr],ecx	;空きメモリアドレス更新
 
 	clc
 .exit:
@@ -326,7 +321,7 @@ alloc_DOS_mem:
 
 .no_dos_mem:
 	xor	eax, eax
-	mov	esi, [free_liner_adr]
+	mov	esi, [free_linear_adr]
 	clc
 	jmp	short .exit
 
@@ -335,7 +330,6 @@ alloc_DOS_mem:
 	jmp	short .exit
 
 
-	align	4
 ;------------------------------------------------------------------------------
 ;●RAM アロケーション
 ;------------------------------------------------------------------------------
@@ -345,8 +339,7 @@ alloc_DOS_mem:
 ;			esi = 割り当て先頭リニアアドレス
 ;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
 ;
-	align	4
-alloc_RAM:
+proc4 alloc_RAM
 	push	eax
 	push	ebx
 	push	ecx
@@ -355,7 +348,7 @@ alloc_RAM:
 	test	ecx,ecx
 	jz	.no_alloc
 
-	mov	esi, [free_liner_adr]	;割りつけ先アドレス
+	mov	esi, [free_linear_adr]	;割りつけ先アドレス
 	call	get_maxalloc_with_adr	;eax = 最大割り当て可能メモリページ数
 					;ebx = ページテーブル用に必要なページ数
 
@@ -363,7 +356,7 @@ alloc_RAM:
 	jb	.no_free_memory		;小さければメモリ不足
 
 	mov	edx,[free_RAM_padr]	;空き物理メモリ
-	;mov	esi,[free_liner_adr]	;割りつけ先アドレス
+	;mov	esi,[free_linear_adr]	;割りつけ先アドレス
 	shl	ebx,12			;ページテーブル用に必要なメモリ(byte)
 	add	edx,ebx			;割りつける物理メモリをずらす
 	call	set_physical_mem	;メモリ割り当て
@@ -377,7 +370,7 @@ alloc_RAM:
 	add	esi, ecx				;空きメモリアドレス更新
 	add	esi,LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi,0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_liner_adr] ,esi			;空きアドレス更新
+	add	[free_linear_adr] ,esi			;空きアドレス更新
 
 	clc		;キャリークリア
 .exit:
@@ -402,8 +395,7 @@ alloc_RAM:
 ;			esi = 割り当て後リニアアドレス = esi + ecx*4KB
 ;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
 ;
-	align	4
-alloc_RAM_with_ladr:
+proc4 alloc_RAM_with_ladr
 	push	eax
 	push	ebx
 	push	ecx
@@ -428,13 +420,13 @@ alloc_RAM_with_ladr:
 	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
 
 	add	esi, ecx		;新しい最後尾アドレス
-	mov	eax, [free_liner_adr]	;空きアドレス
+	mov	eax, [free_linear_adr]	;空きアドレス
 	cmp	eax, esi
 	ja	.step
 
 	add	esi, LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
 	and	esi, 0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_liner_adr], esi			;空きアドレス更新
+	add	[free_linear_adr], esi			;空きアドレス更新
 
 .step:
 .no_alloc:
@@ -457,8 +449,7 @@ alloc_RAM_with_ladr:
 ;------------------------------------------------------------------------------
 ;引数	ds:ebx メモリマッピングテーブル
 ;
-	align	4
-map_memory:
+proc4 map_memory
 	mov	eax,[ebx]		;作成するメモリセレクタ
 	test	eax,eax			;値 check
 	jz	.exit			;0 なら終了
@@ -483,8 +474,7 @@ map_memory:
 ;------------------------------------------------------------------------------
 ;引数	ds:esi	エイリアステーブル
 ;
-	align	4
-make_aliases:
+proc4 make_aliases
 	;esi = エイリアステーブル
 	mov	ebx,[esi  ]		;コピー元  セレクタ値
 	mov	ecx,[esi+4]		;コピーするセレクタ値
@@ -498,8 +488,7 @@ make_aliases:
 .ret:	ret
 
 
-	align	4
-make_alias:
+proc4 make_alias
 	;-----------------------------------------------------
 	;●エイリアス作成  ebx -> ecx, ah=type, al=level
 	;-----------------------------------------------------
@@ -534,8 +523,7 @@ make_alias:
 ;------------------------------------------------------------------------------
 ;Ret	eax = 最大割り当て可能メモリページ数
 ;
-	align	4
-get_maxalloc:
+proc4 get_maxalloc
 	push	ecx
 
 	mov	eax, [free_RAM_pages]	;残り物理ページ数ロード
@@ -554,11 +542,11 @@ get_maxalloc:
 ;Ret	eax = 最大割り当て可能メモリページ数
 ;	ebx = ページテーブル用に必要なページ数
 ;
-	align	4
-get_maxalloc_with_adr:
+proc4 get_maxalloc_with_adr
 	push	ecx
 	push	es
-	push	d DOSMEM_sel
+
+	push	DOSMEM_sel
 	pop	es
 
 	mov	eax, esi		;割りつけ先アドレス
@@ -570,7 +558,6 @@ get_maxalloc_with_adr:
 	test	eax, eax
 	jz	.step			;存在しないときは jump
 
-	;
 	mov	eax, esi		;割り付け先リニアアドレス
 	shr	eax, 12
 	and	eax, 03ffh		;使用済、ページエントリ数
@@ -596,8 +583,7 @@ get_maxalloc_with_adr:
 ;IN	eax = セレクタ
 ;Ret	eax = セレクタ最後尾のリニアアドレス
 ;
-	align	4
-get_selector_last:
+proc4 get_selector_last
 	push	ebx
 	push	ecx
 	push	edx
@@ -628,8 +614,7 @@ get_selector_last:
 ;	Ret	ebx = アドレス。セレクタ不正時は ebx=0
 ;		eax 以外は値保存
 ;
-	align	4
-sel2adr:
+proc4 sel2adr
 	mov	ebx,[cs:GDT_adr]	;GDT へのポインタ
 	test	eax,4		 	;セレクタ値の bit 2 ?
 	jz	short .GDT	 	; if 0 jmp
@@ -656,8 +641,7 @@ sel2adr:
 ;	Ret	eax = 空きセレクタ (Cy=0)
 ;		    = 0 失敗       (Cy=1)
 ;
-	align	4
-search_free_LDTsel:
+proc4 search_free_LDTsel
 	push	ebx
 	push	ecx
 
@@ -667,7 +651,6 @@ search_free_LDTsel:
 	add	ecx,[LDT_adr] 	;LDT 終了アドレス
 	add	eax,byte 4	;+4
 
-	align	4
 .loop:	add	eax,byte 8	;アドレス更新
 	cmp	eax,ecx		;サイズと比較
 	ja	.no_desc	;サイズオーバ = ディスクリプタ不足
@@ -675,7 +658,6 @@ search_free_LDTsel:
 	jz	.found		;0 なら空きディスクリプタ
 	jmp	short .loop
 
-	align	4
 .found:
 	sub	eax,[LDT_adr] 	;LDTアドレス先頭を引く
 	pop	ecx		;eax = 空きセレクタ
@@ -683,8 +665,6 @@ search_free_LDTsel:
 	clc
 	ret
 
-
-	align	4
 .no_desc:
 	xor	eax,eax		;eax =0
 	pop	ecx
@@ -695,8 +675,7 @@ search_free_LDTsel:
 ;------------------------------------------------------------------------------
 ;・全てのデータセレクタのリロード
 ;------------------------------------------------------------------------------
-	align	4
-selector_reload:
+proc4 selector_reload
 	push	ds
 	push	es
 	push	fs

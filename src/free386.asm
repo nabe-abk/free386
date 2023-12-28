@@ -26,7 +26,7 @@
 global		GDT_adr
 global		LDT_adr
 global		page_dir_ladr
-global		free_liner_adr
+global		free_linear_adr
 global		free_RAM_padr
 global		free_RAM_pages
 
@@ -754,7 +754,7 @@ proc1 get_VCPI_interface
 .save:
 	mov	[VCPI_entry],ebx
 	shl	edi,(12-2)		; di = first unused page table entry in buffer
-	mov	[free_liner_adr],edi	;edi = free linear address
+	mov	[free_linear_adr],edi	;edi = free linear address
 
 
 ;------------------------------------------------------------------------------

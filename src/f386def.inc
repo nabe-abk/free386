@@ -6,10 +6,11 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.90dev 2023-12-27'
+%define	VER_STRING	'Ver0.90'
+%define RELEASE_DATE	'2023-12-28'
 Major_ver	equ		00h
 Minor_ver	equ		90h
-F386_Date	equ		20231227h	;Release date
+F386_Date	equ		20231228h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -52,9 +53,13 @@ DUMP_DS_EDX	equ	0
 
 %endif
 
-INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
-
 %define	DUMP_FILE	'dump.txt'
+
+%ifdef RELEASE
+	%define	DATE_STRING	RELEASE_DATE
+%else
+	%define	DATE_STRING	'Build:',__?DATE?__
+%endif
 
 ;==============================================================================
 ; Operation settings
@@ -121,6 +126,8 @@ DOSX_fn_MAX	equ	17h	;DOS-Extender function's maximum AL
 
 F386_INT	equ	9ch	;Free386's INT
 F386_INT_fn_MAX	equ	1fh	;Free386's INT maximum AH
+
+INT_REGDUMP	equ	0ffh	; interrupt for user program register dump
 
 ;==============================================================================
 ; Selector setting
@@ -231,7 +238,7 @@ I8259A_IMR_S	equ	12h	;
 
 MACHINE_CODE	equ	10h	;PC-9801/9821
 
-%define	MACHINE_STRING	'PC-9801/9821'
+%define	MACHINE_STRING	'PC-98'
 %define	Free386_API	'f386_98.api'	;機種固有APIのファイル名
 
 VRAM_16padr	equ 0E00A8000h	;16色VRAM を配置する物理アドレス

@@ -259,13 +259,13 @@ proc1 make_all_mem_sel
 	;全メモリセレクタ作成後に以下は実行
 	;
 	;mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
-	mov	esi,[free_liner_adr]	;空きリニアアドレス
+	mov	esi,[free_linear_adr]	;空きリニアアドレス
 	mov	edx,esi			;物理アドレスと1対1
 
 	add	ecx,0xff		;255pages
 	xor	 cl,cl			;1MB単位に切り上げ
 	shl	ecx,12			;eax = 物理アドレス最大値
-	mov	[free_liner_adr],ecx	;空きリニアアドレス更新
+	mov	[free_linear_adr],ecx	;空きリニアアドレス更新
 	sub	ecx,esi			;割り当てるメモリサイズ
 	shr	ecx,12			;割り当てるページ数
 
@@ -279,7 +279,7 @@ patch_for_386sx:
 	test	al, al
 	jz	.skip			;386SX is 24bit address bus.
 	mov	eax, 01000000h		;Therefore, addresses over 1000000h are always free.
-	mov	[free_liner_adr],eax
+	mov	[free_linear_adr],eax
 .skip:
 
 ;------------------------------------------------------------------------------
