@@ -217,7 +217,7 @@ proc4 int_21h_09h
 %if PRINT_TO_FILE
 	jmp	int_21h_09h_output_file
 %else
-	cmp	d [cs:call_buf_used], 0		; check call buffer status
+	cmp	b [cs:call_buf_used], 0		; check call buffer status
 	je	.skip
 	iret
 .skip:
@@ -232,7 +232,7 @@ proc4 int_21h_09h
 	push	F386_ds
 	pop	es
 
-	mov	d [es:call_buf_used], 1	; use call buffer
+	mov	b [es:call_buf_used], 1	; use call buffer
 
 	; copy string
 	pushad
@@ -263,7 +263,7 @@ proc4 int_21h_09h
 	mov	edx, [es:call_buf_adr32]
 	V86_INT	21h
 
-	mov	d [es:call_buf_used], 0
+	mov	b [es:call_buf_used], 0
 
 	pop	edx
 	pop	es
@@ -581,7 +581,7 @@ proc4 int_21h_38h
 ;・ファイルの読み込み  AH=3fh
 ;------------------------------------------------------------------------------
 proc4 int_21h_3fh
-	cmp	d [cs:call_buf_used], 0	; check call buffer status
+	cmp	b [cs:call_buf_used], 0	; check call buffer status
 	je	.skip
 	xor	eax, eax
 	set_cy
@@ -600,7 +600,7 @@ proc4 int_21h_3fh
 	pop	ds
 	mov	es,[esp+4]		;読み込み先
 
-	mov	d [call_buf_used], 1	; save call buffer flag
+	mov	b [call_buf_used], 1	; save call buffer flag
 
 	mov	edi,edx			;データは  es:edi へ読み込み
 	mov	edx,ecx			;edx = 残り転送バイト数
@@ -652,7 +652,7 @@ proc4 int_21h_3fh
 	mov	eax,[esp]		;指定転送サイズ
 	sub	eax,edx			;残り転送量を引く -> 実際の転送量
 
-	mov	d [call_buf_used], 0	; clear call buffer flag
+	mov	b [call_buf_used], 0	; clear call buffer flag
 
 	pop	ecx
 	pop	ds
@@ -667,7 +667,7 @@ proc4 int_21h_3fh
 
 	align	4
 .error_exit:
-	mov	d [call_buf_used], 0	; clear call buffer flag
+	mov	b [call_buf_used], 0	; clear call buffer flag
 
 	pop	ecx
 	pop	ds
@@ -684,7 +684,7 @@ proc4 int_21h_3fh
 ;・ファイルの書き込み  AH=40h
 ;------------------------------------------------------------------------------
 proc4 int_21h_40h
-	cmp	d [cs:call_buf_used], 0	; check call buffer status
+	cmp	b [cs:call_buf_used], 0	; check call buffer status
 	je	.skip
 	xor	eax, eax
 	set_cy
@@ -701,7 +701,7 @@ proc4 int_21h_40h
 	pop	es			;  es:edi 転送先（バッファ用）
 	mov	esi,edx			;  ds:esi 書き込みデータ
 
-	mov	d [es:call_buf_used], 1	; save call buffer flag
+	mov	b [es:call_buf_used], 1	; save call buffer flag
 
 	mov	edx,ecx			;edx = 残り転送バイト数
 	mov	ebp,[es:call_buf_size]	;ebp = バッファサイズ
@@ -755,7 +755,7 @@ proc4 int_21h_40h
 	mov	eax,[esp]		;指定転送サイズ
 	sub	eax,edx			;残り転送量を引く -> 実際の転送量
 
-	mov	d [es:call_buf_used], 0	; clear call buffer flag
+	mov	b [es:call_buf_used], 0	; clear call buffer flag
 
 	pop	ecx
 	pop	es
@@ -768,7 +768,7 @@ proc4 int_21h_40h
 
 	align	4
 .error_exit:
-	mov	d [es:call_buf_used], 0	; clear call buffer flag
+	mov	b [es:call_buf_used], 0	; clear call buffer flag
 
 	pop	ecx
 	pop	es
