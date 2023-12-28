@@ -1,0 +1,7 @@
+
+"flatlink.exp" and "flatlink" is newly developed free linker.
+
+This linker can generate EXP binary and COM binary from NASM's obj files.
+
+	Source code https://github.com/nabe-abk/flatlink
+
