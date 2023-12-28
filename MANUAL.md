@@ -150,7 +150,7 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 - int 2fh (chain to DOS int 2fh)
 - Free386 original functions
 	- int 9ch: Free386 extend functions
-	- int ffh: Print Register dump
+	- int ffh: Register dump service function
 
 If you have requests for implementation, please contact us.
 
@@ -174,7 +174,7 @@ If you have requests for implementation, please contact us.
 
 - int 21h
 	- AH=09h: Print string. If the data size exceeds the "call buffer size", the excess data will be truncated.
-	- AH=44h: IOCTRL. Not support buffer functions.
+	- AH=44h: IOCTL. Not support buffer functions.
 	- AH=49h: Free selector. Do not free memory, only disable the selector.
 	- AH=4Ah: Resize selector. Shrinking does not free up memory. Do not manipulate alias selectors.
 
@@ -182,7 +182,7 @@ If you have requests for implementation, please contact us.
 
 - int 21h
 	- AH=09h: 文字列出力。データがコールバッファサイズを越えた場合、超えたデータは無視される。
-	- AH=44h: IOCTRL。バッファを使用するものは未サポート。
+	- AH=44h: IOCTL。バッファを使用するものは未サポート。
 	- AH=49h: セレクタの開放。メモリを開放せず、セレクタを無効化するのみ。
 	- AH=4Ah: セレクタのリサイズ。縮めてもメモリを開放しない。エイリアスセレクタは操作しない。
 

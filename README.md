@@ -6,8 +6,8 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 ## Overview
 
-* Version: 0.81
-* Date: **2023-12-11**
+* Version: 0.90
+* Date: **2023-12-28**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
@@ -50,9 +50,9 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 
 ## Tool Files (redistributed)
 
-* tools/nasm.exp     - nasm-0.98towns2 (support 32bit OMF-386)
-* tools/alink-p1.exp - ALINK Ver1.6 patch1 (executable by free386.com)
-* tools/alink-p1     - ALINK Ver1.6 patch1 (Linux ELF binary)
+* tools/nasm.exp     - NASM version 2.16.01
+* tools/flatlink.exp - [FlatLink](https://github.com/nabe-abk/flatlink) - Newly developed free linker
+* tools/flatlink     - FlatLink's Linux ELF binary
 * tools/imake.exe    - "make" for MS-DOS (KI-Make 1.68)
 
 ## Command Line Options
@@ -66,8 +66,7 @@ Please refer to the displayed command line help or [User's Manual](MANUAL.md).
 ## How to Build (on DOS)
 
 1. Copy all files to your disk.
-2. Edit [f386def.inc](src/f386def.inc) to select the build target.
-3. Run "make.bat".
+2. Run "make.bat". (Auto detect target machine)
 
 ## How to Build (on Linux)
 

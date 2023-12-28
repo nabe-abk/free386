@@ -58,6 +58,7 @@ echo
 # cleanup
 
 make -f makefile.lin clean
+rm -f ../free386.map
 
 cd ..
 #--------------------------------------------------------------------
