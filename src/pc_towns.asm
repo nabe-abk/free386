@@ -644,7 +644,6 @@ T_OS_memory_map:
 	dd	138h,0c2100000h,  264/4 -1, 0200h	;R/W : FONT-ROM,äwèKRAM
 	dd	140h,0c2200000h,    4/4 -1, 0200h	;R/W : Wave-RAM
 	dd	148h,0c2000000h,  512/4 -1, 0000h	;R   : OS-ROM
-	;dd	11ch, 82000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 2 layer
 	dd	11ch, 82000000h, 8704/4 -1, 0200h	;R/W : H-VRAM / 2 layer
 	dd	124h, 83000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 1 layer
 	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
