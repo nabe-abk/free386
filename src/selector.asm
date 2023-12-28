@@ -561,10 +561,10 @@ get_maxalloc_with_adr:
 	push	d DOSMEM_sel
 	pop	es
 
-	mov	ebx, esi			;割りつけ先アドレス
-	shr	ebx, 20				;bit 31-20
-	and	 bl, 0fch			;bit 21,20 のクリア
-	mov	eax, [es:page_dir_ladr+ebx]	;割り付け先頭のページテーブルを確認
+	mov	eax, esi		;割りつけ先アドレス
+	shr	eax, 20			;bit 31-20
+	and	 al, 0fch		;bit 21,20 のクリア
+	add	eax, es:[page_dir_ladr]	;割り付け先頭のページテーブルを確認
 
 	xor	ebx, ebx
 	test	eax, eax
