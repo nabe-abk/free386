@@ -180,7 +180,18 @@ proc4 init_TOWNS_32
 	cmp	b [load_nsdd], 0
 	je	short .no_nsdd
 
+	mov	ebx,[LDT_adr]
+	mov	al, 80h			; set P bit
+	mov	[ebx + 0ch + 1], al	; reserve 0ch/14h
+	mov	[ebx + 14h + 1], al
+
 	call	wakeup_nsdd
+
+	mov	ebx,[LDT_adr]
+	xor	al, al
+	mov	[ebx + 0ch + 1], al	; clear 0ch/14h
+	mov	[ebx + 14h + 1], al
+
 .no_nsdd:
 	ret
 
