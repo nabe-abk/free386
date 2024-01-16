@@ -9,6 +9,7 @@ echo ********************************************************
 cd src
 ..\test.com\check_pc.com %1
 
+if ERRORLEVEL 4 goto DOS
 if ERRORLEVEL 3 goto AT
 if ERRORLEVEL 2 goto PC98
 if ERRORLEVEL 1 goto TOWNS
@@ -26,6 +27,10 @@ goto exit
 
 :AT
 ..\tools\imake -DBUILD_TARGET=AT %1 %2 %3 %4 %5 %6 %7 %8 %9
+goto exit
+
+:DOS
+..\tools\imake -DBUILD_TARGET=gen %1 %2 %3 %4 %5 %6 %7 %8 %9
 goto exit
 
 
