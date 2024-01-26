@@ -20,7 +20,7 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 ## Download
 
-[https://github.com/nabe-abk/free386](https://github.com/nabe-abk/free386)
+[https://github.com/nabe-abk/free386/releases](https://github.com/nabe-abk/free386/releases)
 
 ## User's Manual
 
