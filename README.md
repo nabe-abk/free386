@@ -37,6 +37,7 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 ## PDS files
 
 - README.md
+- [MANUAL.md](MANUAL.md)
 - [CHANGES.txt](CHANGES.txt)
 - [bin/*](bin/)
 - [src/*](src/)
