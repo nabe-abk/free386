@@ -1,0 +1,14 @@
+
+*.obj
+*.map
+*.lst
+*.OBJ
+*.MAP
+*.LST
+
+_*
+/free386.com
+/free386.map
+
+src/*.com
+src/*.exe
