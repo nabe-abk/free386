@@ -6,12 +6,13 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 ## Overview
 
-* Version: 0.90
-* Date: **2023-12-28**
+* Version: 0.91
+* Date: **2024-09-11**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
-* Compatible: MS-DOS and XMS and **VCPI** (with HIMEM.SYS and EMM386.EXE)
+* Require: MS-DOS and XMS (with HIMEM.SYS)
+* Compatible: VCPI (with EMM386.EXE)
 * Language: NASM (Full assembly language)
 * Licence: PDS
 	* Only Free386.com and Free386's source files. This repository contains files with different licenses.

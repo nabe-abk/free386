@@ -52,10 +52,11 @@ proc4 init_TOWNS_16
 
 	xor	eax, eax
 	mov	dx, 5e8h		; メモリ容量レジスタ（初代にはない）
-	in	al, dx			; al MB
+	in	al, dx			; al = MB
 	and	al, 07fh
 	shl	eax, 8			; MB to pages
 	mov	[all_mem_pages], eax
+	mov	d [msg_all_mem_type], '5E8h'
 .skip:
 	;------------------------------------------
 	;init NSDD
@@ -199,8 +200,8 @@ proc4 init_TOWNS_32
 ; NSD driver setup and wakeup
 ;------------------------------------------------------------------------------
 proc4 wakeup_nsdd
-	mov	eax, LDT_sel
-	mov	  fs,ax
+	mov	ax, LDT_sel
+	mov	fs, ax
 
 	xor	ebx, ebx
 	xor	edx, edx

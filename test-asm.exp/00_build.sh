@@ -5,7 +5,7 @@ cd `dirname $0`
 MAKEFILE=makefile.tmp
 
 if [ "$1" = "clean" ]; then
-	rm -f *.map *.obj *.MAP *.OBJ $MAKEFILE
+	rm -f *.map *.lst *.obj *.MAP *.LST *.OBJ $MAKEFILE
 	exit
 fi
 

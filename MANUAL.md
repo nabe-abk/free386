@@ -4,17 +4,23 @@ This software is a DOS-Extender that is almost compatible with Phar-Lap RUN386.
 This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 
 * This software can run .EXP format (P3 or MP format) files on DOS.
-* This software required XMS and VCPI memory server.
-	* Most require HIMEM.SYS and EMM386.EXE for MS-DOS Version 5 or later.
-* Basically, it complies with Ver1.2, which is the version of RUN386 for FM TOWNS.
+* Requires an XMS 3.0 memory server (HIMEM.SYS 3.xx) to run.
+	* It can also be used in VCPI environment (EMM386.EXE or other).
+	* In non-VCPI environments, the amount of physical memory is an estimate (excluding TOWNS version).
+	* You can use it with XMS 2.0 by defining USE_XMS20 and reassembling it.
+* Basically, it complies with Ver1.2, which is the version of RUN386 for TOWNS.
+* DOS general purpose binary requires VCPI.
 
 このソフトは、Phar-Lap RUN386 ほぼ互換の DOS-Extender です。
 FM TOWNS / PC-98x1 / AT互換機で動作します。
 
 - このソフトは .EXP 形式（P3 or MP形式）のファイルを実行することができます。
-- 実行には XMS メモリサーバ、VCPI メモリサーバが必要です。
-	- 多くの場合、MS-DOS Ver5 以降の HIMEM.SYS と EMM386.EXE が必要です。
-- 基本的に、FM TOWNS用RUN386のバージョンである、Ver1.2に準拠しています。
+- 実行には XMS 3.0 メモリサーバ（HIMEM.SYS 3.xx）が必要です。
+    - VCPI環境（EMM386.EXE or other）でも使用できます。
+	- TOWNS版以外では、非VCPI環境では物理メモリ量が推定値になります。
+	- USE_XMS20 を定義して再アセンブルすれば、XMS 2.0環境でも使用できます。
+- 基本的に、TOWNS用RUN386のバージョンである、Ver1.2に準拠しています。
+- DOS汎用バイナリの実行には、VCPIが必須です。
 
 ## Usage
 

@@ -43,7 +43,7 @@ CoCo(Code of Co-native os) / NSD driver解説  for FM TOWNS
 
 　DELDRV.EXP は -banner オプションを付けると詳細を出力します。
 
-	（例）run386 -nocrt deldrv.exp -banner "NSD-ID"
+	（例）run386 -nocrt deldrv.exp -banner NSD_ID
 
 ###############################################################################
 ●COCOのAPI

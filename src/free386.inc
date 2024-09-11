@@ -18,6 +18,13 @@ extern		VCPI_entry
 extern		safe_stack_adr
 extern		V86_cs
 
+extern		use_vcpi
+extern		LGDT_data
+extern		LIDT_data
+extern		RM_LIDT_data
+extern		to_PM_LDTR
+extern		to_PM_CR3
+
 ;--- for int.asm ----------------------------------
 extern		IDT_adr
 extern		PM_stack_adr
@@ -51,6 +58,7 @@ extern		top_ladr
 extern		end_adr
 extern		work_adr
 
-; for towns.asm
+; for pc_*.asm
 extern		all_mem_pages
 extern		cpu_is_386sx
+extern		msg_all_mem_type

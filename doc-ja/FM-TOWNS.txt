@@ -3,21 +3,6 @@
 ;******************************************************************************
 [TAB=8][Shift-JIS]
 
-●FM TOWNS版バイナリ
-
-　以下が昔の開発環境です。
-
-	Machine	FM TOWNS model HC
-	CPU	K6-233 (210MHz駆動)
-	RAM	80 MB
-	OS	DOS 6.2
-	OS	TOWNS-OS V2.1L51 (TOS.SYS Ver 未確認)
-	DRV	HIMEM.SYS (DOS 6)
-		EMM386.EXE(DOS 6)
-
-　ヤフオクみたらすごいプレミア付いているという……（もうない）。
-
-
 ●TOWNS版のみの動作オプション
 
 	-n	CoCo/NSDドライバをロードしなくなります。
@@ -25,15 +10,18 @@
 		多くのソフトで処理速度がアップします。
 
 
-●Free386 対応ソフトウェア  2023-12-25
+●互換性など最新情報	2024-09-11
 
 　TBIOS, CoCo/NSD, SIDEWROK, SYSINT のすべてに対応しているので、
 すべてのTOWNS用プログラムが動くはずです。
 
 　Ver0.81より TMENU.EXG や EIN なども動くようになりました。
 
-　Ver0.90より互換性も向上し、RUN386.EXE と置き換えても問題ないか
-と思います。RUN386より処理も速いはず。
+　Ver0.90より互換性も向上し、RUN386.EXE と置換（RUN386.EXEに上書き）しても
+問題ないかと思います。RUN386より処理も速いはず。
+
+　Ver0.91にて、VCPIなし環境に対応しました。XMS（HIMEM.SYS）はまだ
+必要ですが、気が向いたら HIMEM.SYS なし環境にも対応するかもしれません。
 
 
 ●うんづ利用時の注意
@@ -85,3 +73,15 @@
 	NSDドライバが組み込まれている場合、そのセレクタが割り当てられます。
 	44h, 4ch, 54h, 5ch …… などがそれです。
 
+
+●昔の開発環境
+
+	Machine	FM TOWNS model HC
+	CPU	K6-233 (210MHz駆動)
+	RAM	80 MB
+	OS	DOS 6.2
+	OS	TOWNS-OS V2.1L51 (TOS.SYS Ver 未確認)
+	DRV	HIMEM.SYS (DOS 6)
+		EMM386.EXE(DOS 6)
+
+　きっとプレミア付いてるんだろうな……（もうない）。

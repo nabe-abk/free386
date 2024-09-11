@@ -59,21 +59,14 @@ proc2 get_next_parameter
 ;
 ; ret	 di = last store address +1
 ;
-proc2 bin2hex_16
+proc2 bin2hex4_16
 	push	bx
 	push	cx
 	push	dx
 
-	push	cx
-	mov	dx, cx
-	shl	dx, 2		; *4
-	mov	cl, 32
-	sub	cl, dl
-	rol	eax,cl
-	pop	cx
-
+	mov	cx, 4
 .loop:
-	rol	eax, 4
+	rol	ax, 4
 	movzx	bx, al
 	and	bl, 0fh
 	mov	dl, [hex_str + bx]

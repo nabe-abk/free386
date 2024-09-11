@@ -37,6 +37,13 @@ global		VCPI_entry
 global		safe_stack_adr
 global		V86_cs
 
+global		use_vcpi
+global		LGDT_data
+global		LIDT_data
+global		RM_LIDT_data
+global		to_PM_LDTR
+global		to_PM_CR3
+
 ;--- for int.asm ----------------------------------
 global		IDT_adr
 global		PM_stack_adr
@@ -72,6 +79,7 @@ global		work_adr
 
 global		all_mem_pages
 global		cpu_is_386sx
+global		msg_all_mem_type
 
 ;******************************************************************************
 ;■コード(16 bit)
@@ -113,6 +121,16 @@ proc2 parameter_check
 	xor	bx, bx
 
 	jmp	short .loop
+
+%if TOWNS
+	;///////////////////////////////
+	; -n, do not load CoCo/NSD
+	;///////////////////////////////
+.para_n:
+	and	ah,01h			;al = -n?
+	mov	b [load_nsdd],ah
+	jmp	short .loop
+%endif
 
 	;///////////////////////////////
 	; set PharLap version to 2.2 (compatible EXE386)
@@ -186,14 +204,16 @@ proc2 parameter_check
 	jmp	short .loop
 
 	;///////////////////////////////
-	; -v
+	; -v, -vv
 	;///////////////////////////////
 .para_v:
 	cmp	ah,'v'			; -vv?
-	je	.v0
-	mov	ah,01
-.v0:
-	mov	b [verbose],ah
+	je	.para_vv
+	mov	b [verbose], 1
+	jmp	short .loop
+.para_vv:
+	mov	b [verbose],    2
+	mov	b [show_title], 0
 	jmp	short .loop
 
 	;///////////////////////////////
@@ -221,16 +241,6 @@ proc2 parameter_check
 .c0:	and	ah,03			;bit 1,0 取り出し
 	mov	[reset_CRTC],ah
 	jmp	short .loop
-
-%if TOWNS
-	;///////////////////////////////
-	; -n, do not load CoCo/NSD
-	;///////////////////////////////
-.para_n:
-	and	ah,01h			;al = -n?
-	mov	b [load_nsdd],ah
-	jmp	short .loop
-%endif
 
 	;///////////////////////////////
 	; -i?
@@ -262,9 +272,8 @@ proc2 print_title
 	jb	.skip
 
 	mov	ax, cs		; number
-	mov	cx, 4		; digits
 	mov	di, seg_hex	; store target
-	call	bin2hex_16
+	call	bin2hex4_16
 	PRINT16	seg_msg
 .skip:
 
@@ -321,12 +330,14 @@ proc1 check_ems_driver
 	je	short .skip
 
 .not_found:
-	mov	ah, 03		; 'EMS not found'
-	jmp	error_exit_16
-
+	%ifdef SUPPORT_NON_VCPI
+		mov	b [use_vcpi], 0
+		jmp	skip_vcpi_check
+	%else
+		mov	ah, 03		; 'EMS not found'
+		jmp	error_exit_16
+	%endif
 .skip:
-	push	ds
-	pop	es
 %endif
 
 	;
@@ -336,16 +347,31 @@ VCPI_check:
 	mov	ax,0de00h	; AL=00 : VCPI check!
 	int	67h		; VCPI call
 	test	ah,ah		; 戻り値 check
-	jz	short .skip	; found VCPI
+	jz	short .found	; found VCPI
 
-	mov	ah, 04		; 'VCPI not found'
-	jmp	error_exit_16
+	%ifdef SUPPORT_NON_VCPI
+		mov	b [use_vcpi], 0
+		jmp	.skip
+	%else
+		mov	ah, 04		; 'VCPI not found'
+		jmp	error_exit_16
+	%endif
+.found:
+	cmp	b [verbose], 0
+	jz	.skip
+	PRINT16	msg_08		;'Found VCPI'
 .skip:
+skip_vcpi_check:
+	push	ds
+	pop	es		; recovery ES
 
 ;------------------------------------------------------------------------------
 ;●メモリ総量の取得 / VCPI
 ;------------------------------------------------------------------------------
-get_vcip_memory_size:
+proc1 get_total_memory_size
+	cmp	b [use_vcpi], 0
+	jz	.skip
+
 	mov	ax,0de02h			;VCPI function 02h
 	int	67h				;最上位ページの物理アドレス
 	shr	edx,12				;アドレス -> page
@@ -355,16 +381,22 @@ get_vcip_memory_size:
 	cmp	edx, eax
 	jb	short .step
 	mov	edx, eax
+	mov	[all_mem_pages],edx		;save
 .step:
-	mov	[all_mem_pages],edx		;値記録
+.skip:
 
 ;------------------------------------------------------------------------------
 ;●スタックメモリの確保と設定
 ;------------------------------------------------------------------------------
+proc1 alloc_stack
 	mov	cl, 11			;error code for stack_malloc
 
 	mov	ax,V86_stack_size	;V86時 stack
 	call	stack_malloc		;下位メモリ割り当て
+	test	di,di
+	jnz	.skip
+	sub	di,4
+.skip:
 	mov	sp,di			;スタック切替え
 
 	mov	[V86_cs],cs		;cs 退避
@@ -470,19 +502,21 @@ proc1 memory_setting
 ;------------------------------------------------------------------------------
 ;●機種固有の初期化設定（メモリ設定済後、XMS直前）
 ;------------------------------------------------------------------------------
-
-%if TOWNS
-	call	init_TOWNS_16
-%elif PC_98
-	call	init_PC98_16
-%elif PC_AT
-	call	init_AT_16
+%if TOWNS || PC_98 || PC_AT
+	mov	b [init_machine16], 1
+	%if TOWNS
+		call	init_TOWNS_16
+	%elif PC_98
+		call	init_PC98_16
+	%elif PC_AT
+		call	init_AT_16
+	%endif
 %endif
 
 ;------------------------------------------------------------------------------
 ;●XMS の確認と呼び出しアドレスの取得
 ;------------------------------------------------------------------------------
-XMS_setup:
+proc1 XMS_setup
 	mov	ax,4300h	;AH=43h : XMS
 	int	2fh		;2fh call
 	cmp	al,80h		;XMS install?
@@ -502,13 +536,12 @@ XMS_setup:
 	;/////////////////////////////
 	;バージョン番号の取得
 	xor	ah,ah		;ah = 0
-	XMS_function		;XMS call
+	call	far [XMS_entry]	;XMS call
 	mov	[XMS_Ver],ah	;Driver 仕様のメジャーバージョンを記録
 
 	cmp	ah,3		;XMS 3.0?
 	mov	al,[verbose]	;冗長表示フラグ
 	je	get_EMB_XMS30	;等しければ jmp
-
 
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS2.0) / Max 64MB
@@ -521,7 +554,7 @@ proc1 get_EMB_XMS20
 
 .step:
 	mov	ah,08h		;EMB 空きメモリ問い合わせ
-	XMS_function		;XMS call
+	call	far [XMS_entry]	;XMS call
 	test	ax,ax		;ax の値確認
 	jz	get_EMB_failed	;0 なら失敗 (jmp)
 
@@ -530,7 +563,7 @@ proc1 get_EMB_XMS20
 
 	mov	dx,ax			;edx = 確保するメモリサイズ
 	mov	ah,09h			;最大連続空きメモリを全て確保
-	XMS_function			;確保
+	call	far [XMS_entry]		;XMS call
 	test	ax,ax			;ax = 0?
 	jz	get_EMB_failed		;0 なら確保失敗
 	mov	[EMB_handle],dx		;EMBハンドルをセーブ
@@ -556,17 +589,16 @@ proc1 get_EMB_XMS30
 
 .step:
 	mov	ah,88h			;EMB 空きメモリ問い合わせ
-	XMS_function			;XMS call
+	call	far [XMS_entry]		;XMS call
 	test	bl,bl			;bl の値確認
 	jnz	get_EMB_failed		;non 0 なら jmp
 
 	mov	[max_EMB_free]  ,eax	;最大長、空きメモリサイズ (KB)
 	mov	[total_EMB_free],edx	;総空きメモリサイズ (KB)
-	mov	[EMB_top_adr]   ,ecx	;管理する最上位アドレス // ecx=0の模様
-
+					;ecx = 管理する最上位アドレス, himem.sys is not set
 	mov	edx,eax			;edx = 確保するメモリサイズ
 	mov	ah,89h			;最大連続空きメモリを全て確保
-	XMS_function			;確保
+	call	far [XMS_entry]		;XMS call
 	test	ax,ax			;ax = 0?
 	jz	get_EMB_failed		;0 なら確保失敗
 	mov	[EMB_handle],dx		;EMBハンドルをセーブ
@@ -576,7 +608,7 @@ proc1 get_EMB_XMS30
 ;------------------------------------------------------------------------------
 proc1 lock_EMB
 	mov	ah,0ch		;EMB memory lock
-	XMS_function		;
+	call	far [XMS_entry]	;XMS call
 	test	ax,ax		;ax = 0?
 	jnz	.skip		;non 0 is success
 
@@ -600,10 +632,33 @@ proc1 lock_EMB
 	jz	short .jp1
 	dec	ecx
 .jp1:	shr	ecx,2			;KB単位 → page 単位
-	cmp	ecx,0x40000		;256Kpage max
+	cmp	ecx,0x40000		;1GB max
 	jb	.jp2
 	mov	ecx,0x40000		;1GB max
 .jp2:	mov	[EMB_pages],ecx		;使用可能なページ数として記録
+
+
+;------------------------------------------------------------------------------
+; estimate all_mem_pages
+;------------------------------------------------------------------------------
+; [all_mem_pages] is not set on non VCPI enviroment.
+
+proc1 estimate_all_mem_pages
+	mov	eax, [all_mem_pages]
+	test	eax, eax
+	jnz	.skip
+
+	mov	eax, [EMB_physi_adr]
+	add	eax, 0fffh
+	shr	eax, 12			; address to pages
+	add	eax, ecx		; ecx = [EMB_pages]
+
+	add	eax, 0ffh		;
+	xor	al, al			; unit to 1MB
+
+	mov	[all_mem_pages], eax
+	mov	d [msg_all_mem_type], 'est.'
+.skip:
 
 ;------------------------------------------------------------------------------
 ; alloc dos memory
@@ -618,7 +673,7 @@ proc1 alloc_user_call_buffer
 	test	ax, ax
 	jz	.use_internal_buffer
 
-	mov	cl, 16			;error code: 'User call buufer allocation failed'
+	mov	cl, 16			;error code: 'User call buffer allocation failed'
 	call	dos_malloc_page
 
 	mov	[user_cbuf_ladr], eax	;linear address
@@ -662,16 +717,15 @@ proc1 init_page_directory
 
 	mov	ecx, [page_dir_ladr]
 	shr	ecx, 12			;byte to page
-	mov	ax,0de06h		;VCPI 06h, get phisical address
-	int	67h			;edx = page directory phisical address
+	call	get_phisical_address_of_page
+
 	mov	[to_PM_CR3],edx		;save
 
 	;///////////////////////////////////////////////////
 	;Regist first page table to page directory
 	;///////////////////////////////////////////////////
 	inc	cx			;first page table linear address
-	mov	ax,0de06h		;VCPI 06h, get phisical address
-	int	67h			;VCPI call
+	call	get_phisical_address_of_page
 	mov	  dl,07h		;enable entry
 	mov	[es:0],edx		;entry first page table
 
@@ -704,8 +758,7 @@ proc1 alloc_page_table
 	xor	bx, bx
 .loop:
 	; cx = target linear adddress/4KB
-	mov	ax,0de06h		; get Phisical address
-	int	67h			; VCPI call
+	call	get_phisical_address_of_page
 	mov	dl,07h			; address to table entry
 	add	bx, 4
 	mov	[fs:bx], edx		; entry to page directory
@@ -728,36 +781,6 @@ proc1 alloc_page_table
 .not_need:
 
 ;------------------------------------------------------------------------------
-; [VCPI] get protected mode interface
-;------------------------------------------------------------------------------
-proc1 get_VCPI_interface
-	push	es
-
-	mov	ax, [page_dir_seg]	;page directory segment
-	add	ax, 100h		;page0 table segment
-	mov	es, ax
-	xor	edi,edi			;es:di = first page table address
-
-	mov	si,[GDT_adr]		;GDT offset
-	add	si,VCPI_sel		;ds:si = Descriptor table entries in GDT
-	mov	ax,0de01h
-	int	67h
-
-	pop	es
-
-	test	ah,ah			;戻り値 check
-	jz	.save			;問題なければ jmp
-
-	mov	ah,08			; 'VCPI: Failed to get protected mode interface'
-	jmp	error_exit_16
-
-.save:
-	mov	[VCPI_entry],ebx
-	shl	edi,(12-2)		; di = first unused page table entry in buffer
-	mov	[free_linear_adr],edi	;edi = free linear address
-
-
-;------------------------------------------------------------------------------
 ;●DOS-Extender 環境の構築と変数の準備（V86 側）
 ;------------------------------------------------------------------------------
 	;///////////////////////////////////////////////////
@@ -777,6 +800,52 @@ proc1 get_VCPI_interface
 	mov	[intr_mask_org],ax	;記憶
 %endif
 
+;------------------------------------------------------------------------------
+; initalize first page table
+;------------------------------------------------------------------------------
+proc1 init_first_page_table
+	push	es
+
+	mov	ax, [page_dir_seg]	;page directory segment
+	add	ax, 100h		;page0 table segment
+	mov	es, ax
+	xor	edi,edi			;es:di = first page table address
+
+	cmp	b [use_vcpi], 0
+	jnz	.vcpi
+
+	mov	cx, 110h		; 1.1MB = 110000h / 1000h = 110h pages
+	xor	ebx, ebx
+	mov	bl,  b 7		; phisical address + page table entry bits
+.lp:
+	mov	es:[di], ebx
+	add	di, 4			; next entry
+	add	ebx, 1000h		; next address
+	loop	.lp
+
+	xor	bl, bl
+	mov	[free_linear_adr], ebx	; free linear address = 110000h
+	jmp	.end
+
+
+.vcpi:
+	mov	si,[GDT_adr]		;GDT offset
+	add	si,VCPI_sel		;ds:si = Descriptor table entries in GDT
+	mov	ax,0de01h
+	int	67h
+
+	test	ah,ah			;戻り値 check
+	jz	.save			;問題なければ jmp
+
+	mov	ah,08			; 'VCPI: Failed to get protected mode interface'
+	jmp	error_exit_16
+
+.save:
+	mov	[VCPI_entry],ebx
+	shl	edi,(12-2)		; di = first unused page table entry in buffer
+	mov	[free_linear_adr],edi	;edi = free linear address
+.end:
+	pop	es
 
 ;------------------------------------------------------------------------------
 ;●ＣＰＵモード切替え準備
@@ -800,7 +869,6 @@ proc1 setup_PM_struct
 	;mov	w [to_PM_TR]  ,TSS_load_sel	;TRの値（初期値定義済）
 	mov	d [to_PM_EIP] ,offset start32	;EIP の値
 	;mov	w [to_PM_CS]  ,F386_cs		;CS の値（初期値定義済）
-
 
 ;------------------------------------------------------------------------------
 ;●GDT 初期設定ルーチン
@@ -894,7 +962,6 @@ proc1 setup_LDT_IDT_TSS
 	mov	w [di + DOSMEM_sel +5],0c092h	;属性設定 (利用可能/Avail TSS)
 	mov	  [di + ALLMEM_sel +5],dx	;属性設定 (Read/Write)
 
-
 ;------------------------------------------------------------------------------
 ;●割り込みテーブル初期設定ルーチン
 ;------------------------------------------------------------------------------
@@ -937,7 +1004,6 @@ proc1 setup_IDT
 	add	di,bp			;セレクタオフセット更新
 	loop	.loop2
 
-
 ;------------------------------------------------------------------------------
 ; Hardware interrupt IDT setup
 ;------------------------------------------------------------------------------
@@ -972,11 +1038,11 @@ proc1 setup_hardware_int_IDT
 	mov	di, si			;スレーブ側割り込み番号 *8
 	call	write_IDT		;IDT へ書き込み
 
-
 ;------------------------------------------------------------------------------
 ;●hook int 24h
 ;------------------------------------------------------------------------------
 proc1 setup_int_24h
+	push	es
 
 	mov	ax, 3524h		; read int 24h
 	int	21h
@@ -987,10 +1053,14 @@ proc1 setup_int_24h
 	mov	ax, 2524h		; set int 24h
 	int	21h
 
+	pop	es
+
 ;------------------------------------------------------------------------------
-;●ＣＰＵモード切替え
+;[VCPI] change CPU mode
 ;------------------------------------------------------------------------------
 proc1 cpu_mode_change
+	cmp	b [use_vcpi], 0
+	jz	cpu_mode_change_from_real_mode
 
 	mov	ax,0de0ch		;VCPI function  0Ch
 	mov	esi,[top_ladr]		;プログラム先頭リニアアドレス
@@ -1002,6 +1072,30 @@ proc1 cpu_mode_change
 	mov	ah, 09			;'VCPI: Failed to change CPU to protected mode'
 	jmp	error_exit_16
 
+;------------------------------------------------------------------------------
+; change CPU mode from real mode
+;------------------------------------------------------------------------------
+proc1 cpu_mode_change_from_real_mode
+	cli
+	lgdt	[LGDT_data]
+	lidt	[LIDT_data]
+	mov	eax, [to_PM_CR3]
+	mov	cr3, eax
+
+	mov	eax, cr0
+	or	eax, 80000001h	; PG=PE=1
+	mov	cr0, eax
+
+	db	0eah			;＝far jmp
+	dw	offset .32
+	dw	F386_cs
+
+	BITS	32
+.32:
+	lldt	cs:[to_PM_LDTR]
+	ltr	cs:[to_PM_TR]
+	jmp	start32
+	BITS	16
 
 ;==============================================================================
 ;■サブルーチン
@@ -1009,8 +1103,7 @@ proc1 cpu_mode_change
 ;------------------------------------------------------------------------------
 ;●割り込みテーブルへの書き出し（from IDT 初期設定ルーチン）
 ;------------------------------------------------------------------------------
-	align	4
-write_IDT:
+proc2 write_IDT
 	mov	[di  ],eax		;+00h
 	mov	[di+4],edx		;+04h
 	add	ax, bp			;次の割り込みアドレスへ
@@ -1018,29 +1111,34 @@ write_IDT:
 	loop	write_IDT
 	ret
 
-
 ;------------------------------------------------------------------------------
-;●確保した拡張メモリの開放
+; linear page number to phisical address
 ;------------------------------------------------------------------------------
-	align	4
-free_EMB:
-	mov	dx,[EMB_handle]	;dx = EMBハンドル
-	test	dx,dx		;ハンドルの値確認
-	jz	.ret		;0 ならば ret
-	mov	w [EMB_handle], 0
+;	in	cx	page number
+;	out	edx	phisical address
+;
+proc2	get_phisical_address_of_page
+	cmp	b [use_vcpi], 0
+	jnz	.vcpi
 
-	mov	ah,0dh		;EMB のロック解除
-	XMS_function
-
-	mov	ah,0ah		;EMB の開放
-	XMS_function
-	test	ax,ax		;ax = 0 ?
-	jnz	.ret		;non 0 なら jmp
-
-	PRINT16	err_xms_free	;「メモリ開放失敗」
-.ret:
+	xor	edx, edx
+	mov	dx, cx
+	shl	edx, 12
 	ret
 
+.vcpi:
+	push	ax
+	mov	ax,0de06h		; get Phisical address
+	int	67h			; VCPI call
+	test	ah,ah
+	pop	ax
+	jnz	.vcpi_error
+	ret
+
+.vcpi_error:
+	pop	ax			; remove ret
+	mov	ah, 10			; 'VCPI: Failed to get phisical address of page'
+	jmp	error_exit_16
 
 ;------------------------------------------------------------------------------
 ; hook for int 24
@@ -1073,21 +1171,10 @@ proc2 exit_16
 	%endif
 
 	;///////////////////////////////
-	;各機種固有の終了処理
-	;///////////////////////////////
-	%if TOWNS
-		call	exit_TOWNS_16
-	%elif PC_98
-		call	exit_PC98_16
-	%elif PC_AT
-		call	exit_AT_16
-	%endif
-
-	;///////////////////////////////
 	;メモリ解放
 	;///////////////////////////////
 	sti
-	call	free_EMB		;確保したメモリの開放
+	call	before_exit_16		;確保したメモリの開放
 
 	mov	ax,[err_level]		;AH = Free386 ERR / AL = Program ERR
 	test	ah,ah			;check
@@ -1138,11 +1225,47 @@ proc2 error_exit_16
 	mov	ah,09h			;output error message
 	int	21h
 .exit:
-	call	free_EMB
+	call	before_exit_16
+
 	mov	al, F386ERR
 	mov	ah, 4ch
 	int	21h			;end
 
+
+;------------------------------------------------------------------------------
+;before exit
+;------------------------------------------------------------------------------
+proc2 before_exit_16
+%if TOWNS || PC_98 || PC_AT
+	cmp	b [init_machine16], 0
+	jz	.skip
+	%if TOWNS
+		call	exit_TOWNS_16
+	%elif PC_98
+		call	exit_PC98_16
+	%elif PC_AT
+		call	exit_AT_16
+	%endif
+.skip:
+%endif
+
+proc1 .free_EMB
+	mov	dx,[EMB_handle]	;dx = EMBハンドル
+	test	dx,dx		;ハンドルの値確認
+	jz	.ret		;0 ならば ret
+	mov	w [EMB_handle], 0
+
+	mov	ah,0dh		;EMB のロック解除
+	call	far [XMS_entry]	;XMS call
+
+	mov	ah,0ah		;EMB の開放
+	call	far [XMS_entry]	;XMS call
+	test	ax,ax		;ax = 0 ?
+	jnz	.ret		;non 0 なら jmp
+
+	PRINT16	err_xms_free	;「メモリ開放失敗」
+.ret:
+	ret
 
 ;******************************************************************************
 ; 32bit mode code

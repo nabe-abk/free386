@@ -2,7 +2,7 @@
 ;　Free386 data
 ;******************************************************************************
 ;==============================================================================
-; Setting
+; Const
 ;==============================================================================
 env_PATH386	db	'PATH386',0	; ENV name for exp file search
 env_PATH	db	'PATH',0	;
@@ -15,13 +15,14 @@ default_API	db	Free386_API,0	; API file name
 err_level	db	0		; DOS error level
 f386err		db	0		; Free386 internal error level
 cpu_is_386sx	db	0		; CPU is 386SX
-init_machine32	db	0		; initalized machine
+init_machine16	db	0		; initalized machine on 16bit
+init_machine32	db	0		; initalized machine on 32bit
+use_vcpi	db	1		; VCPI enviroment
 
 %ifdef USE_VCPI_8259A_API
 vcpi_8259m	db	0		; 8259A Master interrupt number
 vcpi_8259s	db	0		; 8259A Slave  interrupt number
 %endif
-
 
 	align	4
 pharlap_version		db	'12aJ'	; Ver 1.2aj
@@ -75,7 +76,6 @@ EMB_handle	dd	0		;EMB ハンドル
 EMB_physi_adr	dd	0		;EMB 先頭物理ドレス (4KB単位で値調整済)
 EMB_pages	dd	0		;EMB サイズ(byte) / 4 KB (端数調整済)
 
-EMB_top_adr	dd	0		;管理する EMB の最上位アドレス / XMS3.0
 max_EMB_free	dd	0		;最大の EMB 空きメモリサイズ    (Kbyte)
 total_EMB_free	dd	0		;トータルの EMB 空きメモリサイズ(Kbyte)
 
@@ -110,6 +110,9 @@ LGDT_data	dw	GDTsize-1	;GDT リミット
 		dd	0		;    リニアアドレス
 LIDT_data	dw	IDTsize-1	;IDT リミット
 		dd	0		;    リニアアドレス
+
+RM_LIDT_data	dw	3ffh		;limit
+		dd	0		;address
 
 DOS_int24h_adr	dw	0		;DOS int 24h CS:IP
 DOS_int24h_seg	dw	0		;
@@ -150,7 +153,9 @@ seg_hex	db	'####',13,10,'$'
 end_mes	db	'Finish',13,10,'$'
 
 msg_01	db	"*** Free386 memroy information ***",13,10
-	db	'	[VCPI] Physical Memory size = ####### KB',13,10
+	db	'	['
+msg_all_mem_type db     'VCPI'
+	db		    '] Physical Memory size = ####### KB',13,10
 	db	'	[XMS]  Allocate Ext Memory  = ####### KB (####_####h)',13,10
 	db	'	[DOS]  Allocate DOS Memory  = ####### KB (####_####h)',13,10
 	db	'	[DOS]  Reserved DOS Memory  =    #### KB',13,10
@@ -171,6 +176,7 @@ msg_02	db	'	program code	: 0100 - #### / cs=ds=####',13,10
 msg_05	db	'Load file name = $'
 msg_06	db	'Found XMS 2.0',13,10,'$'
 msg_07	db	'Found XMS 3.0',13,10,'$'
+msg_08	db	'Found VCPI',13,10,'$'
 msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	13,10
 	db	'	-v	Verbose (memory information and other)',13,10
@@ -203,11 +209,11 @@ _e06	db	'XMS memory allocation failed',13,10,'$'
 _e07	db	'XMS memory lock failed',13,10,'$'
 _e08	db	'VCPI: Failed to get protected mode interface',13,10,'$'
 _e09	db	'VCPI: Failed to change CPU to protected mode',13,10,'$'
-_e10	db	'$'
+_e10	db	'VCPI: Failed to get phisical address of page',13,10,'$'
 
 ; error message for memory allocation
 _e11	db	'Memory allocation failed, not enough heap memory',13,10,'$'
-_e12	db	'CALL buufer allocation failed',13,10,'$'
+_e12	db	'CALL buffer allocation failed',13,10,'$'
 _e13	db	'Page table memory (real memory) allocation failed',13,10,'$'
 _e14	db	'Not enough stack for switch CPU mode',13,10,'$'
 _e15	db	'Failure to free stack memory for switch CPU mode',13,10,'$'

@@ -5,7 +5,6 @@
 extern	heap_malloc
 extern	heap_calloc
 extern	stack_malloc
-extern	stack_calloc
 
 extern	init_dos_malloc
 extern	dos_malloc_page

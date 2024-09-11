@@ -253,7 +253,7 @@ proc1 make_all_mem_sel
 	mov	d [edi+8],0200h		;メモリタイプ / 特権レベル=0
 
 	mov	eax,ALLMEM_sel		;全メモリアクセスセレクタ
-	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
+	call	make_selector_4k	;メモリセレクタ作成 edi=構造体 eax=sel
 
 	;
 	;全メモリセレクタ作成後に以下は実行
@@ -274,7 +274,7 @@ proc1 make_all_mem_sel
 	; ecx = 張りつけるページ数
 	call	set_physical_mem
 
-patch_for_386sx:
+.patch_for_386sx:
 	mov	al, [cpu_is_386sx]
 	test	al, al
 	jz	.skip			;386SX is 24bit address bus.
@@ -552,10 +552,10 @@ proc4 error_exit_32
 	cli
 	cld
 	mov	bx,F386_ds		;ds 復元
-	mov	 ds,bx			;
-	mov	 es,bx			;VCPI で切り換え時、
-	mov	 fs,bx			;セグメントレジスタは不定値
-	mov	 gs,bx			;
+	mov	ds,bx			;
+	mov	es,bx			;VCPI で切り換え時、
+	mov	fs,bx			;セグメントレジスタは不定値
+	mov	gs,bx			;
 	lss	esp,[PM_stack_adr]	;スタックポインタロード
 
 	mov	[err_level],ax
@@ -618,13 +618,20 @@ RestoreRealVectors:
 .end:
 %endif
 
+;------------------------------------------------------------------------------
+;goto V86(16bit) mode
+;------------------------------------------------------------------------------
+proc4	exit_to_V86_mode
+	cli
+	cmp	b [use_vcpi], 0
+	jz	exit_to_16bit_mode
+
 	;///////////////////////////////
 	;V86 モードへ戻る
 	;///////////////////////////////
 	mov	eax,[V86_cs]		;V86時 cs,ds
 	mov	ebx,[V86_sp]		;V86時 sp
 
-	cli				;割り込み禁止
 	push	eax			;V86 gs
 	push	eax			;V86 fs
 	push	eax			;V86 ds
@@ -632,9 +639,42 @@ RestoreRealVectors:
 	push	eax			;V86 ss
 	push	ebx			;V86 esp
 	pushfd				;eflags
-	push	eax			 ;V86 cs
+	push	eax			;V86 cs
 	push	offset exit_16 ;V86 EIP / 終了ラベル
 
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call    far [VCPI_entry]	;VCPI call
+
+
+proc4	exit_to_16bit_mode
+	LIDT	[RM_LIDT_data]
+
+	mov	ebx, [V86_cs]
+	mov	[.seg], bx
+	%ifdef PATCH_UNZ_BUG
+	mov	[.segu],bx
+	%endif
+
+	mov	eax,cr0
+	and	eax,07ffffffeh		;PG=PE=0
+	mov	cr0,eax
+
+	db	0eah			;far jmp
+	dw	offset .16		;
+.seg	dw	0000h			;segment
+	%ifdef PATCH_UNZ_BUG
+.segu	dw	0000h
+	%endif
+
+	BITS	16
+.16:
+	mov	ds, bx
+	mov	es, bx
+	mov	fs, bx
+	mov	gs, bx
+	mov	ss, bx
+	mov	sp, [V86_sp]
+	jmp	exit_16
+
+	BITS	32
 

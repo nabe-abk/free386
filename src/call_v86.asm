@@ -43,6 +43,19 @@ proc2 setup_cv86
 	mov	[cv86_gs], ax
 
 	;//////////////////////////////////////////////////
+	; init cv86/cf32 far call segment in real mode
+	;//////////////////////////////////////////////////
+	mov	[call_V86_clear_stack.rseg], ax
+	mov	[int_from_V86.rseg],         ax
+	mov	[call32_from_V86.rseg],      ax
+
+	%ifdef PATCH_UNZ_BUG
+	mov	[call_V86_clear_stack.rsegu], ax
+	mov	[int_from_V86.rsegu],         ax
+	mov	[call32_from_V86.rsegu],      ax
+	%endif
+
+	;//////////////////////////////////////////////////
 	; make realmode to Protect mode entries
 	;//////////////////////////////////////////////////
 	mov	ax, IntVectors *4
@@ -176,6 +189,7 @@ proc4 call_V86_clear_stack
 	;--------------------------------------------------
 	push	word es:[ebx]			; flags
 	push	dword [tmp_eax]			; eax
+	mov	[cv86_esp], esp			;save V86 sp
 
 	mov	ebx, [tmp_ebx]
 	mov	ecx, [tmp_ecx]
@@ -190,7 +204,9 @@ proc4 call_V86_clear_stack
 	;--------------------------------------------------
 	; jmp to V86
 	;--------------------------------------------------
-	mov	[cv86_esp], esp		;save V86 sp
+	cmp	b [use_vcpi], 0
+	jz	.jmp_to_real_mode
+
 	lss	esp,[cv86_stack_adr]	;PM -> V86 stack structure
 
 	mov	dword [cv86_eip], .in_V86
@@ -198,8 +214,33 @@ proc4 call_V86_clear_stack
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [cs:VCPI_entry]	;VCPI far call
 
+	;--------------------------------------------------
+	; jmp to real mode
+	;--------------------------------------------------
+proc4 .jmp_to_real_mode
+	LIDT	[RM_LIDT_data]
+
+	mov	eax,cr0
+	and	eax,07ffffffeh		;PG=PE=0
+	mov	cr0,eax
+
+	db	0eah			;far jmp
+	dw	offset .in_real_mode	;
+.rseg	dw	0000h			;segment
+	%ifdef PATCH_UNZ_BUG
+.rsegu	dw	0000h
+	%endif
+
 ;--------------------------------------------------------------------
 BITS	16
+proc4 .in_real_mode
+	mov	ds, cs:[cv86_ds]
+	mov	es, cs:[cv86_es]
+	mov	fs, cs:[cv86_fs]
+	mov	gs, cs:[cv86_gs]
+	mov	ss, cs:[cv86_ss]
+	mov	sp, cs:[cv86_esp]
+
 proc4 .in_V86
 	pop	eax
 .in_V86_popf_opcode:
@@ -211,25 +252,44 @@ proc4 .in_V86
 	push	esi
 
 	cli
-	mov	[cs:cv86_ds], ds
+	mov	cs:[cv86_ds], ds
 	push	cs
 	pop	ds
 	mov	[cv86_es], es
 	mov	[cv86_fs], fs
 	mov	[cv86_gs], gs
 
+	mov	[tmp_esp], sp
+	mov	w [tmp_esp+2], 0
+
 	;--------------------------------------------------
 	; jmp to Protect mode
 	;--------------------------------------------------
-	mov	[tmp_esp], sp
-	mov	d [to_PM_EIP],offset .ret_PM
+	cmp	b [use_vcpi], 0
+	jz	.jmp_from_real_mode
 
+	mov	d [to_PM_EIP],offset .ret_PM
 	mov	esi,[to_PM_data_ladr]
 	mov	ax,0de0ch
 	int	67h			;VCPI call
 
+proc4 .jmp_from_real_mode
+	lgdt	[LGDT_data]
+	lidt	[LIDT_data]
+
+	mov	eax, cr0
+	or	eax, 80000001h		; PG=PE=1
+	mov	cr0, eax
+
+	db	0eah			;＝far jmp
+	dw	offset .ret_PM_from_real_mode
+	dw	F386_cs
+
 ;--------------------------------------------------------------------
 BITS	32
+proc4 .ret_PM_from_real_mode
+	lldt	cs:[to_PM_LDTR]
+
 proc4 .ret_PM
 	mov	ax, F386_ds
 	mov	ds, ax
@@ -296,7 +356,7 @@ proc4 .ret_PM
 proc4 call_V86_int21_iret
 	push	21h
 
-proc1  call_V86_int_iret
+proc1 call_V86_int_iret
 	btc	dword [esp+0ch], 0	; set caller carry status
 
 	push	O_CV86_INT | O_CV86_CLSEG
@@ -311,7 +371,7 @@ proc4 call_V86_HW_int_iret
 	call	call_V86_clear_stack
 	iret
 
-proc4	all_flags_save_iret	; exclude IF
+proc4 all_flags_save_iret	; exclude IF
 	xchg	[esp+8], eax
 
 	push	ebx
@@ -346,7 +406,7 @@ proc4 int_from_V86
 	; make PM->V86 stack
 	;--------------------------------------------------
 	push	ax		; reserved
-	mov	cs:[tmp_esp], esp
+	mov	cs:[tmp_esp],esp
 
 	push	ax		;
 	push	gs		;
@@ -382,20 +442,40 @@ proc4 int_from_V86
 	xor	eax, eax
 	mov	 ax, ss
 	shl	eax, 4
-	add	eax, esp
+	mov	esi, esp
+	and	esi, 0ffffh
+	add	eax, esi
 	mov	[cf32_esp], eax
 
 	;--------------------------------------------------
 	; jmp to protect mode
 	;--------------------------------------------------
-	mov   d [to_PM_EIP], .in_PM
+	cmp	b [use_vcpi], 0
+	jz	.jmp_from_real_mode
+
+	mov	d [to_PM_EIP], .in_PM
 
 	mov	esi,[to_PM_data_ladr]
 	mov	ax,0de0ch
 	int	67h
 
+proc4 .jmp_from_real_mode
+	lgdt	[LGDT_data]
+	lidt	[LIDT_data]
+
+	mov	eax, cr0
+	or	eax, 80000001h		; PG=PE=1
+	mov	cr0, eax
+
+	db	0eah			;＝far jmp
+	dw	offset .ret_PM_from_real_mode
+	dw	F386_cs
+
 ;--------------------------------------------------------------------
 BITS	32
+proc4 .ret_PM_from_real_mode
+	lldt	cs:[to_PM_LDTR]
+
 proc4 .in_PM
 	mov	eax,F386_ds
 	mov	 ds,ax
@@ -417,7 +497,7 @@ proc4 .in_PM
 	;	+0ch d	V86 ds
 	;	+10h d	V86 fs
 	;	+14h d	V86 gs
-	;	+18h w  ---
+	;	+18h w  ---	<- V86 esp
 	;	+1ah w	hook routine ret address
 	;	+1ch w	caller IP
 	;	+1eh w	caller CS
@@ -428,6 +508,9 @@ proc4 .in_PM
 	;--------------------------------------------------
 	; jmp to V86
 	;--------------------------------------------------
+	cmp	b [use_vcpi], 0
+	jz	.jmp_to_real_mode
+
 	pushfd				;eflags
 	push	dword [V86_cs]		;** V86 CS
 	push	offset .ret_V86		;** V86 IP
@@ -435,8 +518,43 @@ proc4 .in_PM
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [VCPI_entry]	;VCPI far call
 
+	;--------------------------------------------------
+	; jmp to real mode
+	;--------------------------------------------------
+proc4 .jmp_to_real_mode
+	pop	eax
+	sub	eax, 10h
+	mov	[cf32_esp], eax		;V86 esp
+	pop	d [cf32_ss_32]		;V86 ss
+
+	LIDT	[RM_LIDT_data]
+
+	mov	eax,cr0
+	and	eax,07ffffffeh		;PG=PE=0
+	mov	cr0,eax
+
+	db	0eah			;far jmp
+	dw	offset .in_real_mode	;
+.rseg	dw	0000h			;segment
+	%ifdef PATCH_UNZ_BUG
+.rsegu	dw	0000h
+	%endif
+
 ;--------------------------------------------------------------------
 BITS	16
+proc4 .in_real_mode
+	mov	ss,  cs:[cf32_ss_32]
+	mov	esp, cs:[cf32_esp]
+
+	pop	es
+	pop	ax
+	pop	ds
+	pop	ax
+	pop	fs
+	pop	ax
+	pop	gs
+	pop	ax
+
 proc4 .ret_V86
 	; stack
 	;	+00h d  eax
@@ -452,7 +570,6 @@ proc4 .ret_V86
 ; far call protect mode routeine from V86
 ;******************************************************************************
 ; int 21h, AX=250Dh routine
-;
 ;
 BITS	16
 proc1 call32_from_V86.fail
@@ -506,23 +623,23 @@ proc4 call32_from_V86
 	mov	es, ax
 
 	mov	ax, es:[bx + 06h]
-	mov	[cf32_ds_32], ax
+	mov	[cf32_ds], ax
 	mov	ax, es:[bx + 04h]
-	mov	[cf32_es_32], ax
+	mov	[cf32_es], ax
 	mov	ax, es:[bx + 02h]
-	mov	[cf32_fs_32], ax
+	mov	[cf32_fs], ax
 	mov	ax, es:[bx + 00h]
-	mov	[cf32_gs_32], ax
+	mov	[cf32_gs], ax
 
 	pop	ebx
 	jmp	short .set_selector_end
 
 .default:
 	mov	ax, F386_ds
-	mov	[cf32_ds_32], ax
-	mov	[cf32_es_32], ax
-	mov	[cf32_fs_32], ax
-	mov	[cf32_gs_32], ax
+	mov	[cf32_ds], ax
+	mov	[cf32_es], ax
+	mov	[cf32_fs], ax
+	mov	[cf32_gs], ax
 .set_selector_end:
 
 	;--------------------------------------------------
@@ -541,25 +658,45 @@ proc4 call32_from_V86
 	xor	eax, eax
 	mov	 ax, ss
 	shl	eax, 4
-	add	eax, esp
+	mov	esi, esp
+	and	esi, 0ffffh
+	add	eax, esi
 	mov	[cf32_esp], eax		;linear adddress of ss:esp
 
 	;--------------------------------------------------
 	; jmp to protect mode
 	;--------------------------------------------------
-	mov   d [to_PM_EIP], offset .in_32	; jmp to
+	cmp	b [use_vcpi], 0
+	jz	.jmp_from_real_mode
+
+	mov	d [to_PM_EIP], offset .in_32	; jmp to
 	mov	esi, [to_PM_data_ladr]
 	mov	ax,0de0ch
 	int	67h				; VCPI call
 
+proc4 .jmp_from_real_mode
+	lgdt	[LGDT_data]
+	lidt	[LIDT_data]
+
+	mov	eax, cr0
+	or	eax, 80000001h		; PG=PE=1
+	mov	cr0, eax
+
+	db	0eah			;＝far jmp
+	dw	offset .ret_PM_from_real_mode
+	dw	F386_cs
+
 ;--------------------------------------------------------------------
 BITS	32
+proc4 .ret_PM_from_real_mode
+	lldt	cs:[to_PM_LDTR]
+
 proc4 .in_32
 	lss	esp, cs:[cf32_esp]
-	mov	 ds, cs:[cf32_ds_32]
-	mov	 es, cs:[cf32_es_32]
-	mov	 fs, cs:[cf32_fs_32]
-	mov	 gs, cs:[cf32_gs_32]
+	mov	 ds, cs:[cf32_ds]
+	mov	 es, cs:[cf32_es]
+	mov	 fs, cs:[cf32_fs]
+	mov	 gs, cs:[cf32_gs]
 
 	pop	esi
 	pop	eax
@@ -584,6 +721,9 @@ proc4 .in_32
 	;--------------------------------------------------
 	; jmp to V86
 	;--------------------------------------------------
+	cmp	b [use_vcpi], 0
+	jz	.jmp_to_real_mode
+
 	lss	esp, [safe_stack_adr]	;switch stack
 
 	mov	eax,[V86_cs]
@@ -603,8 +743,35 @@ proc4 .in_32
 	mov	ax,0de0ch		;VCPI function 0ch / to V86 mode
 	call 	far [VCPI_entry]	;VCPI far call
 
+proc4 .jmp_to_real_mode
+	LIDT	[RM_LIDT_data]
+
+	mov	eax,cr0
+	and	eax,07ffffffeh		;PG=PE=0
+	mov	cr0,eax
+
+	db	0eah			;far jmp
+	dw	offset .in_real_mode	;
+.rseg	dw	0000h			;segment
+	%ifdef PATCH_UNZ_BUG
+.rsegu	dw	0000h
+	%endif
+
 ;--------------------------------------------------------------------
 BITS	16
+proc4 .in_real_mode
+	mov	ax, cs
+	mov	ds, ax
+
+	mov	es, [si + 02h]
+	mov	fs, [si + 04h]
+	mov	gs, [si + 06h]
+
+	mov	ax, [si + 08h]		;original sp
+	sub	ax, .st_diff
+	mov	ss, [si + 0ch]
+	mov	sp, ax
+
 proc4 .ret_V86
 	mov	si, [sw_stack_bottom]	; get current swtich stack top
 	; [si]
@@ -636,6 +803,7 @@ segdata	data class=DATA align=4
 tmp_eax		dd	0		;
 tmp_ebx		dd	0		;
 tmp_ecx		dd	0		;
+tmp_esi		dd	0		;
 tmp_esp		dd	0		;
 _tmp_esp_ss	dd	F386_ds		;
 
@@ -675,14 +843,15 @@ V86int_table_top	dd	0	; V86int_table_adr +3
 ;------------------------------------------------------------------------------
 cf32_esp	dd	0		;in 32bit linear address
 		dd	DOSMEM_sel	;for lss
+cf32_ss_32	dd	0
 
 cf32_target_eip	dd	0		;call target entry
 cf32_target_cs	dd	0		;
 
-cf32_ds_32	dw	0
-cf32_es_32	dw	0
-cf32_fs_32	dw	0
-cf32_gs_32	dw	0
+cf32_ds		dw	0
+cf32_es		dw	0
+cf32_fs		dw	0
+cf32_gs		dw	0
 
 ;******************************************************************************
 ;******************************************************************************

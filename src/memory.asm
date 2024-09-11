@@ -18,14 +18,13 @@ seg16	text class=CODE align=4 use16
 ;		cl = error code (for allocation failure)
 ;	out	di = offset
 ;
-proc4 heap_malloc
+proc2 heap_malloc
 	mov	di,[free_heap_top]	;上位空きメモリ割り当て
 	add	[free_heap_top],ax	;サイズ分加算
 	jc	heap_alloc_error
 	jmp	short check_heap_mem
 
-	align	4
-proc4 stack_malloc			;下位からのメモリ割り当て
+proc2 stack_malloc			;下位からのメモリ割り当て
 	mov	di,[free_heap_bottom]	;最下位空きメモリ
 	sub	[free_heap_bottom],ax	;新たな値を記録
 	; jmp	short check_heap_mem
@@ -49,15 +48,9 @@ heap_alloc_error:
 ;------------------------------------------------------------------------------
 ; heap memory functions with zero fill
 ;------------------------------------------------------------------------------
-proc4 heap_calloc
+proc2 heap_calloc
 	push	w (mem_clear)		;戻りラベル
 	jmp	heap_malloc
-
-	align	4
-proc4 stack_calloc
-	std
-	push	w (mem_clear)		;戻りラベル
-	jmp	stack_malloc
 
 	align	4
 mem_clear:		;メモリの 0 クリア
@@ -82,7 +75,7 @@ mem_clear:		;メモリの 0 クリア
 ;------------------------------------------------------------------------------
 ;alloc memory from DOS
 ;------------------------------------------------------------------------------
-proc4 init_dos_malloc
+proc2 init_dos_malloc
 	xor	eax, eax
 	xor	ebx, ebx
 
@@ -155,7 +148,7 @@ proc4 init_dos_malloc
 ;		 cl = error code (for allocation failure)
 ;	out	edi = liner address
 ;
-proc4 dos_malloc_page
+proc2 dos_malloc_page
 	cmp	[DOS_mem_pages], ax
 	jb	.error
 

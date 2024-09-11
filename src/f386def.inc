@@ -6,11 +6,11 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.90'
-%define RELEASE_DATE	'2023-12-28'
+%define	VER_STRING	'Ver0.91'
+%define RELEASE_DATE	'2024-09-11'
 Major_ver	equ		00h
-Minor_ver	equ		90h
-F386_Date	equ		20231228h	;Release date
+Minor_ver	equ		91h
+F386_Date	equ		20240911h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -210,7 +210,9 @@ IntVectors	equ	100h	;Interrupt vectors, fixed
 MACHINE_CODE	equ	20h	;FM TOWNS
 
 %define	MACHINE_STRING	'FM TOWNS'
-%define	Free386_API	'f386_fmt.api'	;機種固有APIのファイル名
+%define	Free386_API	'f386_fmt.api'
+
+%define PATCH_UNZ_BUG		;patch for emulator UNZ's bug
 
 INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する
 
@@ -308,5 +310,9 @@ HW_INT_MASTER	equ	0f0h	; dummy
 HW_INT_SLAVE	equ	0f0h	; dummy
 I8259A_IMR_M	equ	0	; dummy
 I8259A_IMR_S	equ	0	; dummy
+
+%else
+
+%define SUPPORT_NON_VCPI
 
 %endif
