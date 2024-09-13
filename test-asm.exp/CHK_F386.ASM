@@ -14,6 +14,10 @@ segment	text align=4 class=CODE use32
 ;------------------------------------------------------------------------------
 ..start:
 	mov	ah ,30h
+	mov	ebx,'RAHP'
+	int	21h
+
+	mov	ah ,30h
 	mov	ebx,'F386'
 	int	21h
 	cmp	edx,' ABK'

@@ -156,11 +156,11 @@ msg_01	db	"*** Free386 memroy information ***",13,10
 	db	'	['
 msg_all_mem_type db     'VCPI'
 	db		    '] Physical Memory size = ####### KB',13,10
-	db	'	[XMS]  Allocate Ext Memory  = ####### KB (####_####h)',13,10
-	db	'	[DOS]  Allocate DOS Memory  = ####### KB (####_####h)',13,10
+	db	'	[XMS]  Allocate Ext Memory  = ####### KB (####_#### - ####_####)',13,10
+	db	'	[DOS]  Allocate DOS Memory  = ####### KB (####_#### - ####_####)',13,10
 	db	'	[DOS]  Reserved DOS Memory  =    #### KB',13,10
 	db	'$'
-msg_02	db	'	program code	: 0100 - #### / cs=ds=####',13,10
+msg_02	db	'	code and static	: 0100 - #### / cs=ds=####',13,10
 	db	'	all heap memory	: #### - ffff / ##### byte',13,10
 	db	'	free heap memory: #### - #### / ##### byte',13,10
 	db	'	real vecs backup: #### - ####',13,10

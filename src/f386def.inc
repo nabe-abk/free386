@@ -65,7 +65,7 @@ DUMP_DS_EDX	equ	0
 ; Operation settings
 ;==============================================================================
 EXP_EXT		equ	'.exp'	; Autocomplete extensions
-MAX_RAM		equ 10000000h	; 1GB
+MAX_RAM		equ 40000000h	; 1GB
 
 USE_MZ_EXP	equ	1	; support MP Header EXP file.
 CHECK_EMS	equ	1	; check EMS installed
@@ -115,8 +115,8 @@ VCPI_stack_size	equ	 100h	; VCPI call(to V86) dedicated stack
 SW_stack_size	equ	200h	; CPU switch stack size
 SW_max_nest	equ	4	; CPU switch max nest
 
-LADR_UNIT	equ	400000h	; Memory address allocation unit
-LADR_ROOM_size	equ	200000h	; Room for memory address expansion
+LADR_ROOM_size	equ 0200000h	; 4MB, Room for memory address expansion
+LADR_UNIT	equ 0400000h	; 4MB, Memory address allocation unit
 
 ;==============================================================================
 ; Function call setting

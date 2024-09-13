@@ -35,7 +35,11 @@ proc4 int_21h_30h
 	;Phar Lap バージョン情報
 	;	テスト値：EAX=44581406  EBX=4A613231  ECX=56435049  EDX=0
 	mov	ebx, [cs:pharlap_version]	; '12Ja' or '22d '
-	mov	ecx, 'IPCV'			;="VCPI" / 他' DOS','DPMI' があるが対応してない
+	mov	ecx, 'IPCV'			;="VCPI", に "DPMI" がある。
+	cmp	b cs:[use_vcpi], 0
+	jnz	.skip
+	mov	ecx, 'SOD'			;="DOS\0", 00444F53h
+.skip:	
 	xor	edx, edx			;edx = 0
 	iret
 
@@ -65,37 +69,55 @@ proc4 int_21h_4ch
 	;★本来はここに DOS_Extender 終了処理が入る
 
 ;------------------------------------------------------------------------------
-;・LDT内にセレクタを作成しメモリを確保  AH=48h
+; create selector in LDT
 ;------------------------------------------------------------------------------
+; in	ebx = alloc pages
+; ret	 cy = 0	success
+;		AX  = created selector
+;	 cy = 1	fail.
+;		AX  = 8 not enough selector or memory
+;		ebx = free pages
+;
 proc4 int_21h_48h
 	push	esi
 	push	edi
 	push	ecx
-	push	ebx
 	push	ds
 
 	push	F386_ds
 	pop	ds
 
-	mov	ecx,ebx		;ecx = 要求ページ数
-	call	alloc_RAM
-	jc	.fail		;失敗?
+	call	search_free_LDTsel
+	test	eax, eax		;eax = selector
+	jz	.fail
 
-	call	search_free_LDTsel	;空きLDT検索
-	test	eax,eax			;戻り値確認
-	jz	.fail			;失敗?
+	call	update_free_linear_adr	;update for create selector
 
-	dec	ebx		;サイズ -1
-	mov	edi,[work_adr]	;ワークアドレス
-	mov	[edi  ],esi	;ベースアドレス
-	mov	[edi+4],ebx	;limit
-	mov	d [edi+8],0200h	;R/W 386
-	push	eax
-	call	make_selector_4k	;セレクタ作成 / eax = セレクタ
-	pop	eax
+	mov	ecx, ebx		;ecx = alloc pages
+	call	alloc_RAM		;esi = linear address
+	jc	.fail
+
+	mov	ecx, ebx		;ecx = pages
+	dec	ecx
+	mov	edi,[work_adr]
+	mov	[edi  ],esi		;base
+	mov	[edi+4],ecx		;limit
+	mov	w [edi+8],0200h		;R/W 386, DPL=0
+
+	test	ebx, ebx
+	jz	.zero_selector
+
+	call	make_selector_4k	;eax=selector, [edi]=options
+	jmp	.end
+
+.zero_selector:		; pages = 0
+	mov	[edi+4], ebx		;limit=0 (size = 1byte)
+	call	make_selector		;eax=selector, [edi]=options
+
+.end:
+	call	regist_managed_LDTsel	;ax=selector
 
 	pop	ds
-	pop	ebx
 	pop	ecx
 	pop	edi
 	pop	esi
@@ -103,12 +125,11 @@ proc4 int_21h_48h
 	iret
 
 
-	align	4
 .fail:	call	get_maxalloc	;eax = 最大割り当てメモリ量(page)
 	mov	ebx,eax		;ebx に設定
 	mov	eax,8		;エラーコード
+
 	pop	ds
-	pop	ecx		;ebx 読み捨て
 	pop	ecx
 	pop	edi
 	pop	esi
@@ -121,7 +142,6 @@ proc4 int_21h_48h
 ;------------------------------------------------------------------------------
 ; ※メモリ解放をしていない
 proc4 int_21h_49h
-	
 	push	eax
 	push	ebx
 	push	ds
@@ -130,6 +150,8 @@ proc4 int_21h_49h
 	pop	ds
 
 	mov	eax, es			;eax = 引数セレクタ
+	call	remove_managed_LDTsel	;remove from list
+
 	call	sel2adr			;アドレス変換
 	and	b [ebx + 5],7fh		;P(存在) bit を 0 クリア
 
@@ -138,7 +160,6 @@ proc4 int_21h_49h
 
 	pop	ds
 	pop	ebx
-	
 	pop	eax
 	clear_cy
 	iret
@@ -630,82 +651,98 @@ proc4 DOSX_fn_2509h
 
 
 ;------------------------------------------------------------------------------
-;・物理アドレスのマッピング　AX=250ah
+; map phisical memory at end of selector
 ;------------------------------------------------------------------------------
+; IN	 AX = 250ah
+;	 es = target selector
+;	ebx = phisical memory address
+;	ecx = mapping pages
+;
 proc4 DOSX_fn_250ah
 	push	ds
 	push	esi
 	push	edi
+	push	ebp
 	push	edx
-	push	ecx
-	push	ebx	;スタック順番変更不可！
+	push	ecx	;ecx is stack+4 top
+	push	ebx	;ebx is stack   top
 
 	push	F386_ds
 	pop	ds
 
-	mov	ebx,es		;指定セレクタロード
-	pushf			;*
-	push	cs		;* セレクタベースアドレス取得
-	call	DOSX_fn_2508h	;*
-	mov	eax,ecx		;eax = ベースアドレス
-	lsl	ebx,ebx		;ebx = リミット値
-	inc	ebx		;ebx = サイズ
-	mov	edi,ebx		;edi にも
-	add	ecx,ebx		;ecx = セレクタの一番後ろ
-	shr	edi,12		;edi = page単位のサイズ
+	mov	ebx,es		;ebx = selector
+	test	bl, 04
+	jz	.fail0		;not support GDT
 
-	test	ecx,0fffh	;下位12ビットチェック
-	jnz	.fail0		;ページ単位割りつけでないものはジャンプ
+	callint	DOSX_fn_2508h	;get selector base address
+	jc	.fail0		;ecx = base
 
-	mov	esi,ecx			;esi = 張りつけ先リニアアドレス
-	mov	ecx,[esp+4]		;ecx = 張りつけるページ数
-	mov	edx,[esp]		;edx = 張りつける物理アドレス
-	add	edi,ecx			;edi = 処理後のサイズ
-	call	set_physical_mem	;張りつけ
-	jc	.fail1			;ページテーブル不足
+	lsl	ebx, ebx	;ebx = limit
+	test	ebx, ebx
+	jz	.skip
+	inc	ebx		;ebx = size
+.skip:
+	mov	edi, ebx	;edi = size
+	mov	ebp, ebx	;ebp = size (save old size)
+	add	edi, ecx	;ecx = selector limit linear address +1
 
-	mov	eax,ebx			;eax = セレクタ内オフセット
-	mov	ecx,edi			;ecx = 新しいサイズ
-	dec	ecx			;limit値へ
+	test	edi, 0fffh	;UNIT is 4K?
+	jnz	.fail0
 
-	mov	ebx,es		;指定セレクタ
-	mov	edx,[GDT_adr]	;GDT へのポインタ
-	test	ebx,4		;セレクタ値のbit2を check
-	jz	short .GDT	; 0 ならばGDT なのでこのままｼﾞｬﾝﾌﾟ
-	mov	edx,[LDT_adr]	;LDT へのポインタ
-.GDT:	and	ebx,0fff8h	;ディスクリプタは8byte単位なので下位3bit切捨て
-	add	ebx,edx
+	mov	esi, ecx	;esi = map linear address
+	mov	edx, [esp]	;edx = map phisical address
+	mov	ecx, [esp+4]	;ecx = map pages
+	test	ecx, ecx
+	jz	.end		;if ecx=0
 
-	mov	[ebx  ],cx	;limit値 bit 15-0
-	mov	dl,[ebx+6]	;DT+6 読み出し
-	shr	ecx,16		;右シフト
-	and	dl,0f0h		;セレクタ情報
-	and	cl,00fh		;limit値 bit 19-16
-	or	dl,cl		;limit値を混ぜる
-	mov	[ebx+6],dl	;
+	call	set_physical_mem
+	jc	.fail1		;not enough page table
 
-	call	selector_reload	;全セレクタのリロード (hack.txt参照のこと)
+	mov	eax, ebp	;eax = old size
+	shr	eax, 12
+	mov	eax, ecx	;eax = new size/4K
+	dec	eax		;eax = limit
 
+	;-------------------------------------------------------------
+	; save to LDT
+	;-------------------------------------------------------------
+	mov	ecx, es
+	and	 cl, 0f8h	;0ch -> 08h
+	mov	ebx, [LDT_adr]
+	add	ebx, ecx	;ebx = selector's descriptor pointer
+
+	mov	[ebx], ax	;limit  bit0-15
+	mov	dl, [ebx+6]
+	shr	eax, 16		;eax = limit16-19
+	and	dl, 070h	;save original selector info
+	and	al, 00fh	;limit bit16-19
+	or	al, dl		;mix
+	or	al, 80h		;Force G bit
+	mov	[ebx+6], al	;
+
+
+	call	selector_reload
+
+.end:
+	mov	eax, ebp	;new mapping offset of selector
+	clc
+.exit:
 	pop	ebx
 	pop	ecx
 	pop	edx
+	pop	ebp
 	pop	edi
 	pop	esi
 	pop	ds
-	clear_cy
-	iret
+	iret_save_cy
 
-.fail1:	mov	eax,8	;ページテーブル不足
-	jmp	short .fail
-.fail0:	mov	eax,9	;セレクタが不正
-.fail:	pop	ebx
-	pop	ecx
-	pop	edx
-	pop	edi
-	pop	esi
-	pop	ds
-	set_cy
-	iret
+.fail0:	mov	eax,9		;invalid selector
+	stc
+	jmp	.exit
+
+.fail1:	mov	eax,8		;not enough page table
+	stc
+	jmp	.exit
 
 
 ;------------------------------------------------------------------------------
@@ -1063,11 +1100,15 @@ proc4 DOSX_fn_2513h
 	push	F386_ds
 	pop	ds
 
-	movzx	ebx,bx		;0 拡張ロード
+	movzx	ebx,bx
+	test	bl, 04h			;LDT flag?
+	jz	.fail
 
 	call	search_free_LDTsel	;空きセレクタ検索
 	test	eax,eax			;戻り値確認
-	jz	short .fail		;0 なら失敗
+	jz	.fail
+
+	call	regist_managed_LDTsel	;regist eax
 
 	mov	[esp], eax	;コピー先セレクタ（戻り値記録）
 
@@ -1093,7 +1134,7 @@ proc4 DOSX_fn_2513h
 	or	eax,ecx		;引数の値を混ぜる
 	mov	[edx+4],eax	;
 
-	pop	eax		;eax 位置のスタック読み捨て
+	pop	eax		;load eax
 	pop	ebx
 	pop	ecx
 	pop	edx
@@ -1102,7 +1143,7 @@ proc4 DOSX_fn_2513h
 	iret
 
 .fail:	mov	eax,8
-.ret:	pop	edx	; eax読み捨て
+.ret:	pop	ebx	; skip eax
 	pop	ebx
 	pop	ecx
 	pop	edx
@@ -1111,7 +1152,7 @@ proc4 DOSX_fn_2513h
 	iret
 
 .void:
-	mov	eax,9		;セレクタが不正
+	mov	eax,9	;invalid selector
 	jmp	short .ret
 
 

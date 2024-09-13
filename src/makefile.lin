@@ -32,7 +32,7 @@ default: all
 all: $(TARGET)
 
 clean:
-	$(RM) *.obj *.OBJ
+	$(RM) *.obj *.OBJ *.lst *.LST
 ##	$(RM) $(TARGET) $(TARGET:%.com=%.map)
 
 #------------------------------------------------------------------------------

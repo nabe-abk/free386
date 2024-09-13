@@ -98,16 +98,24 @@ proc1 memory_infomation
 	; allocated protect memory
 	mov	eax, [max_EMB_free]
 	call	rewrite_next_hash_to_dec
+	mov	ebx, eax
 	mov	eax, [EMB_physi_adr]
+	call	rewrite_next_hash_to_hex
+	shl	ebx, 10
+	add	eax, ebx
 	call	rewrite_next_hash_to_hex
 
 	; allcated dos memory
 	mov	eax, [DOS_alloc_sizep]
+	mov	ebx, eax
 	add	eax, b 1fh		;round up
 	shr	eax, 10-4		;para to KB
 	call	rewrite_next_hash_to_dec
 	mov	eax, [DOS_alloc_seg]
 	shl	eax, 4			;seg to linear address
+	call	rewrite_next_hash_to_hex
+	shl	ebx, 4
+	add	eax, ebx
 	call	rewrite_next_hash_to_hex
 
 	; reserved dos memory
@@ -323,7 +331,7 @@ proc1 make_all_mem_sel
 	mov	d [edi+4],(DOSMEMsize / 4096)-1	;1MB空間
 	;mov	d [edi+8],0200h			;R/W タイプ / 特権レベル=0
 	mov	eax,DOSMEM_Lsel			;DOS 環境変数セレクタ
-	call	make_selector_4k			;メモリセレクタ作成 edi=構造体
+	call	make_selector_4k		;メモリセレクタ作成 edi=構造体
 
 ;------------------------------------------------------------------------------
 ;●各機種対応ルーチン

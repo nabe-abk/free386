@@ -1157,9 +1157,7 @@ strl_lp_offsetc:	;ebx の 0 にループさせる
 ;		Load_cs, Load_ds にロード用セレクタの cs/ds 記録
 ;	Cy=1 失敗
 ;
-	align	4
-	global	make_cs_ds
-make_cs_ds:
+proc4 make_cs_ds
 	push	eax
 	push	ebx
 	push	ecx
@@ -1195,7 +1193,9 @@ make_cs_ds:
 	shr	eax,10			;eax = ページテーブル用に必要なメモリ
 	sub	ecx,eax			;空きページ数から引く
 	jb	.no_memory		;マイナスならエラー
+
 proc1 .do_alloc
+	call	update_free_linear_adr
 	mov	ebp, [free_linear_adr]	;貼り付け先アドレスを保存
 	push	esi
 	and	esi, 0xfffff000		;ずらし量
@@ -1233,6 +1233,7 @@ proc1 .do_alloc
 	sub	ecx, esi		;ベースオフセットを引く
 	mov	[60h],ecx		;PSP 領域に記録
 	call	make_selector_4k	;メモリセレクタ作成 edi=構造体 eax=sel
+	call	regist_managed_LDTsel	;管理セレクタとして登録
 
 	;ds 作成
 	call	search_free_LDTsel	;eax = 空きセレクタ
@@ -1243,6 +1244,7 @@ proc1 .do_alloc
 	mov	ecx,eax			;コピー先
 	mov	 ax,0200h		;R/W タイプ / 特権レベル=0
 	call	make_alias		;エイリアス作成
+	call	regist_managed_LDTsel	;管理セレクタとして登録
 
 	clc				;正常終了
 .exit:

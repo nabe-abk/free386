@@ -234,6 +234,11 @@ proc4 wakeup_nsdd
 	mov	eax, [edi+0ch]
 	mov	[fs:esi  ], eax		; selector=3Ch, access to 3Ch
 
+	movzx	eax, bx
+	call	regist_managed_LDTsel
+	movzx	eax, dx
+	call	regist_managed_LDTsel
+
 	mov	 al, NSDD_wakeup
 	call	send_command_to_nsdd
 

@@ -132,7 +132,7 @@ proc4 call_V86_clear_stack
 
 .far_call:
 	mov	[call_V86_adr], ebx		; save call adr
-	mov	[.in_V86_popf_opcode],ch	; write popf OR nop
+	mov	[.in_V86_popf_opcode],ch	; write "popf" or "nop"
 
 	;--------------------------------------------------
 	; clear V86 ds, es
@@ -359,7 +359,7 @@ proc4 call_V86_int21_iret
 proc1 call_V86_int_iret
 	btc	dword [esp+0ch], 0	; set caller carry status
 
-	push	O_CV86_INT | O_CV86_CLSEG
+	push	(O_CV86_INT | O_CV86_CLSEG)
 	call	call_V86_clear_stack
 
 	iret_save_cy

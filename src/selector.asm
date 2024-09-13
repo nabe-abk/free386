@@ -9,171 +9,69 @@
 %include	"free386.inc"
 %include	"memory.inc"
 
-;------------------------------------------------------------------------------
-
-global	make_selector
-global	make_selector_4k
-global	set_physical_mem
-global	alloc_DOS_mem
-global	alloc_RAM
-global	alloc_RAM_with_ladr
-
-global	map_memory		;物理メモリを配置しセレクタを作成、テーブル参照
-global	make_aliases		;セレクタのエイリアスを作成（テーブル参照）
-global	make_alias		;セレクタのエイリアスを作成
-global	get_maxalloc		;最大割り当て可能メモリ(page)取得
-global	get_maxalloc_with_adr	;最大割り当て可能メモリ(page)取得
-global	get_selector_last	;セレクタ最後尾リニアアドレス(+1)取得
-global	sel2adr			;セレクタ値 to アドレス変換
-global	search_free_LDTsel	;空きLDTセレクタの検索
-global	selector_reload		;全データセレクタのリロード
-
 ;******************************************************************************
 seg32	text32 class=CODE align=4 use32
 ;******************************************************************************
-;------------------------------------------------------------------------------
-;●メモリセグメントを作成します
-;------------------------------------------------------------------------------
-;void make_selector(int selctor,struct mem_descriptor *memd)
+; IN	eax = selector
+;	[edi]	dword	base offset
+;	[edi+4]	dword	limit (20bit, byte)
+;	[edi+8]	byte	DPL (0-3)
+;	[edi+9]	byte	selector type (0-15)
 ;
-;	selctor	＝ セレクタ値（作成するセレクタ値）
+; supprot only 32bit meomory selector.
 ;
-;struct	mem_descriptor
-;{
-;	int	base;	// リニア空間ベースオフセット
-;	int	limit;	// リミット値（単位 byte）
-;	char	level;	// 特権レベル(0～3)
-;	char	type;	// メモリセグメントタイプ（get_gdtのﾀｲﾌﾟ定義参照）
-;};		   	//  必ず 00h～0fh(0～15) の間の値であること。
-;			//  ↑追加：bit 4 が 1 ならば 286形式のセグメント作成
-;	eax = selector
-;	edi = 構造体 offset
-;
-;mtask のものとは非互換！！
 proc4 make_selector
 	push	ebx
-	push	ecx
-	push	edx
-	push	edi
-	push	es
-
-	mov	bx,F386_ds	;F386 を示すセレクタ
-	mov	 es,bx		;
-
-	mov	ebx,eax		;指定ｾﾚｸﾀ値
-	;mov	edi,[ebp+0ch]	;ﾃﾞｨｸﾘﾌﾟﾀ型を示す構造体ｵﾌｾｯﾄ
-
-	mov	ecx,[es:GDT_adr] ;GDT へのポインタ
-	test	ebx,4		 ;ｾﾚｸﾀ値のﾋﾞｯﾄ2をﾁｪｯｸ
-	jz	short .GDT	 ; 0 ならばGDT なのでこのまま jmp
-	mov	ecx,[es:LDT_adr] ;LDT へのポインタ
-.GDT:
-	and	ebx,0fff8h	;DTは8byte単位なので下位3bit切捨て
-	add	ebx,ecx
-
-	mov	edx,[edi+4]	;リミット値ロード
-	mov	[es:ebx],dx	;リミット値をテーブルにセットbit0～15
-	and	edx,0f0000h	;リミット値の bit16～19 を取り出す
-
-	test	b [edi+9],10h	;286形式？
-	jnz	.s286		;bit が 立ってれば jmp
-	or	edx,400000h	;属性 386形式
-.s286:
-	mov	eax,[edi]	;base offset
-	mov	[es:ebx+2],ax	;base bit0～15
-	mov	ecx,eax
-	shr	ecx,8		;baseの bit16～23
-	and	eax,0ff000000h	;baseの bit24～31
-	mov	dl,ch		;bit 16～23 set
-	or	edx,eax		;bit 24～31 set
-
-	mov	ax,[edi+8]	;特権レベル(dl)とseg-type(dh)をロード
-	and	ah,0fh		;Type フィールドの値マスク
-	shl	al,5		;bit5･6 の位置にもってくる
-	or	al,ah		;特権レベルとセグメントタイプを混ぜる
-	or	al,90h		;存在する(80h) 存在ビット(Pビット) を 1に
-	mov	dh,al		;記録用regに格納   　＋DT1(mem 形式):10h
-	mov	[es:ebx+4],edx	;テーブルに記録
-
-	pop	es
-	pop	edi
-	pop	edx
-	pop	ecx
+	call	do_make_selector
 	pop	ebx
 	ret
 
-
-;------------------------------------------------------------------------------
-;●メモリセグメントを作成します（4KB 単位）
-;------------------------------------------------------------------------------
-;void make_selector(int selctor,struct mem_descriptor *memd)
-;
-;	selctor	＝ セレクタ値（作成するセレクタ値）
-;
-;struct	mem_descriptor
-;{
-;	int	base;	// リニア空間ベースオフセット
-;	int	limit;	// リミット値（単位 4 Kbyte）
-;	char	level;	// 特権レベル(0～3)
-;	char	type;	// メモリセグメントタイプ（get_gdtのﾀｲﾌﾟ定義参照）
-;};		   	//  必ず 00h～0fh(0～15) の間の値であること。
-;			//  ↑追加：bit 4 が 1 ならば 286形式のセグメント作成
-;	eax = selector
-;	edi = 構造体 offset
-;
 proc4 make_selector_4k
 	push	ebx
-	push	ecx
-	push	edx
-	push	edi
-	push	es
-
-	mov	ebx,F386_ds	;F386 を示すセレクタ
-	mov	  es,bx		;
-
-	mov	ebx,eax		;指定ｾﾚｸﾀ値
-	;mov	edi,[ebp+0ch]	;ﾃﾞｨｸﾘﾌﾟﾀ型を示す構造体ｵﾌｾｯﾄ
-
-	mov	ecx,[es:GDT_adr] ;GDT へのポインタ
-	test	ebx,4		 ;ｾﾚｸﾀ値のﾋﾞｯﾄ2をﾁｪｯｸ
-	jz	short .GDT	 ; 0 ならばGDT なのでこのままｼﾞｬﾝﾌﾟ
-	mov	ecx,[es:LDT_adr] ;LDT へのポインタ
-.GDT:
-	and	ebx,0fff8h	;ﾃﾞｨｽｸﾘﾌﾟﾀは 8ﾊﾞｲﾄ単位なので下位3ﾋﾞｯﾄ切捨て
-	add	ebx,ecx
-
-	mov	edx,[edi+4]	;ﾘﾐｯﾄ値
-	mov	[es:ebx],dx	;ﾘﾐｯﾄ値をﾃｰﾌﾞﾙにｾｯﾄ bit0～15
-	and	edx,0f0000h	;ﾘﾐｯﾄ値の bit16～19 を取り出す
-	or	edx,800000h	;属性 4KB単位のリミット
-
-	test	b [edi+9],10h	;286形式？
-	jnz	.s286		;bit が 立ってれば jmp
-	or	edx,400000h	;属性 386形式
-.s286:
-	mov	eax,[edi]	;ﾍﾞｰｽｵﾌｾｯﾄﾛｰﾄﾞ
-	mov	[es:ebx+2],ax	;ﾍﾞｰｽ bit0～15
-	mov	ecx,eax
-	shr	ecx,8		;ﾍﾞｰｽの bit16～23
-	and	eax,0ff000000h	;ﾍﾞｰｽの bit24～31
-	mov	dl,ch		;bit 16～23ｾｯﾄ
-	or	edx,eax		;bit 24～31ｾｯﾄ
-
-	mov	ax,[edi+8]	;特権ﾚﾍﾞﾙ(dl) と ｾｸﾞﾒﾝﾄﾀｲﾌﾟ(dh)をﾛｰﾄﾞ
-	and	ah,0fh		;Type フィールドの値マスク
-	shl	al,5		;bit5･6 の位置にもってくる
-	or	al,ah		;特権レベルとセグメントタイプを混ぜる
-	or	al,90h		;存在する(80h) 存在ビット(Pビット) を 1に
-	mov	dh,al		;記録用ﾚｼﾞｽﾀに格納   　＋DT1(mem 形式):10h
-	mov	[es:ebx+4],edx	;ﾃｰﾌﾞﾙに記録
-
-	pop	es
-	pop	edi
-	pop	edx
-	pop	ecx
+	call	do_make_selector
+	or	b [ebx+6], 80h	;G bit=1, limit unit is 4K
 	pop	ebx
 	ret
 
+proc4 do_make_selector
+	push	eax
+	push	ecx
+	push	edx
+
+	mov	ebx, [GDT_adr]
+	test	al, 4		;check bit 2
+	jz	.is_GDT	 	; 0 is GDT
+	mov	ebx, [LDT_adr]
+.is_GDT:
+	and	eax, 0fff8h
+	add	ebx, eax	;ebx = target selector pointer
+
+	mov	eax, [edi+4]	;eax = limit
+	mov	[ebx], ax	;save bit0-15
+	and	eax,0f0000h	;eax = limit bit16-19
+
+	mov	ecx, [edi]	;ecx = base
+	mov	[ebx+2], cx	;base bit0-15
+	mov	al, [edi+2]	;eax bit0-7 <= base bit16-23
+	and	ecx, 0ff000000h	;base bit24～31
+	or	eax, ecx	;eax bit24-31 <= base bit24-31
+
+	mov	cx, [edi+8]	;cl=DPL, ch=type
+	and	ch, 0fh		;type mask
+	and	cl, 3		;DPL
+	shl	cl, 5		;bit5-6 = DPL
+	or	cl, ch		;cl bit0-3=type, bit5-6=DPL
+	mov	ah, cl		;eax bit8-11=type, bit13-14=DPL
+
+	or	ah, 90h		;eax bit12=DT=1(code or data)
+				;eax bit15=Present=1
+	bts	eax, 22		;eax bit22=Operation size=1(32bit seg)
+	mov	[ebx+4], eax	;save
+
+	pop	edx
+	pop	ecx
+	pop	eax
+	ret
 
 ;------------------------------------------------------------------------------
 ;●物理メモリを指定リニアアドレスに配置する
@@ -187,7 +85,7 @@ proc4 make_selector_4k
 ;
 proc4 set_physical_mem
 	test	ecx,ecx		;割りつけページ数が 0
-	jz	NEAR .ret	;何もせず ret
+	jz	.ret		;何もせず ret
 
 	pusha
 	push	es
@@ -277,11 +175,10 @@ proc4 set_physical_mem
 	ret
 
 
-
 ;------------------------------------------------------------------------------
 ;●DOS RAM アロケーション
 ;------------------------------------------------------------------------------
-;	ecx = 貼りつけるページ数
+;	ecx = 最大貼りつけページ数
 ;
 ;	Ret	Cy = 0 成功
 ;			eax = 割り当てたページ数
@@ -293,23 +190,25 @@ proc4 alloc_DOS_mem
 	push	ecx
 	push	edx
 
+	mov	esi,[free_linear_adr]	;割りつけ先アドレス
 	mov	eax,[DOS_mem_pages]
 	test	eax,eax
-	jz	.no_dos_mem		;DOSメモリなし
+	jz	.no_mapping		;DOSメモリなし
+	test	ecx,ecx
+	jz	.no_mapping		;要求=0
 
 	cmp	eax,ecx			;空きページ数 - 要求ページ数
 	jae	.enough
 	mov	ecx,eax			;足りなければ、あるだけ貼り付け
 .enough:
 	mov	edx,[DOS_mem_ladr]	;DOSメモリ
-	mov	esi,[free_linear_adr]	;割りつけ先アドレス
 	call	set_physical_mem	;メモリ割り当て
-	jc	.no_free_memory		;メモリ不足エラー
+	jc	.not_enough_page_table	;メモリ不足エラー
 
-	sub	[DOS_mem_pages] ,ecx	;空きメモリページ数減算
+	sub	[DOS_mem_pages]  ,ecx	;空きメモリページ数減算
 	mov	eax, ecx
 	shl	ecx, 12			;byte 単位へ
-	add	[DOS_mem_ladr]  ,ecx	;空きDOSメモリ
+	add	[DOS_mem_ladr]   ,ecx	;空きDOSメモリ
 	add	[free_linear_adr],ecx	;空きメモリアドレス更新
 
 	clc
@@ -319,13 +218,12 @@ proc4 alloc_DOS_mem
 	pop	ebx
 	ret
 
-.no_dos_mem:
+.no_mapping:
 	xor	eax, eax
-	mov	esi, [free_linear_adr]
 	clc
 	jmp	short .exit
 
-.no_free_memory:
+.not_enough_page_table:
 	stc
 	jmp	short .exit
 
@@ -345,10 +243,10 @@ proc4 alloc_RAM
 	push	ecx
 	push	edx
 
-	test	ecx,ecx
+	mov	esi, [free_linear_adr]	;割りつけ先アドレス
+	test	ecx, ecx
 	jz	.no_alloc
 
-	mov	esi, [free_linear_adr]	;割りつけ先アドレス
 	call	get_maxalloc_with_adr	;eax = 最大割り当て可能メモリページ数
 					;ebx = ページテーブル用に必要なページ数
 
@@ -356,7 +254,6 @@ proc4 alloc_RAM
 	jb	.no_free_memory		;小さければメモリ不足
 
 	mov	edx,[free_RAM_padr]	;空き物理メモリ
-	;mov	esi,[free_linear_adr]	;割りつけ先アドレス
 	shl	ebx,12			;ページテーブル用に必要なメモリ(byte)
 	add	edx,ebx			;割りつける物理メモリをずらす
 	call	set_physical_mem	;メモリ割り当て
@@ -366,12 +263,10 @@ proc4 alloc_RAM
 	shl	ecx,12			;byte 単位へ
 	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
 
-.no_alloc:
-	add	esi, ecx				;空きメモリアドレス更新
-	add	esi,LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
-	and	esi,0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_linear_adr] ,esi			;空きアドレス更新
+	add	esi, ecx		;空きメモリアドレス更新
+	mov	[free_linear_adr], esi	;空きアドレス更新
 
+.no_alloc:
 	clc		;キャリークリア
 .exit:
 	pop	edx
@@ -419,16 +314,6 @@ proc4 alloc_RAM_with_ladr
 	shl	ecx,12			;byte 単位へ
 	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
 
-	add	esi, ecx		;新しい最後尾アドレス
-	mov	eax, [free_linear_adr]	;空きアドレス
-	cmp	eax, esi
-	ja	.step
-
-	add	esi, LADR_ROOM_size + (LADR_UNIT -1)	;端数切上げ
-	and	esi, 0ffc00000h				;下位 20ビット切捨て (4MB の倍数に)
-	add	[free_linear_adr], esi			;空きアドレス更新
-
-.step:
 .no_alloc:
 	clc		;キャリークリア
 .exit:
@@ -461,7 +346,7 @@ proc4 map_memory
 	call	set_physical_mem	;物理メモリの配置
 
 	lea	edi,[ebx + 4]		;セレクタ作成構造体
-	call	make_selector_4k		;eax=作成するセレクタ  edi=構造体
+	call	make_selector_4k	;eax=作成するセレクタ  edi=構造体
 
 	add	ebx,byte 10h		;アドレス更新
 	jmp	short map_memory	;ループ
@@ -690,4 +575,139 @@ proc4 selector_reload
 	ret
 
 ;------------------------------------------------------------------------------
+; regist managed LDT selector
 ;------------------------------------------------------------------------------
+; IN	ax = selector
+;
+proc4 regist_managed_LDTsel
+	push	eax
+	push	ecx
+
+	mov	ecx, [managed_LDTsels]
+	cmp	ecx, LDTsize/8
+	jae	.exit				; ignore
+
+	mov	[managed_LDTsel_list + ecx*2], ax
+	inc	ecx
+	mov	[managed_LDTsels], ecx
+
+.exit:
+	pop	ecx
+	pop	eax
+	ret
+
+;------------------------------------------------------------------------------
+; remove managed  LDT selector
+;------------------------------------------------------------------------------
+; IN	ax = selector
+;
+; RET	cy = 0	removed
+;	cy = 1	not found
+;
+proc4 remove_managed_LDTsel
+	push	eax
+	push	ebx
+	push	ecx
+	push	edx
+
+	test	ax, ax
+	jz	.not_found
+
+	mov	edx, [managed_LDTsels]
+	mov	ebx, managed_LDTsel_list
+	xor	ecx ,ecx
+.loop:
+	cmp	[ebx + ecx*2], ax
+	je	.found
+	inc	ecx
+	cmp	ecx, edx
+	jb	.loop
+
+.not_found:
+	stc
+	pop	edx
+	pop	ecx
+	pop	ebx
+	pop	eax
+	ret
+
+.found:
+	mov	ax, [ebx + edx*2 - 2]	; last
+	mov	[ebx + ecx*2], ax	; copy
+	dec	edx
+	mov	[managed_LDTsels], edx
+
+	clc
+	pop	edx
+	pop	ecx
+	pop	ebx
+	pop	eax
+	ret
+
+;------------------------------------------------------------------------------
+; Update free linear address
+;------------------------------------------------------------------------------
+; Find a free linear address to create a new selector.
+;
+proc4 update_free_linear_adr
+	pusha
+
+	mov	eax, ALLMEM_sel
+	lsl	edi, eax		; edi = current upper linear address
+
+	mov	ebx, [LDT_adr]
+	mov	ecx, [managed_LDTsels]
+	mov	esi, managed_LDTsel_list
+
+.loop:
+	test	ecx, ecx
+	jz	.exit
+	dec	ecx
+
+	movzx	eax, w [esi]		; eax = selector
+	add	esi, 2
+
+	lsl	ebp, eax		; ebp = limit
+	inc	ebp			; ebp = size
+
+	and	al, 0f8h		; 0ch -> 08h(offset)
+
+	mov	edx, [ebx + eax +2]	; base bit0-23
+	mov	eax, [ebx + eax +4]	; base bit24-31
+	and	edx, 000ffffffh
+	and	eax, 0ff000000h
+	or	eax, edx		; eax = base
+
+	cmp	eax, 040000000h		; ignore system mapping?
+	ja	.loop
+
+	add	eax, ebp		; base + size
+	cmp	eax, edi		; tmp - current
+	jbe	.loop
+
+	mov	edi, eax
+	jmp	.loop
+
+.exit:
+	add	edi, LADR_ROOM_size + (LADR_UNIT -1)	;
+	and	edi, 0ffffffffh     - (LADR_UNIT -1)	;
+	mov	[free_linear_adr], edi			; update
+
+	popa
+	ret
+
+
+;//////////////////////////////////////////////////////////////////////////////
+; DATA
+;//////////////////////////////////////////////////////////////////////////////
+segdata	data class=DATA align=4
+
+global	managed_LDTsels
+global	managed_LDTsel_list
+
+managed_LDTsels	dd	0
+managed_LDTsel_list:			; managed LDT selector list
+%rep	(LDTsize/8)
+	dw	0
+%endrep
+
