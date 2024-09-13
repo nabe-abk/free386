@@ -8,6 +8,7 @@ This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 	* It can also be used in VCPI environment (EMM386.EXE or other).
 	* In non-VCPI environments, the amount of physical memory is an estimate (excluding TOWNS version).
 	* You can use it with XMS 2.0 by defining USE_XMS20 and reassembling it.
+	* [TOWNS] TownsOS does not require XMS/VCPI (HIMEM.SYS, EMM386.EXE).
 * Basically, it complies with Ver1.2, which is the version of RUN386 for TOWNS.
 * DOS general purpose binary requires VCPI.
 

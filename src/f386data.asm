@@ -72,7 +72,8 @@ TSS_adr		dd	0		;TSS のオフセット
 XMS_Ver		dd	0		;XMS のメジャー Version
 XMS_entry	dd	0		;XMS 呼び出しアドレス
 
-EMB_handle	dd	0		;EMB ハンドル
+EMB_handle	 dw	0		;EMB handle
+EMB_handle_valid dw	0		;EMB handle is valid
 EMB_physi_adr	dd	0		;EMB 先頭物理ドレス (4KB単位で値調整済)
 EMB_pages	dd	0		;EMB サイズ(byte) / 4 KB (端数調整済)
 

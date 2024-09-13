@@ -606,6 +606,176 @@ proc4 exit_TOWNS_16
 
 	ret
 
+
+;==============================================================================
+;XMS emulator for TownsOS
+;==============================================================================
+; Translate XMS function to TownsOS's extend memory function.
+; See more info: http://www.purose.net/befis/download/ito/tos.sys.txt
+;
+proc2 xms_emulator
+	cmp	ah, 00h
+	je	get_xms_version
+
+	cmp	ah, 88h
+	je	xms_query_free_extended_memory
+
+	cmp	ah, 89h
+	je	xms_allocate_extended_memory
+
+	cmp	ah, 0ah
+	je	xms_free_extended_memory
+
+	cmp	ah, 0ch
+	je	xms_lock_extended_memory
+
+	cmp	ah, 0dh
+	je	xms_unlock_extended_memory
+
+proc2 xms_error
+	xor	ax, ax		; fail
+	mov	bl, 80h
+	retf
+
+proc2 get_xms_version
+	; IN	AH = 00h
+	;
+	push	di
+	mov	ax, XMS_HANDLES_MAX*4
+	call	heap_malloc
+	mov	[xms_handle_adr], di
+	pop	di
+
+	mov	ax, 0300h	; XMS Version
+	mov	bx, 0300h	; Driver Version
+	xor	dx, dx		; HMA none
+	retf
+
+proc2 xms_query_free_extended_memory
+	; IN	AH = 88h
+	; RET	BL = 0 Success
+	;		EAX = Size of largest free extended memory in KB.
+	;		ECX = Highest ending address of any memory.
+	;		EDX = Total amount of free memory in KB.
+	;	BL != 0 Fail
+	;
+	mov	 ah, 20h
+	mov	edx, 545f4f53h
+	int	8eh
+	test	ah, ah
+	jnz	xms_error
+
+	mov	eax, ecx	; maximum XMS size
+	mov	edx, ecx	; total XMS size
+	xor	ecx, ecx	; highest address = 0 (not set)
+	xor	bl, bl		; Success
+	retf
+
+proc2 xms_allocate_extended_memory
+	; IN	AH = 89h
+	;	EDX = extended memory requested in KB
+	; RET	AX = 1 Success
+	;		DX = EMB handle
+	;	AX = 0 Fail
+	;
+	push	bx
+	push	cx
+	push	di
+
+	mov	 ah, 21h
+	mov	ecx, edx	; allocate size (KB)
+	mov	edx, 545f4f53h
+	int	8eh		; dx:di = phisical address
+	test	ah, ah
+	jnz	.error
+
+	mov	ax, [xms_handle_num]
+	cmp	ax, XMS_HANDLES_MAX
+	jae	.error
+
+	mov	bx, [xms_handle_adr]
+	add	bx, ax
+	add	bx, ax		; bx += ax*2
+	mov	[bx  ], di
+	mov	[bx+2], dx
+
+	mov	dx, ax		; ret DX=EMB handle number
+	inc	ax
+	mov	[xms_handle_num], ax
+
+	mov	ax, 1		; Success
+	pop	di
+	pop	cx
+	pop	bx
+	retf
+.error:
+	pop	di
+	pop	cx
+	pop	bx
+	jmp	xms_error
+
+
+proc2 xms_free_extended_memory
+	; IN	AH = 0Ah
+	;	DX = EMB handle
+	;
+	cmp	[xms_handle_num], dx
+	jbe	xms_error
+
+	push	bx
+	push	dx
+	push	di
+
+	mov	bx, [xms_handle_adr]
+	add	bx, dx
+	add	bx, dx			; bx += dx*2
+
+	mov	di, [bx]		; dx:di = load phisical address
+	mov	dx, [bx+2]
+	mov	ah, 22h
+	int	8eh
+
+	pop	di
+	pop	dx
+	pop	bx
+
+	test	ah, ah
+	jnz	xms_error
+
+	mov	ax, 1			; Success
+	retf
+
+
+proc2 xms_lock_extended_memory
+	; IN	AH = 0Ch
+	;	DX = EMB handle
+	; RET	AX = 1 Success
+	;		DX:BX = 32bit phisical address
+	;	AX = 0 Fail
+	;
+	cmp	[xms_handle_num], dx
+	jbe	xms_error
+
+	mov	bx, [xms_handle_adr]
+	add	bx, dx
+	add	bx, dx			; bx += dx*2
+
+	mov	dx, [bx+2]		; load phisical address
+	mov	bx, [bx]
+
+	retf
+
+
+proc2 xms_unlock_extended_memory
+	; IN	AH = 0Dh
+	;	DX = Extended memory block handle to lock
+	; RET	AX = 1 Success
+	;	AX = 0 Fail
+	;
+	mov	ax, 1
+	retf
+
+
 ;******************************************************************************
 ; DATA
 ;******************************************************************************
@@ -615,6 +785,11 @@ global	load_nsdd
 
 is_emulator	db	0
 load_nsdd	db	1
+
+	align	2
+xms_handle_num	dw	0
+xms_handle_adr	dw	0
+
 
 ;==============================================================================
 ;ÅöCRTC ëÄçÏÉeÅ[ÉuÉã

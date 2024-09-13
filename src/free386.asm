@@ -522,6 +522,13 @@ proc1 XMS_setup
 	cmp	al,80h		;XMS install?
 	je	.found		;等しければ jmp
 
+%ifdef XMS_EMULATOR
+	extern	xms_emulator
+	mov	w [XMS_entry  ], xms_emulator
+	mov	w [XMS_entry+2], cs
+	jmp	.setted_xms_entry
+%endif
+
 	mov	ah, 05		;'XMS not found'
 	jmp	error_exit_16
 
@@ -533,6 +540,7 @@ proc1 XMS_setup
 	mov	[XMS_entry+2],es	;SEG
 	pop	es
 
+.setted_xms_entry:
 	;/////////////////////////////
 	;バージョン番号の取得
 	xor	ah,ah		;ah = 0
@@ -566,7 +574,8 @@ proc1 get_EMB_XMS20
 	call	far [XMS_entry]		;XMS call
 	test	ax,ax			;ax = 0?
 	jz	get_EMB_failed		;0 なら確保失敗
-	mov	[EMB_handle],dx		;EMBハンドルをセーブ
+	mov	[EMB_handle], dx	;EMBハンドルをセーブ
+	mov	[EMB_handle_valid], ax	;EMB handle is valid
 
 	jmp	lock_EMB	;確保したメモリのロック
 %endif
@@ -602,6 +611,7 @@ proc1 get_EMB_XMS30
 	test	ax,ax			;ax = 0?
 	jz	get_EMB_failed		;0 なら確保失敗
 	mov	[EMB_handle],dx		;EMBハンドルをセーブ
+	mov	[EMB_handle_valid], ax	;EMB handle is valid
 
 ;------------------------------------------------------------------------------
 ;●確保した拡張メモリのロック と 拡張メモリの初期情報設定
@@ -1250,20 +1260,22 @@ proc2 before_exit_16
 %endif
 
 proc1 .free_EMB
-	mov	dx,[EMB_handle]	;dx = EMBハンドル
-	test	dx,dx		;ハンドルの値確認
-	jz	.ret		;0 ならば ret
-	mov	w [EMB_handle], 0
+	mov	ax, [EMB_handle_valid]
+	test	ax, ax
+	jz	.ret
 
-	mov	ah,0dh		;EMB のロック解除
-	call	far [XMS_entry]	;XMS call
+	mov	w [EMB_handle_valid], 0
 
-	mov	ah,0ah		;EMB の開放
-	call	far [XMS_entry]	;XMS call
-	test	ax,ax		;ax = 0 ?
-	jnz	.ret		;non 0 なら jmp
+	mov	dx,[EMB_handle]	;dx = EMB handle
+	mov	ah,0dh		;unlock EMB
+	call	far [XMS_entry]
 
-	PRINT16	err_xms_free	;「メモリ開放失敗」
+	mov	ah,0ah		;free EMB
+	call	far [XMS_entry]
+	test	ax,ax		;ax = 0?
+	jnz	.ret
+
+	PRINT16	err_xms_free
 .ret:
 	ret
 
