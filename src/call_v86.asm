@@ -218,7 +218,7 @@ proc4 call_V86_clear_stack
 	; jmp to real mode
 	;--------------------------------------------------
 proc4 .jmp_to_real_mode
-	LIDT	[RM_LIDT_data]
+	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
 	and	eax,07ffffffeh		;PG=PE=0
@@ -289,6 +289,10 @@ proc4 .jmp_from_real_mode
 BITS	32
 proc4 .ret_PM_from_real_mode
 	lldt	cs:[to_PM_LDTR]
+	xor	eax,eax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
 
 proc4 .ret_PM
 	mov	ax, F386_ds
@@ -477,12 +481,12 @@ proc4 .ret_PM_from_real_mode
 	lldt	cs:[to_PM_LDTR]
 
 proc4 .in_PM
-	mov	eax,F386_ds
-	mov	 ds,ax
-	mov	 es,ax
-	mov	 fs,ax
-	mov	 gs,ax
-	lss	esp,[cf32_esp]		;load stack // same V86 stack
+	mov	eax, F386_ds
+	mov	 ds, ax
+	mov	 es, ax
+	mov	 fs, ax
+	mov	 gs, ax
+	lss	esp, [cf32_esp]		;load stack // same V86 stack
 
 	pop	esi
 	pop	eax
@@ -527,14 +531,14 @@ proc4 .jmp_to_real_mode
 	mov	[cf32_esp], eax		;V86 esp
 	pop	d [cf32_ss_32]		;V86 ss
 
-	LIDT	[RM_LIDT_data]
+	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
 	and	eax,07ffffffeh		;PG=PE=0
 	mov	cr0,eax
 
 	db	0eah			;far jmp
-	dw	offset .in_real_mode	;
+	dw	offset .ret_real_mode	;
 .rseg	dw	0000h			;segment
 	%ifdef PATCH_UNZ_BUG
 .rsegu	dw	0000h
@@ -542,7 +546,7 @@ proc4 .jmp_to_real_mode
 
 ;--------------------------------------------------------------------
 BITS	16
-proc4 .in_real_mode
+proc4 .ret_real_mode
 	mov	ss,  cs:[cf32_ss_32]
 	mov	esp, cs:[cf32_esp]
 
@@ -669,7 +673,7 @@ proc4 call32_from_V86
 	cmp	b [use_vcpi], 0
 	jz	.jmp_from_real_mode
 
-	mov	d [to_PM_EIP], offset .in_32	; jmp to
+	mov	d [to_PM_EIP], offset .in_PM	; jmp to
 	mov	esi, [to_PM_data_ladr]
 	mov	ax,0de0ch
 	int	67h				; VCPI call
@@ -691,7 +695,7 @@ BITS	32
 proc4 .ret_PM_from_real_mode
 	lldt	cs:[to_PM_LDTR]
 
-proc4 .in_32
+proc4 .in_PM
 	lss	esp, cs:[cf32_esp]
 	mov	 ds, cs:[cf32_ds]
 	mov	 es, cs:[cf32_es]
@@ -744,14 +748,14 @@ proc4 .in_32
 	call 	far [VCPI_entry]	;VCPI far call
 
 proc4 .jmp_to_real_mode
-	LIDT	[RM_LIDT_data]
+	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
 	and	eax,07ffffffeh		;PG=PE=0
 	mov	cr0,eax
 
 	db	0eah			;far jmp
-	dw	offset .in_real_mode	;
+	dw	offset .ret_real_mode	;
 .rseg	dw	0000h			;segment
 	%ifdef PATCH_UNZ_BUG
 .rsegu	dw	0000h
@@ -759,7 +763,7 @@ proc4 .jmp_to_real_mode
 
 ;--------------------------------------------------------------------
 BITS	16
-proc4 .in_real_mode
+proc4 .ret_real_mode
 	mov	ax, cs
 	mov	ds, ax
 
