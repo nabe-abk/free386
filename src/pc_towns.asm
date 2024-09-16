@@ -107,10 +107,10 @@ proc4 init_CoCo
 	mov	ax, 0c207h
 	int	8eh
 
+	mov	b [init_CoCo], 1
+.fail:
 	ret
 
-.fail:
-	mov	b [load_nsdd], 0
 	ret
 
 
@@ -126,8 +126,12 @@ proc4 init_TOWNS_32
 	jz	.skip
 	mov	ebx,offset T_OS_memory_map_386sx
 .skip:
-	call	map_memory			;
+	call	map_memory
+	jnc	.success
+	mov	ah, 17		; not enough page table memory
+	jmp	error_exit_32
 
+.success:
 	mov	esi,offset T_OS_selector_alias	;エイリアスの作成
 	call	make_aliases			;
 
@@ -143,8 +147,7 @@ proc4 init_TOWNS_32
 	mov	esi,ebx			;esi = address
 
 	mov	dx,3b98h		;T-BIOS サイズ読み出し
-	call	TOWNS_CMOS_READ		;ebx <- READ
-	dec	ebx			;ebx = limit
+	call	TOWNS_CMOS_READ		;ebx = size
 
 	;/// セレクタ作成 //////
 	mov	edi,[work_adr]		;ワークメモリ
@@ -178,7 +181,7 @@ proc4 init_TOWNS_32
 	;------------------------------------------
 	;wakeup NSDD
 	;------------------------------------------
-	cmp	b [load_nsdd], 0
+	cmp	b [init_CoCo], 0
 	je	short .no_nsdd
 
 	mov	ebx,[LDT_adr]
@@ -187,6 +190,7 @@ proc4 init_TOWNS_32
 	mov	[ebx + 14h + 1], al
 
 	call	wakeup_nsdd
+	mov	b [loaded_nsdd], 1
 
 	mov	ebx,[LDT_adr]
 	xor	al, al
@@ -313,10 +317,10 @@ proc4 exit_TOWNS_32
 	;------------------------------------------
 	;NSDD 終了処理
 	;------------------------------------------
-	cmp	b [load_nsdd], 0
+	cmp	b [loaded_nsdd], 0
 	je	short .no_nsdd
 
-	mov	b [load_nsdd], 0	;再入防止
+	mov	b [loaded_nsdd], 0	;再入防止
 	call	sleep_nsdd		;NSDドライバを停止させる
 .no_nsdd:
 
@@ -584,7 +588,7 @@ BITS	16
 ;exit process for TOWNS on 16bit mode
 ;==============================================================================
 proc4 exit_TOWNS_16
-	cmp	b [load_nsdd], 0
+	cmp	b [init_CoCo], 0
 	jz	short .no_nsdd
 	;
 	; [clear] real mode to 32bit mode far call routine
@@ -785,6 +789,8 @@ global	load_nsdd
 
 is_emulator	db	0
 load_nsdd	db	1
+init_coco	db	0
+loaded_nsdd	db	0
 
 	align	2
 xms_handle_num	dw	0
@@ -815,19 +821,18 @@ TOWNS_PAL_layer1:	;コンソール (文字) 画面
 ;==============================================================================
 	align	4
 T_OS_memory_map:
-		;sel, base     ,  pages -1, type/level
-	;dd	 3ch,        0,       0   , 0000h	;dummy
-	dd	100h,0fffc0000h,  256/4 -1, 0a00h	;R/X : boot-ROM
-	;dd	108h,0fffc0000h,  256/4 -1, 0000h	;R   : boot-ROM
-	dd	120h, 80000000h,  512/4 -1, 0200h	;R/W : VRAM (16/32k)
-	dd	128h, 80100000h,  512/4 -1, 0200h	;R/W : VRAM (256)
-	dd	130h, 81000000h,  128/4 -1, 0200h	;R/W : Sprite-RAM
-	dd	138h,0c2100000h,  264/4 -1, 0200h	;R/W : FONT-ROM,学習RAM
-	dd	140h,0c2200000h,    4/4 -1, 0200h	;R/W : Wave-RAM
-	dd	148h,0c2000000h,  512/4 -1, 0000h	;R   : OS-ROM
-	dd	11ch, 82000000h, 8704/4 -1, 0200h	;R/W : H-VRAM / 2 layer
-	dd	124h, 83000000h, 1024/4 -1, 0200h	;R/W : H-VRAM / 1 layer
-	dd	12ch, 84000000h, 1024/4 -1, 0200h	;R/W : VRAM??
+		;sel, base     ,  pages, type/level
+	dd	100h,0fffc0000h,  256/4, 0a00h	;R/X : boot-ROM
+	;dd	108h,0fffc0000h,  256/4, 0000h	;R   : boot-ROM
+	dd	120h, 80000000h,  512/4, 0200h	;R/W : VRAM (16/32k)
+	dd	128h, 80100000h,  512/4, 0200h	;R/W : VRAM (256)
+	dd	130h, 81000000h,  128/4, 0200h	;R/W : Sprite-RAM
+	dd	138h,0c2100000h,  264/4, 0200h	;R/W : FONT-ROM,学習RAM
+	dd	140h,0c2200000h,    4/4, 0200h	;R/W : Wave-RAM
+	dd	148h,0c2000000h,  512/4, 0000h	;R   : OS-ROM
+	dd	11ch, 82000000h, 8704/4, 0200h	;R/W : H-VRAM / 2 layer
+	dd	124h, 83000000h, 1024/4, 0200h	;R/W : H-VRAM / 1 layer
+	dd	12ch, 84000000h, 1024/4, 0200h	;R/W : VRAM??
 	dd	0	;end of data
 	;
 	; "11ch" is separate VRAM mapped "0.0MB to 0.5MB" and "8.0MB to 8.5MB".
@@ -835,15 +840,15 @@ T_OS_memory_map:
 	;
 	align	4
 T_OS_memory_map_386sx:
-		;sel, base     ,  pages -1, type/level
-	dd	100h, 00fc0000h,  256/4 -1, 0a00h	;R/X : boot-ROM
-	;dd	108h, 00fc0000h,  256/4 -1, 0000h	;R   : boot-ROM
-	dd	120h, 00a00000h,  512/4 -1, 0200h	;R/W : VRAM (16/32k)
-	dd	128h, 00b00000h,  512/4 -1, 0200h	;R/W : VRAM (256)
-	dd	130h, 00c00000h,  128/4 -1, 0200h	;R/W : Sprite-RAM
-	dd	138h, 00f00000h,  264/4 -1, 0200h	;R/W : FONT-ROM,学習RAM
-	dd	140h, 00f80000h,    4/4 -1, 0200h	;R/W : Wave-RAM
-	dd	148h, 00e00000h,  512/4 -1, 0000h	;R   : OS-ROM
+		;sel, base     ,  pages, type/level
+	dd	100h, 00fc0000h,  256/4, 0a00h	;R/X : boot-ROM
+	;dd	108h, 00fc0000h,  256/4, 0000h	;R   : boot-ROM
+	dd	120h, 00a00000h,  512/4, 0200h	;R/W : VRAM (16/32k)
+	dd	128h, 00b00000h,  512/4, 0200h	;R/W : VRAM (256)
+	dd	130h, 00c00000h,  128/4, 0200h	;R/W : Sprite-RAM
+	dd	138h, 00f00000h,  264/4, 0200h	;R/W : FONT-ROM,学習RAM
+	dd	140h, 00f80000h,    4/4, 0200h	;R/W : Wave-RAM
+	dd	148h, 00e00000h,  512/4, 0000h	;R   : OS-ROM
 	dd	0	; Special thanks to @RyuTakegami
 
 	align	4

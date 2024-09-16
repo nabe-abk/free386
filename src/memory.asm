@@ -148,7 +148,7 @@ proc2 init_dos_malloc
 ;		 cl = error code (for allocation failure)
 ;	out	edi = liner address
 ;
-proc2 dos_malloc_page
+proc2 malloc_dos_page
 	cmp	[DOS_mem_pages], ax
 	jb	.error
 

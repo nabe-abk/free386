@@ -4,6 +4,7 @@ Ver 0.91 - 2024-09-13
 ===============================================================================
 
 - Support non VCPI enviroment (exclude DOS general purpose binary).
+- Add memory management system.
 - [TOWNS] Support TownsOS (not require XMS/VCPI).
 - Fix: Improper management of free linear address (int 21h 48h/250Ah and more).
 - Fix: in V86, 32bit interrupt will crash if ESP's upper 16 bits are non-zero.

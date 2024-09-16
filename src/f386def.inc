@@ -106,7 +106,7 @@ CPU_Fault	equ	0fdh	; CPU fault        error code
 WORK_size	equ	200h	; Universal work size, min 200h
 
 GP_BUFFERS	equ	4	; number of general purpose buffers, max 32
-GP_BUFFER_SIZE	equ	400h	; 1KB
+GP_BUFFER_SIZE	equ	200h	; 512 byte, min 100h
 
 V86_stack_size	equ	 200h	; byte
 PM_stack_size	equ	 300h	; byte

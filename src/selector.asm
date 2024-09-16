@@ -14,9 +14,9 @@ seg32	text32 class=CODE align=4 use32
 ;******************************************************************************
 ; IN	eax = selector
 ;	[edi]	dword	base offset
-;	[edi+4]	dword	limit (20bit, byte)
+;	[edi+4]	dword	size (byte or page)
 ;	[edi+8]	byte	DPL (0-3)
-;	[edi+9]	byte	selector type (0-15)
+;	[edi+9]	byte	selector type (0-15), bit4 = AVL bit
 ;
 ; supprot only 32bit meomory selector.
 ;
@@ -46,7 +46,11 @@ proc4 do_make_selector
 	and	eax, 0fff8h
 	add	ebx, eax	;ebx = target selector pointer
 
-	mov	eax, [edi+4]	;eax = limit
+	mov	eax, [edi+4]	;eax = size
+	test	eax, eax	;size is zero
+	jz	.skip
+	dec	eax
+.skip:
 	mov	[ebx], ax	;save bit0-15
 	and	eax,0f0000h	;eax = limit bit16-19
 
@@ -57,6 +61,10 @@ proc4 do_make_selector
 	or	eax, ecx	;eax bit24-31 <= base bit24-31
 
 	mov	cx, [edi+8]	;cl=DPL, ch=type
+	bt	ecx,12		;cy=AVL
+	jnc	.skip2
+	bts	eax,20		;set AVL bit
+.skip2:
 	and	ch, 0fh		;type mask
 	and	cl, 3		;DPL
 	shl	cl, 5		;bit5-6 = DPL
@@ -74,265 +82,86 @@ proc4 do_make_selector
 	ret
 
 ;------------------------------------------------------------------------------
-;●物理メモリを指定リニアアドレスに配置する
+; map memory with phisical address
 ;------------------------------------------------------------------------------
-;	esi = 張りつけ先リニアアドレス (4KB Unit)
-;	edx = 張りつける物理アドレス   (4KB Unit)
-;	ecx = 張りつけるページ数
+; IN	esi = linear address   (4KB Unit)
+;	edx = phisical address (4KB Unit)
+;	ecx = pages
 ;
-;	Ret	Cy = 0 成功
-;		Cy = 1 ページテーブルが足りない
+; Ret	Cy = 0 success
+;	Cy = 1 fail
 ;
-proc4 set_physical_mem
-	test	ecx,ecx		;割りつけページ数が 0
-	jz	.ret		;何もせず ret
-
+proc4 set_physical_memory
 	pusha
 	push	es
-	mov	eax,ALLMEM_sel		;全メモリアクセスセレクタ
-	mov	  es,ax			;es にロード
-	or	 dl,7			;ページの bit0-2 = 存在, R/W, Level 0-3
+
+	push	ALLMEM_sel
+	pop	es
+
+	test	ecx,ecx
+	jz	.success
+					;esi = linear address, ecx = pages
+	call	prepare_map_linear_adr	;allocate page table
+	jc	.not_enough_memory
+
+	;---------------------------------------------------
+	; prepare allocate
+	;---------------------------------------------------
+	mov	ebx, esi
+	shr	ebx, 10
+	and	ebx, 0ffch		; page table offset
+
+	shr	esi, 20
+	and	esi, 0ffch		; esi = offset of page directory
+	add	esi, [page_dir_ladr]	; esi = page directory entry
+	mov	eax, es:[esi]		; load
+	test	al, 1			; P bit
+	jz	.error
+	and	eax, 0fffff000h		; eax = page table linear address
+	add	ebx, eax		; ebx = page table entry
+
+	;---------------------------------------------------
+	; allocate loop
+	;---------------------------------------------------
+	or	dl, 7			;edx = page table entry
 	mov	ebp,1000h		;const
-	jmp	short .next_page_table	;ループスタート
-
-	align	4
-.loop_start:
-	;edi = page table top
-	and	edi,0xfffff000		;table dir entry
-	mov	ebx,esi			;linear address
-	shr	ebx,10
-	and	ebx,0xffc
-	or	edi,ebx
-	mov	eax,0fffh		;const
-	jmp	.lp0
-
-	align	4
-	;/// main loop ////////////////////////////
-	; ecx = 張りつけるページ数
-	; edx = 張りつける物理メモリ
-	; edi = リニアアドレスに対応したページエントリのアドレス
-	; esi = リニアアドレス
 .loop:
-	test	edi,eax	;=0fffh		;if オフセットが 0 に戻ったら
-	jz	short .next_page_table	;  新たなページテーブル作成 (jmp)
+	mov	es:[ebx], edx		;page entry
+	add	edx, ebp		;edx = next phisical address
 
-.lp0:	mov	[es:edi],edx		;ページをエントリ
-	add	edi,byte 4		;テーブル内オフセット
-	add	edx,ebp ;=1000h		;物理アドレス       + 4K
-	add	esi,ebp ;=1000h		;張りつけ先アドレス + 4K
+	; counter check
+	dec	ecx
+	jz	.success
 
-	loop	.loop			;割りつけページ数分、ループ
-	;///////////////////////////// end loop ///
-	pop	es
-	popa
-.ret:	clc
-	ret
+	; next page table address
+	add	ebx, 4
+	test	ebx, 0fffh
+	jnz	.loop
 
-	align	4
-.next_page_table:
-	; must save reg : ecx,edx,esi
-	mov	ebx,esi			;ebx = 張りつけ先リニアアドレス
-	shr	ebx,20			;bit 31-20
-	and	 bl, 0fch		;bit 21,20 のクリア
-	add	ebx,[page_dir_ladr]	;page dir
-	mov	edi,[es:ebx]		;リニアアドレスを参照
-	test	edi,edi			;if entry != 0 （テーブルが存在する）
-	jnz	short .loop_start	;  jmp
+	; load next page table entry
+	add	esi, 4
+	mov	ebx, es:[esi]		; load
+	test	bl, 1			; P bit
+	jz	.error
+	and	ebx, 0fffff000h		; ebx = page table linear address
+	jmp	.loop
 
-	;/// 新たなページテーブルの作成 ///
-	mov	eax,[free_RAM_pages]	;空き物理メモリ先頭
-	test	eax,eax			;値確認
-	jz	.no_free_memory		;0 なら jmp
-	dec	eax			;残りページ数を減算
-	mov	[free_RAM_pages],eax	;値を記録
-
-	;/// new entry 'page table' to 'page dir' ///
-	mov	eax,[free_RAM_padr]	;空き物理メモリ先頭
-	mov	edi,eax			;ediにsave
-	or	 al,7			;page entry
-	mov	[es:ebx],eax		;entry
-	add	eax,ebp	;=1000h		;4KB step
-	xor	 al,al			;下位bit clear
-	mov	[free_RAM_padr],eax	;空き物理メモリ
-
-	;/// zero clear 張りつけたテーブルを0クリアする ///
-	push	ecx
-	push	edi
-	;
-	mov	ecx,1000h /4		;塗りつぶし回数
-	xor	eax,eax			;0 クリア
-	rep	stosd			;塗りつぶし
-	;
-	pop	edi
-	pop	ecx
-	jmp	.loop_start
-
-
-.no_free_memory:	;ページテーブル作成のためのメモリが不足
-	pop	es
-	popa
-	stc			;キャリーセット
-	ret
-
-
-;------------------------------------------------------------------------------
-;●DOS RAM アロケーション
-;------------------------------------------------------------------------------
-;	ecx = 最大貼りつけページ数
-;
-;	Ret	Cy = 0 成功
-;			eax = 割り当てたページ数
-;			esi = 割り当て先頭リニアアドレス
-;		Cy = 1 ページテーブルが足りない (esi破壊)
-;
-proc4 alloc_DOS_mem
-	push	ebx
-	push	ecx
-	push	edx
-
-	mov	esi,[free_linear_adr]	;割りつけ先アドレス
-	mov	eax,[DOS_mem_pages]
-	test	eax,eax
-	jz	.no_mapping		;DOSメモリなし
-	test	ecx,ecx
-	jz	.no_mapping		;要求=0
-
-	cmp	eax,ecx			;空きページ数 - 要求ページ数
-	jae	.enough
-	mov	ecx,eax			;足りなければ、あるだけ貼り付け
-.enough:
-	mov	edx,[DOS_mem_ladr]	;DOSメモリ
-	call	set_physical_mem	;メモリ割り当て
-	jc	.not_enough_page_table	;メモリ不足エラー
-
-	sub	[DOS_mem_pages]  ,ecx	;空きメモリページ数減算
-	mov	eax, ecx
-	shl	ecx, 12			;byte 単位へ
-	add	[DOS_mem_ladr]   ,ecx	;空きDOSメモリ
-	add	[free_linear_adr],ecx	;空きメモリアドレス更新
-
+.success:
 	clc
 .exit:
-	pop	edx
-	pop	ecx
-	pop	ebx
+	pop	es
+	popa
 	ret
 
-.no_mapping:
-	xor	eax, eax
-	clc
-	jmp	short .exit
-
-.not_enough_page_table:
+.error:
+.not_enough_memory:
 	stc
-	jmp	short .exit
-
-
-;------------------------------------------------------------------------------
-;●RAM アロケーション
-;------------------------------------------------------------------------------
-;	ecx = 貼りつけるページ数
-;
-;	Ret	Cy = 0 成功
-;			esi = 割り当て先頭リニアアドレス
-;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
-;
-proc4 alloc_RAM
-	push	eax
-	push	ebx
-	push	ecx
-	push	edx
-
-	mov	esi, [free_linear_adr]	;割りつけ先アドレス
-	test	ecx, ecx
-	jz	.no_alloc
-
-	call	get_maxalloc_with_adr	;eax = 最大割り当て可能メモリページ数
-					;ebx = ページテーブル用に必要なページ数
-
-	cmp	eax,ecx			;空きページ数 - 要求ページ数
-	jb	.no_free_memory		;小さければメモリ不足
-
-	mov	edx,[free_RAM_padr]	;空き物理メモリ
-	shl	ebx,12			;ページテーブル用に必要なメモリ(byte)
-	add	edx,ebx			;割りつける物理メモリをずらす
-	call	set_physical_mem	;メモリ割り当て
-	jc	.no_free_memory		;メモリ不足エラー
-
-	sub	[free_RAM_pages],ecx	;空きメモリページ数減算
-	shl	ecx,12			;byte 単位へ
-	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
-
-	add	esi, ecx		;空きメモリアドレス更新
-	mov	[free_linear_adr], esi	;空きアドレス更新
-
-.no_alloc:
-	clc		;キャリークリア
-.exit:
-	pop	edx
-	pop	ecx
-	pop	ebx
-	pop	eax
-	ret
-
-	;ページテーブル作成のためのメモリが不足
-.no_free_memory:
-	stc
-	jmp	short .exit
+	jmp	.exit
 
 ;------------------------------------------------------------------------------
-;●RAM アロケーション
+; create selector with memory mapping table
 ;------------------------------------------------------------------------------
-;	esi = 貼り付ける先リニアアドレス
-;	ecx = 貼りつけるページ数
-;
-;	Ret	Cy = 0 成功
-;			esi = 割り当て後リニアアドレス = esi + ecx*4KB
-;		Cy = 1 ページテーブルまたはメモリが足りない (esi破壊)
-;
-proc4 alloc_RAM_with_ladr
-	push	eax
-	push	ebx
-	push	ecx
-	push	edx
-
-	test	ecx,ecx
-	jz	.no_alloc
-
-	call	get_maxalloc_with_adr	;eax = 最大割り当て可能メモリページ数
-					;ebx = ページテーブル用に必要なページ数
-	cmp	eax,ecx			;空きページ数 - 要求ページ数
-	jb	.no_free_memory		;小さければメモリ不足
-
-	mov	edx,[free_RAM_padr]	;空き物理メモリ
-	shl	ebx,12			;ページテーブル用に必要なメモリ(byte)
-	add	edx,ebx			;割りつける物理メモリをずらす
-	call	set_physical_mem	;メモリ割り当て
-	jc	.no_free_memory		;メモリ不足エラー
-
-	sub	[free_RAM_pages],ecx	;空きメモリページ数減算
-	shl	ecx,12			;byte 単位へ
-	add	[free_RAM_padr] ,ecx	;空き物理メモリをずらす
-
-.no_alloc:
-	clc		;キャリークリア
-.exit:
-	pop	edx
-	pop	ecx
-	pop	ebx
-	pop	eax
-	ret
-
-	;ページテーブル作成のためのメモリが不足
-.no_free_memory:
-	stc
-	jmp	short .exit
-
-
-;------------------------------------------------------------------------------
-;●テーブルを読み出し、物理メモリを配置しセレクタを作成する
-;------------------------------------------------------------------------------
-;引数	ds:ebx メモリマッピングテーブル
+; IN	ds:[ebx]	memory mapping table
 ;
 proc4 map_memory
 	mov	eax,[ebx]		;作成するメモリセレクタ
@@ -343,7 +172,8 @@ proc4 map_memory
 	mov	ecx,[ebx + 08h]		;ecx = 張りつけるページ数 -1
 	mov	esi,edx			;esi = 張りつけ先リニアアドレス
 	inc	ecx			;+1 する
-	call	set_physical_mem	;物理メモリの配置
+	call	set_physical_memory	;物理メモリの配置
+	jc	.error
 
 	lea	edi,[ebx + 4]		;セレクタ作成構造体
 	call	make_selector_4k	;eax=作成するセレクタ  edi=構造体
@@ -351,83 +181,439 @@ proc4 map_memory
 	add	ebx,byte 10h		;アドレス更新
 	jmp	short map_memory	;ループ
 
-.exit:	ret
+.exit:	clc
+	ret
 
+.error:
+	stc
+	ret
 
 ;------------------------------------------------------------------------------
-;●セレクタのエイリアスを作成する
+; make alias selector
 ;------------------------------------------------------------------------------
-;引数	ds:esi	エイリアステーブル
+; IN	ebx	original selector
+;	ecx	alias selector
+;	al	DPL, selector level(0-3)
+;	ah	selector type (0-15)
 ;
-proc4 make_aliases
-	;esi = エイリアステーブル
-	mov	ebx,[esi  ]		;コピー元  セレクタ値
-	mov	ecx,[esi+4]		;コピーするセレクタ値
-	mov	eax,[esi+8]		;seg type
-	test	ebx,ebx			;値確認
-	jz	.ret
-	call	make_alias		;別名作成
-
-	add	esi,byte 0ch		;アドレス更新
-	jmp	short make_aliases	;ループ
-.ret:	ret
-
-
 proc4 make_alias
-	;-----------------------------------------------------
-	;●エイリアス作成  ebx -> ecx, ah=type, al=level
-	;-----------------------------------------------------
-	push	eax
-	mov	eax,ebx			;eax = セレクタ値
-	call	sel2adr			;Ret ebx:アドレス
-	mov	edx,ebx			;edx : コピー元アドレス
-	mov	eax,ecx			;eax
-	call	sel2adr			;ebx : コピー先アドレス
+	push	edx
+	push	ecx
+	push	ebx
+	push	eax	; keep top
 
-	;edx -> ebx
-	mov	eax,[edx  ]		;コピー元
-	mov	[ebx  ],eax		;コピー先
+	mov	eax, ebx		;eax = from
+	call	get_selector_info_adr
+	mov	edx, ebx		;edx = from address
+	mov	eax, ecx		;eax = to
+	call	get_selector_info_adr	;ebx = to address
+
+	mov	eax, [edx]		;copy
+	mov	[ebx],eax		;copy
+
+	;ah=type, al=level
+	mov	eax, [esp]
+
+	mov	ecx, [edx+4]		;load
+	and	ch,90h			;bit 7,4
+	shl	al,5			;level bit5-6
+	or	ch, al			;set level
+	or	ch, ah			;set type
+	mov	[ebx+4], ecx		;save
 
 	pop	eax
-	;ah=type, al=level
+	pop	ebx
+	pop	ecx
+	pop	edx
+	ret
 
-	mov	ecx,[edx+4]		;コピー元
-	and	ch,90h			;bit 7,4 のみ取り出す
-	shl	al,5			;level bit 6-5
-	or	ch,al			;level の値を混ぜる
-	or	ch,ah			;type の値を混ぜる
-	mov	[ebx+4],ecx		;
+;------------------------------------------------------------------------------
+; make alias selector by table
+;------------------------------------------------------------------------------
+; IN	ds:[esi]	alias infomation table
+;
+proc4 make_aliases
+	push	eax
+	push	ebx
+	push	ecx
+	push	esi
+.loop:
+	mov	ebx,[esi  ]		;copy from
+	mov	ecx,[esi+4]		;copy to
+	mov	eax,[esi+8]		;selector type
+
+	test	ebx,ebx
+	jz	.exit
+	call	make_alias		;別名作成
+
+	add	esi, 0ch
+	jmp	.loop
+.exit:
+	pop	esi
+	pop	ecx
+	pop	ebx
+	pop	eax
+	ret
+
+;##############################################################################
+; free memory management
+;##############################################################################
+;------------------------------------------------------------------------------
+; regist free memory block
+;------------------------------------------------------------------------------
+; IN	ebx	free memory phisical address
+;	edx	free memory pages
+;
+proc4 regist_free_memory
+	pusha
+	push	es
+
+	test	edx, edx
+	jz	.ret
+
+	les	edi, [freeRAM_bm_ladr]
+	test	edi, edi
+	jnz	.store_free_memory
+
+	call	.init_bitmap
+	jc	.ret
+	test	edx, edx
+	jz	.ret
+
+proc1 .store_free_memory
+	add	[freeRAM_pages], edx
+	shr	ebx, 12			; unit pages
+	mov	ecx, edx
+.lp:
+	bts	es:[edi], ebx
+	inc	ebx
+	loop	.lp
+
+.ret:
+	pop	es
+	popa
 	ret
 
 
-;==============================================================================
-;●サブルーチン
-;==============================================================================
+proc4 .init_bitmap
+	mov	eax, [all_mem_pages]
+	shr	eax, 4			; eax = total bitmap size (byte)
+
+	add	eax, 0fffh		;
+	shr	eax, 12			; bitmap need pages
+
+	sub	edx, eax		; pages - bitmap pages
+	jb	.init_error
+
+	; regist bitmap
+	mov	[freeRAM_bm_ladr], ebx
+	shl	eax, 12			; bytes
+	mov	[freeRAM_bm_size], eax
+	add	ebx, eax		; update ebx
+
+	; clear bitmap
+	les	edi, [freeRAM_bm_ladr]
+	push	edi
+	mov	ecx, eax
+	shr	ecx, 2
+	xor	eax, eax
+	rep	stosd
+	pop	edi
+
+	clc
+	ret
+
+.init_error:
+	stc
+	ret
+
 ;------------------------------------------------------------------------------
-;・最大割り当て可能メモリ量取得
+; allocate phisical RAM
 ;------------------------------------------------------------------------------
-;Ret	eax = 最大割り当て可能メモリページ数
+; IN	ecx = allocation pages
+;	esi = allocate to linear address
 ;
-proc4 get_maxalloc
+; Ret	Cy = 0 success
+;	Cy = 1 fail
+;
+proc4 allocate_RAM
+	pusha
+	push	es
+
+	push	ALLMEM_sel
+	pop	es
+
+	;---------------------------------------------------
+	; check
+	;---------------------------------------------------
+	test	ecx, ecx
+	jz	.success
+
+	call	get_max_alloc_pages	;eax = maximum allcatable pages
+	cmp	eax, ecx
+	jb	.not_enough_memory
+
+	call	prepare_map_linear_adr	;allocate page tables
+	jc	.not_enough_memory
+
+	;---------------------------------------------------
+	; prepare allocate
+	;---------------------------------------------------
+	sub	[freeRAM_pages], ecx
+
+	mov	ebx, esi
+	shr	ebx, 10
+	and	ebx, 0ffch		; page table offset
+
+	shr	esi, 20
+	and	esi, 0ffch		; esi = offset of page directory
+	add	esi, [page_dir_ladr]	; esi = page directory entry
+	mov	eax, es:[esi]		; load
+	test	al, 1			; P bit
+	jz	.error
+	and	eax, 0fffff000h		; eax = page table linear address
+	add	ebx, eax		; ebx = page table entry
+
+	;---------------------------------------------------
+	; allocate loop
+	;---------------------------------------------------
+	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
+	xor	ebp, ebp
+.loop:
+	inc	ebp
+	btr	es:[edi], ebp
+	jnc	.loop
+
+	; found free memory
+	mov	eax, ebp
+	shl	eax, 12			;eax = free RAM address
+	or	 al, 7			;page table entry bits
+	mov	es:[ebx], eax		;entry
+
+	; counter check
+	dec	ecx
+	jz	.success
+
+	; next page table address
+	add	ebx, 4
+	test	ebx, 0fffh
+	jnz	.loop
+
+	; load next page table entry
+	add	esi, 4
+	mov	ebx, es:[esi]		; load
+	test	bl, 1			; P bit
+	jz	.error
+	and	ebx, 0fffff000h		; ebx = page table linear address
+	jmp	.loop
+
+.success:
+	clc		;キャリークリア
+.exit:
+	pop	es
+	popa
+	ret
+
+.error:
+.not_enough_memory:
+	stc
+	jmp	short .exit
+
+;------------------------------------------------------------------------------
+; free phisical RAM
+;------------------------------------------------------------------------------
+; IN	ecx = free pages
+;	esi = start linear address
+;
+; Ret	Cy = 0 success
+;	Cy = 1 fail
+;
+proc4 free_RAM
+	pusha
+	push	es
+
+	push	ALLMEM_sel
+	pop	es
+
+	test	ecx, ecx
+	jz	.success
+
+	mov	ebx, esi
+	shr	ebx, 10
+	and	ebx, 0ffch		; page table offset
+
+	shr	esi, 20
+	and	esi, 0ffch		; esi = offset of page directory
+	add	esi, [page_dir_ladr]	; esi = page directory entry
+	mov	eax, es:[esi]		; load
+	test	al, 1			; P bit
+	jz	.error
+	and	eax, 0fffff000h		; eax = page table linear address
+	add	ebx, eax		; ebx = page table entry
+
+	;---------------------------------------------------
+	; allocate loop
+	;---------------------------------------------------
+	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
+	xor	edx, edx		;edx = collection counter
+	xor	ebp, ebp		;ebp = zero
+.loop:
+	mov	eax, es:[ebx]		;load page table entry
+	test	 al, 1			;check P bit
+	jz	.skip
+
+	mov	es:[ebx], ebp		;clear page table
+
+	;collection phisical memory
+	shr	eax, 12			;eax = phisical page number
+	bts	es:[edi], eax		;set free RAM bitmap flag
+	inc	edx			;collection counter
+.skip
+	; counter check
+	dec	ecx
+	jz	.loop_end
+
+	; next page table address
+	add	ebx, 4
+	test	ebx, 0fffh
+	jnz	.loop
+
+	; load next page table entry
+	add	esi, 4
+	mov	ebx, es:[esi]		; load
+	test	bl, 1			; P bit
+	jz	.error
+	and	ebx, 0fffff000h		; ebx = page table linear address
+	jmp	.loop
+
+.loop_end:
+	add	[freeRAM_pages], edx
+	mov	eax, cr3
+	mov	cr3, eax		; page cache clear
+
+.success:
+	clc
+.exit:
+	pop	es
+	popa
+	ret
+
+.error:
+	stc
+	jmp	.exit
+
+;------------------------------------------------------------------------------
+; allocate page table for linear address mapping
+;------------------------------------------------------------------------------
+; IN	ecx = mapping pages
+;	esi = linear address
+;
+; Ret	Cy = 0 success
+;	Cy = 1 fail
+;
+proc4 prepare_map_linear_adr
 	push	ecx
+	push	esi
 
-	mov	eax, [free_RAM_pages]	;残り物理ページ数ロード
-	mov	ecx, eax		;
-	add	ecx, 000003ffh		;繰り上げ処理をして 1024 で除算
-	shr	ecx, 10			;ecx = ページテーブルに必要なページ数
-	sub	eax,ecx			;残りページ数 - ページテーブル用メモリ
+.loop:
+	call	allocate_page_table
+	jc	.exit		; error
 
+	add	esi, 400000h	; one table is 400000h offset width
+	sub	ecx, 1024	; one table is 1024 entry
+	jae	.loop
+
+	; start: esi = 100000h, ecx = 600h
+	;  next: esi = 500000h, ecx = 200h
+	;  exit: esi = 900000h, ecx = -200h
+	shl	ecx, 12			; page to offset, (ex)-200000h
+	add	esi, ecx		; (ex) esi = 700000h
+	call	allocate_page_table
+
+	clc
+.exit:
+	pop	esi
 	pop	ecx
 	ret
 
 ;------------------------------------------------------------------------------
-;・最大割り当て可能メモリ量取得
+; allocate page table
 ;------------------------------------------------------------------------------
-;IN	esi = ベースアドレス
-;Ret	eax = 最大割り当て可能メモリページ数
-;	ebx = ページテーブル用に必要なページ数
+; IN	esi = allocate page table for this linear address
 ;
-proc4 get_maxalloc_with_adr
+; Ret	Cy = 0 success
+;	Cy = 1 fail
+;
+proc4 allocate_page_table
+	push	eax
+	push	ecx
+	push	edi
+	push	esi
+	push	es
+
+	push	ALLMEM_sel
+	pop	es
+
+	mov	eax, [freeRAM_pages]
+	test	eax, eax
+	jz	.fail
+
+	shr	esi, 20			;
+	and	esi, 0ffch		;esi = page dir offset
+	add	esi, [page_dir_ladr]	;esi = page table entry address
+	test	b es:[esi], 1		;check P bit
+	jnz	.exists
+
+	dec	eax
+	mov	[freeRAM_pages], eax
+
+	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
+	xor	eax, eax
+
+.lp:
+	inc	eax
+	bt	es:[edi], eax
+	jnc	.lp			; find free RAM page
+	btr	es:[edi], eax		; store '0' bit
+	shl	eax, 12			; eax = phisical address
+
+	; page table zero clear
+	push	eax
+	cld
+	mov	edi, eax
+	xor	eax, eax
+	mov	ecx, 1000h / 4
+	rep	stosd
+	pop	eax
+
+	or	 al, 7			; page entry (P, R/W, U/S bit)
+	mov	es:[esi], eax		; regist page table
+
+.exists:
+	clc
+.exit:
+	pop	es
+	pop	esi
+	pop	edi
+	pop	ecx
+	pop	eax
+	ret
+
+.fail:
+	stc
+	jmp	.exit
+
+;##############################################################################
+; subrotine
+;##############################################################################
+;------------------------------------------------------------------------------
+; get maximum allcatable memory
+;------------------------------------------------------------------------------
+; IN	esi = base linear address
+; Ret	eax = maximum pages
+;
+proc4 get_max_alloc_pages
+	push	ebx
 	push	ecx
 	push	es
 
@@ -450,7 +636,7 @@ proc4 get_maxalloc_with_adr
 	sub	ecx, eax		;ecx = ページテーブ割当済、ページエントリ数
 
 .step:
-	mov	eax, [free_RAM_pages]	;残り物理ページ数ロード
+	mov	eax, [freeRAM_pages]	;残り物理ページ数ロード
 	mov	ebx, eax		;
 	sub	ebx, ecx		;ページテーブルの要らないエントリ数を引く
 	add	ebx, 000003ffh		;繰り上げ処理をして 1024 で除算
@@ -459,72 +645,112 @@ proc4 get_maxalloc_with_adr
 
 	pop	es
 	pop	ecx
-	ret
-
-
-;------------------------------------------------------------------------------
-;・指定セレクタの最後尾リニアアドレス取得
-;------------------------------------------------------------------------------
-;IN	eax = セレクタ
-;Ret	eax = セレクタ最後尾のリニアアドレス
-;
-proc4 get_selector_last
-	push	ebx
-	push	ecx
-	push	edx
-
-	mov	edx,eax		;セレクタ値保存
-	call	sel2adr		;ディスクリプタアドレスに変換 ->ebx
-
-	mov	ecx,[ebx+4]  	;bit 31-24
-	mov	eax,[ebx+2]	;bit 23-0
-	and	ecx,0ff000000h	;マスク
-	and	eax, 00ffffffh	;
-	or	eax,ecx		;値合成
-
-	lsl	ecx,edx		;ecx = リミット値
-	inc	ecx		;ecx = サイズ
-	add	eax,ecx		;eax = セレクタ最後尾リニアアドレス
-
-	pop	edx
-	pop	ecx
 	pop	ebx
 	ret
 
-
 ;------------------------------------------------------------------------------
-;・セレクタ値→ディスクリプタのアドレス変換
+; get selector infomation address
 ;------------------------------------------------------------------------------
-;	IN	eax = セレクタ値
-;	Ret	ebx = アドレス。セレクタ不正時は ebx=0
-;		eax 以外は値保存
+; IN	eax = selector
+;	 ds = any
 ;
-proc4 sel2adr
-	mov	ebx,[cs:GDT_adr]	;GDT へのポインタ
-	test	eax,4		 	;セレクタ値の bit 2 ?
-	jz	short .GDT	 	; if 0 jmp
+; Ret	ebx = selector address
+;
+proc4 get_selector_info_adr
+	mov	ebx, cs:[LDT_adr]
+	test	 al, 4
+	jnz	.skip
+	mov	ebx, cs:[GDT_adr]
+.skip:
+	push	eax
+	and	 al, 0f8h	;clear bit0-2
+	add	ebx, eax	;add
+	pop	eax
 
-	mov	ebx,[cs:LDT_adr] 	;LDT へのポインタ
-	cmp	eax,LDTsize
-	ja	short .fail
-	jmp	.success
-.GDT:
-	cmp	eax,GDTsize
-	ja	short .fail
-.success:
-	and	al,0f8h			;bit 2-0 クリア
-	add	ebx,eax			;加算
-	ret
-.fail:
-	xor	ebx,ebx
 	ret
 
 ;------------------------------------------------------------------------------
-;・LDT内の空きセレクタ検索
+; get selector infomation address and base linear address
 ;------------------------------------------------------------------------------
-;	IN	(ds = F386_ds であること)
-;	Ret	eax = 空きセレクタ (Cy=0)
-;		    = 0 失敗       (Cy=1)
+; IN	eax = selector
+;	 ds = any
+;
+; Ret	ebx = selector info address
+;	esi = selector base address
+;
+proc4 get_selector_base_ladr
+	call	get_selector_info_adr
+
+	push	eax
+	mov	esi, cs:[ebx+2]	;bit 0-23
+	mov	eax, cs:[ebx+4]	;bit 24-31
+	and	esi, 000ffffffh
+	and	eax, 0ff000000h
+	or	esi, eax	;composite
+	pop	eax
+
+	ret
+
+;------------------------------------------------------------------------------
+; get selector linear address of end
+;------------------------------------------------------------------------------
+; IN	eax = selector
+; Ret	esi = end of linear address +1
+;
+proc4 get_selector_end_ladr
+	push	ebx
+
+	call	get_selector_base_ladr	;ebx = selector info adr
+					;esi = selector base adr
+
+	lsl	ebx, eax		;ebx = limit
+	inc	ebx			;ebx = size
+	add	esi, ebx		;eax = end of linear address +1
+
+	pop	ebx
+	ret
+
+;------------------------------------------------------------------------------
+; set selector limit with selector information address
+;------------------------------------------------------------------------------
+; IN	ebx = selector info address
+;	ecx = new size [page]
+;
+proc4 set_selector_limit_iadr
+	push	eax
+	push	ecx
+
+	test	ecx, ecx
+	jnz	.non_zero
+
+	; ecx is zero
+	mov	[ebx], cx	;limit  bit0-15
+	and	b [ebx+6], 70h	;clear G bit and limit bit16-19
+	jmp	.end
+
+.non_zero:
+	dec	ecx		;size to limit
+
+	mov	[ebx], cx	;limit  bit0-15
+	shr	ecx, 16		;ecx = limit16-19
+	mov	al, [ebx+6]
+	and	al, 70h		;keep other bits
+	and	cl, 0fh		;limit bit16-19
+	or	al, cl		;mix
+	or	al, 80h		;Force G bit (4K unit limit)
+	mov	[ebx+6], al	;rewrite
+
+.end:	pop	ecx
+	pop	eax
+	ret
+
+;------------------------------------------------------------------------------
+; search free selector in LDT
+;------------------------------------------------------------------------------
+; Ret	Cy = 0 Success
+;		eax = free selctor
+;	Cy = 1 Fail
+;		eax = 0
 ;
 proc4 search_free_LDTsel
 	push	ebx
@@ -558,9 +784,9 @@ proc4 search_free_LDTsel
 	ret
 
 ;------------------------------------------------------------------------------
-;・全てのデータセレクタのリロード
+; reload all selector
 ;------------------------------------------------------------------------------
-proc4 selector_reload
+proc4 reload_all_selector
 	push	ds
 	push	es
 	push	fs
@@ -597,25 +823,22 @@ proc4 regist_managed_LDTsel
 	ret
 
 ;------------------------------------------------------------------------------
-; remove managed  LDT selector
+; search managed LDT selector
 ;------------------------------------------------------------------------------
 ; IN	ax = selector
+; Ret	Cy = 0 Found
+;	Cy = 1 Not found
 ;
-; RET	cy = 0	removed
-;	cy = 1	not found
-;
-proc4 remove_managed_LDTsel
-	push	eax
-	push	ebx
-	push	ecx
-	push	edx
+proc4 search_managed_LDTsel
+	pusha
+	call	do_search_managed_LDTsel
+	popa
+	ret
 
-	test	ax, ax
-	jz	.not_found
-
+proc4 do_search_managed_LDTsel		; call from remove_managed_LDTsel
 	mov	edx, [managed_LDTsels]
 	mov	ebx, managed_LDTsel_list
-	xor	ecx ,ecx
+	xor	ecx, ecx
 .loop:
 	cmp	[ebx + ecx*2], ax
 	je	.found
@@ -625,10 +848,28 @@ proc4 remove_managed_LDTsel
 
 .not_found:
 	stc
-	pop	edx
-	pop	ecx
-	pop	ebx
-	pop	eax
+	ret
+
+.found:
+	clc
+	ret
+
+;------------------------------------------------------------------------------
+; remove managed  LDT selector
+;------------------------------------------------------------------------------
+; IN	ax = selector
+;
+; RET	cy = 0	removed
+;	cy = 1	not found
+;
+proc4 remove_managed_LDTsel
+	pusha
+
+	call	do_search_managed_LDTsel
+	jnc	.found
+
+	;stc	;Cy is setted
+	popa
 	ret
 
 .found:
@@ -638,18 +879,15 @@ proc4 remove_managed_LDTsel
 	mov	[managed_LDTsels], edx
 
 	clc
-	pop	edx
-	pop	ecx
-	pop	ebx
-	pop	eax
+	popa
 	ret
 
 ;------------------------------------------------------------------------------
-; Update free linear address
+; get free linear address to create a new selector.
 ;------------------------------------------------------------------------------
-; Find a free linear address to create a new selector.
+; Ret	esi = free linear address
 ;
-proc4 update_free_linear_adr
+proc4 get_free_linear_adr
 	pusha
 
 	mov	eax, ALLMEM_sel
@@ -678,7 +916,7 @@ proc4 update_free_linear_adr
 	and	eax, 0ff000000h
 	or	eax, edx		; eax = base
 
-	cmp	eax, 040000000h		; ignore system mapping?
+	cmp	eax, 040000000h		; 1GB / ignore system mapping?
 	ja	.loop
 
 	add	eax, ebp		; base + size
@@ -691,20 +929,110 @@ proc4 update_free_linear_adr
 .exit:
 	add	edi, LADR_ROOM_size + (LADR_UNIT -1)	;
 	and	edi, 0ffffffffh     - (LADR_UNIT -1)	;
-	mov	[free_linear_adr], edi			; update
+
+	mov	ebp, 1000000h		; minimum 16MB
+	cmp	edi, ebp
+	jae	.skip
+	mov	edi, ebp
+.skip:
+	mov	[esp +4], edi				; esi
 
 	popa
 	ret
 
+;------------------------------------------------------------------------------
+; rewrite managed LDT selector's limit
+;------------------------------------------------------------------------------
+; IN	ecx = new page size
+;	esi = selector base address
+;
+proc4 rewrite_managed_LDTsels_limit
+	pusha
+
+	mov	ebp, esi		; selector base address
+	mov	edx, managed_LDTsel_list
+	xor	eax, eax
+.loop:
+	mov	ax, [edx]
+	add	edx, 2
+	test	eax, eax
+	jz	.exit
+
+	; eax = selector
+	call	get_selector_base_ladr	; ebx=selector info, esi=base
+	cmp	esi, ebp		; compare base address
+	jne	.loop
+
+	; found original or alias
+	; ebx = selector info address
+	; ecx = new page size
+	call	set_selector_limit_iadr
+	jmp	.loop
+
+.exit:
+	popa
+	ret
+
+;------------------------------------------------------------------------------
+; get phisical address
+;------------------------------------------------------------------------------
+; IN	ebx = linear address
+;	 ds = any
+; Ret	 Cy = 0 Success
+;		ecx = phisical address
+;	 Cy = 1 Fail
+;
+proc4 get_phisical_address
+	push	eax
+	push	es
+
+	push	ALLMEM_sel
+	pop	es
+
+	mov	ecx, ebx		;ecx = linear address
+	shr	ecx, 20			;ecx = bit20-31
+	and	 cl, 0fch
+	add	ecx, cs:[page_dir_ladr]
+	mov	ecx, es:[ecx]		;ecx = page table info
+	test	 cl, 1			;P bit
+	jz	.error
+
+	mov	eax, ebx		;ecx = linear address
+	shr	eax, 10			;ecx = bit 10-31
+	and	eax, 0ffch		;clear bit 10-11 and 22-31
+	and	ecx, 0fffff000h		;ecx = page table linear address
+	mov	ecx, es:[ecx+eax]	;ecx = target page info
+	test	 cl, 1			;P bit
+	jz	.error			;if 0 jmp
+
+	mov	eax, ebx		;ecx = linear address
+	and	eax,      0fffh		;bit 11-0
+	and	ecx, 0fffff000h		;ecx = phisical address bit 12-31
+	or	ecx, eax
+
+	clc
+.exit:	pop	es
+	pop	eax
+	ret
+.error:
+	stc
+	jmp	.exit
 
 ;//////////////////////////////////////////////////////////////////////////////
 ; DATA
 ;//////////////////////////////////////////////////////////////////////////////
 segdata	data class=DATA align=4
 
-global	managed_LDTsels
-global	managed_LDTsel_list
+global freeRAM_bm_ladr
+global freeRAM_bm_size
 
+;------------------------------------------------------------------------------
+freeRAM_bm_size	dd	0		; bitmap size
+freeRAM_pages	dd	0		; free phisical memory pages
+freeRAM_bm_ladr	dd	0		; free phisical memory bitmap address
+		dw	ALLMEM_sel
+
+	align	4
 managed_LDTsels	dd	0
 managed_LDTsel_list:			; managed LDT selector list
 %rep	(LDTsize/8)

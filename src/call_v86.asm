@@ -472,12 +472,12 @@ proc4 .jmp_from_real_mode
 	mov	cr0, eax
 
 	db	0eah			;＝far jmp
-	dw	offset .ret_PM_from_real_mode
+	dw	offset .in_PM_from_real_mode
 	dw	F386_cs
 
 ;--------------------------------------------------------------------
 BITS	32
-proc4 .ret_PM_from_real_mode
+proc4 .in_PM_from_real_mode
 	lldt	cs:[to_PM_LDTR]
 
 proc4 .in_PM
@@ -687,12 +687,12 @@ proc4 .jmp_from_real_mode
 	mov	cr0, eax
 
 	db	0eah			;＝far jmp
-	dw	offset .ret_PM_from_real_mode
+	dw	offset .in_PM_from_real_mode
 	dw	F386_cs
 
 ;--------------------------------------------------------------------
 BITS	32
-proc4 .ret_PM_from_real_mode
+proc4 .in_PM_from_real_mode
 	lldt	cs:[to_PM_LDTR]
 
 proc4 .in_PM

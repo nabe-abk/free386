@@ -50,28 +50,21 @@ BITS	32
 ;★PC-98x1 の初期設定
 ;==============================================================================
 proc4 init_PC98_32
-	mov	eax,[free_linear_adr]	;空きリニアアドレス
-	mov	ebx,0x1000000		;16MB
-	cmp	eax,ebx
-	ja	.liner_adr_ok		;16MB未満なら
-	mov	[free_linear_adr],ebx	;16MBに引き上げ
-.liner_adr_ok:
-
 	;; 16 色 VRAM をリニアアドレス上に連続に張り付け
 	mov	esi, VRAM_16padr	;張り付け先リニアアドレス = RGB GVRAM
 	mov	edx, 0000A8000h		;張り付ける物理アドレス
 	mov	ecx, 24			;ページ数
-	call	set_physical_mem
+	call	set_physical_memory
 	
 	mov	esi, VRAM_16padr + 24*4096	;A
 	mov	edx, 0000E0000h
 	mov	ecx, 8
-	call	set_physical_mem
+	call	set_physical_memory
 	
 	mov	eax, 0120h			;リニアアドレスのマップ
 	mov	edi,[work_adr]			;ワーク
 	mov	d [edi  ],VRAM_16padr		;リニアアドレス
-	mov	d [edi+4],32-1			;32*4 = 128 KB
+	mov	d [edi+4],32			;32*4 = 128 KB
 	mov	d [edi+8],0200h			;R/W
 	call	make_selector_4k
 	
@@ -79,12 +72,12 @@ proc4 init_PC98_32
 	mov	esi, VRAM_CGW		;張り付け先リニアアドレス = RGB GVRAM
 	mov	edx, 0000A4000h		;張り付ける物理アドレス
 	mov	ecx, 1			;ページ数
-	call	set_physical_mem
+	call	set_physical_memory
 	
 	mov	eax, 0138h			;リニアアドレスのマップ
 	mov	edi,[work_adr]			;ワーク
 	mov	d [edi  ],VRAM_CGW		;リニアアドレス
-	mov	d [edi+4],1-0			;1*4 = 4 KB
+	mov	d [edi+4],1			;1*4 = 4 KB
 	mov	d [edi+8],0200h			;R/W
 	call	make_selector_4k
 	
@@ -93,12 +86,12 @@ proc4 init_PC98_32
 	mov	esi, VRAM_TEXT		;張り付け先リニアアドレス = RGB GVRAM
 	mov	edx, 0000A0000h		;張り付ける物理アドレス
 	mov	ecx, 4			;ページ数
-	call	set_physical_mem
+	call	set_physical_memory
 	
 	mov	eax, 0130h			;リニアアドレスのマップ
 	mov	edi,[work_adr]			;ワーク
 	mov	d [edi  ],VRAM_TEXT		;リニアアドレス
-	mov	d [edi+4],4-1			;4*4 = 16 KB
+	mov	d [edi+4],4			;4*4 = 16 KB
 	mov	d [edi+8],0200h			;R/W
 	call	make_selector_4k
 	
@@ -107,6 +100,11 @@ proc4 init_PC98_32
 	
 	mov	ebx,offset PC98_memory_map	;物理アドレスのマップ
 	call	map_memory			;
+	jnc	.success
+
+	mov	ah, 17		; not enough page table memory
+	jmp	error_exit_32
+.success:
 
 	;; エイリアス作成
 
@@ -223,11 +221,11 @@ segdata	data class=DATA align=4
 
 	align	4
 PC98_memory_map:
-		;sel, base     , pages -1, type
-	dd	128h, 0fff00000h, 512/4 -1, 0200h	;R/W : VRAM (256c)
-;	dd	160h, 020000000h, 4096/4 -1, 0200h	;R/W : VRAM (TGUI vram)
-;	dd	168h, 020400000h, 64/4 -1, 0200h	;R/W : VRAM (TGUI mmio)
-;	dd	170h, 020800000h, 4096/4 -1, 0200h	;R/W : VRAM (TGUI vram)
+		;sel, base     ,  pages,  type
+	dd	128h, 0fff00000h, 512/4,  0200h	;R/W : VRAM (256c)
+;	dd	160h, 020000000h, 4096/4, 0200h	;R/W : VRAM (TGUI vram)
+;	dd	168h, 020400000h, 64/4,   0200h	;R/W : VRAM (TGUI mmio)
+;	dd	170h, 020800000h, 4096/4, 0200h	;R/W : VRAM (TGUI vram)
 	dd	0	;end of data
 
 	align	4

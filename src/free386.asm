@@ -26,9 +26,7 @@
 global		GDT_adr
 global		LDT_adr
 global		page_dir_ladr
-global		free_linear_adr
-global		free_RAM_padr
-global		free_RAM_pages
+global		all_mem_pages
 
 ;--- for call_v86.asm -----------------------------
 global		to_PM_EIP
@@ -77,7 +75,6 @@ global		top_ladr
 global		end_adr
 global		work_adr
 
-global		all_mem_pages
 global		cpu_is_386sx
 global		msg_all_mem_type
 
@@ -472,7 +469,7 @@ proc1 memory_setting
 	jb	.cb_skip
 	mov	eax, 0ffffh
 .cb_skip:
-	mov	cl, 12			;error code: 'CALL buufer allocation failed'
+	mov	cl, 12			;error code: 'Buffer allocation failed'
 	mov	[call_buf_size], eax
 	call	heap_malloc
 
@@ -481,23 +478,25 @@ proc1 memory_setting
 	mov	[call_buf_adr32], di	; offset
 
 	;//////////////////////////////////////////////////
-	; Universal buffer
+	; GP buffer
 	;//////////////////////////////////////////////////
-	mov	cl, 12			;error code for heap_malloc
-	mov	ax, WORK_size
-	call	heap_malloc
-	mov	[work_adr],di
-
-	mov	cx, GP_BUFFERS
 	mov	si, offset gp_buffer_table
 .gp_loop:
 	mov	ax, GP_BUFFER_SIZE
 	call	heap_malloc
 	mov	[si], di	; save
 	add	si, 4
-	loop	.gp_loop
+	cmp	si, gp_buffer_table + GP_BUFFERS*4
+	jb	.gp_loop
 
 	mov	b [gp_buffer_remain], GP_BUFFERS
+
+	;//////////////////////////////////////////////////
+	; Universal buffer
+	;//////////////////////////////////////////////////
+	mov	ax, WORK_size
+	call	heap_malloc
+	mov	[work_adr],di
 
 ;------------------------------------------------------------------------------
 ;●機種固有の初期化設定（メモリ設定済後、XMS直前）
@@ -673,7 +672,7 @@ proc1 estimate_all_mem_pages
 ;------------------------------------------------------------------------------
 ; alloc dos memory
 ;------------------------------------------------------------------------------
-	call	init_dos_malloc
+	call	init_dos_malloc		;memory.asm
 
 ;------------------------------------------------------------------------------
 ; alloc user call buffer
@@ -684,7 +683,7 @@ proc1 alloc_user_call_buffer
 	jz	.use_internal_buffer
 
 	mov	cl, 16			;error code: 'User call buffer allocation failed'
-	call	dos_malloc_page
+	call	malloc_dos_page
 
 	mov	[user_cbuf_ladr], eax	;linear address
 	shr	eax, 4
@@ -710,7 +709,7 @@ proc1 alloc_user_call_buffer
 proc1 init_page_directory
 	mov	ax,  2			;page dir + page table 0
 	mov	cl, 13			;error code: 'Page table allocation failed'
-	call	dos_malloc_page
+	call	malloc_dos_page
 
 	mov	[page_dir_ladr],eax	;page directory linear address
 	shr	eax, 4
@@ -740,55 +739,6 @@ proc1 init_page_directory
 	mov	[es:0],edx		;entry first page table
 
 	pop	es
-
-;------------------------------------------------------------------------------
-; alloc additional page table from DOS memory
-;------------------------------------------------------------------------------
-;	When more than 4MB of extended memory is used,
-;	additional page tables are required in DOS memory.
-;  拡張メモリが4MB以上使われている時、DOSメモリ内に追加ページテーブルが必要。
-;
-proc1 alloc_page_table
-	mov	eax, [EMB_physi_adr]	; free memory's phisical address
-	add	eax, 0fffh		; 4KB Unit
-	shr	eax, 22			; to need page tables
-	jz	.not_need
-
-	add	[page_tables_in_dos],ax	; count up
-	mov	bp, ax			; bp = need tables
-
-	mov	cl, 13			;error code: 'Page table allocation failed'
-	call	dos_malloc_page
-	mov	ecx, eax		; ecx = linear address
-	shr	ecx, 12			; byte to page
-
-	push	es
-	push	fs
-	mov	fs, [page_dir_seg]
-	xor	bx, bx
-.loop:
-	; cx = target linear adddress/4KB
-	call	get_phisical_address_of_page
-	mov	dl,07h			; address to table entry
-	add	bx, 4
-	mov	[fs:bx], edx		; entry to page directory
-
-	; clear page table
-	mov	dx, cx
-	shl	cx, 12-4		; PAGE to para
-	mov	es, cx
-	xor	di, di
-	mov	cx, 1000h / 4		; 4KB/4
-	xor	eax, eax
-	rep	stosd
-
-	inc	cx			; for loop
-	dec	bp
-	jnz	.loop
-
-	pop	fs
-	pop	es
-.not_need:
 
 ;------------------------------------------------------------------------------
 ;●DOS-Extender 環境の構築と変数の準備（V86 側）
@@ -834,7 +784,7 @@ proc1 init_first_page_table
 	loop	.lp
 
 	xor	bl, bl
-	mov	[free_linear_adr], ebx	; free linear address = 110000h
+	mov	[page_init_ladr], ebx	; init linear address = 110000h
 	jmp	.end
 
 
@@ -853,7 +803,7 @@ proc1 init_first_page_table
 .save:
 	mov	[VCPI_entry],ebx
 	shl	edi,(12-2)		; di = first unused page table entry in buffer
-	mov	[free_linear_adr],edi	;edi = free linear address
+	mov	[page_init_ladr],edi	;edi = init linear address
 .end:
 	pop	es
 
@@ -960,6 +910,7 @@ proc1 setup_LDT_IDT_TSS
 
 	;/// DOSメモリ/全メモリアクセス用セレクタ ///////////////////
 	mov	edx, [all_mem_pages]		;総メモリページ数
+	dec	edx
 
 	;リミット値設定
 	mov	w [di + DOSMEM_sel],(DOSMEMsize / 4096) -1

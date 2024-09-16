@@ -48,9 +48,9 @@ user_cbuf_adr16	dw	0		; offset
 user_cbuf_seg16	dw	0		; segment
 user_cbuf_ladr	dd	0		; linear address
 
-;--------------------------------------------------------------------
+;==============================================================================
 ; memory information
-;--------------------------------------------------------------------
+;==============================================================================
 	align	4
 safe_stack_adr	dd	0		;V86 モード切り換え時のみ
 		dw	F386_ds		;　使用するスタック
@@ -61,14 +61,14 @@ V86_cs		dw	0,0		;V86モード時 cs
 V86_sp		dw	0,0		;V86モード時 sp
 
 		align	4
-GDT_adr		dd	0		;GDT のオフセット
-LDT_adr		dd	0		;LDT のオフセット
-IDT_adr		dd	0		;IDT のオフセット
-TSS_adr		dd	0		;TSS のオフセット
+GDT_adr		dd	0
+LDT_adr		dd	0
+IDT_adr		dd	0
+TSS_adr		dd	0
 
-;--------------------------------------------------------------------
-;----- XMS 関連データ領域 -------------------------------------------
-;
+;==============================================================================
+; XMS
+;==============================================================================
 XMS_Ver		dd	0		;XMS のメジャー Version
 XMS_entry	dd	0		;XMS 呼び出しアドレス
 
@@ -79,24 +79,19 @@ EMB_pages	dd	0		;EMB サイズ(byte) / 4 KB (端数調整済)
 
 max_EMB_free	dd	0		;最大の EMB 空きメモリサイズ    (Kbyte)
 total_EMB_free	dd	0		;トータルの EMB 空きメモリサイズ(Kbyte)
-
-;--------------------------------------------------------------------
-;----- プロテクトメモリ管理情報 -------------------------------------
-free_linear_adr	dd	0		;未定義(未使用)リニアアドレス (最低位)
-free_RAM_padr	dd	0		;空き先頭物理RAMページアドレス
-free_RAM_pages	dd	0		;利用可能な物理RAMページ数 (4KB単位)
-
-	;以下 VCPI からと関連の濃いもの
 all_mem_pages	dd	0		;物理メモリ、総メモリページ数
-vcpi_mem_pages	dd	0		;VCPI の管理するメモリページ数
 
+;==============================================================================
+; page table
+;==============================================================================
 page_dir_ladr		dd	0	;page directory linear address
 page_dir_seg		dw	0,0	;page directory's dos segment
-page_tables_in_dos	dd	2	;Number of page tables in dos memory
 
-;--------------------------------------------------------------------
-;----- データ領域 ---------------------------------------------------
-;
+page_init_ladr		dd	0	;initalized page linear address
+
+;==============================================================================
+; other data
+;==============================================================================
 	align	4
 top_ladr	dd	0		;プログラム先頭リニアアドレス
 intr_mask_org	dw	0		;8259A オリジナル値バックアップ
@@ -104,8 +99,7 @@ intr_mask_org	dw	0		;8259A オリジナル値バックアップ
 DTA_off		dd	80h		;DTA 初期値
 DTA_seg		dw	PSP_sel1,0	;
 
-;----- データ領域２ -------------------------------------------------
-;
+;-----------------------------------------------------------
 	align	4
 LGDT_data	dw	GDTsize-1	;GDT リミット
 		dd	0		;    リニアアドレス
@@ -120,15 +114,13 @@ DOS_int24h_seg	dw	0		;
 VCPI_entry	dd	0		;VCPI サービスエントリ
 		dw	VCPI_sel	;VCPI セレクタ
 
-
-	;/// リアルモードベクタ設定用データ領域 ////////
 	align	4
 RVects_flag_tbl	resb	IntVectors/8	;書き換えフラグ テーブル
 RVects_save_adr	dd	0		;リアルモードベクタ保存のアドレス
 
-;--------------------------------------------------------------------
+;==============================================================================
 ; VCPI data
-;--------------------------------------------------------------------
+;==============================================================================
 	align	4
 to_PM_data_ladr	dd	0	; to_PM_data's linear address
 
@@ -169,9 +161,11 @@ msg_02	db	'	code and static	: 0100 - #### / cs=ds=####',13,10
 	db	'	GDT,LDT,IDT,TSS	: #### - #### - #### - #### - ####',13,10
 	db	'	call buffer     : #### - #### / ##### byte',13,10
 	db	'	general work mem: #### - ####',13,10
+	db	'	GP buffers      : #### - #### / ##### byte * ','0' + GP_BUFFERS,13,10
 	db	'	CPU switch stack: #### - #### / ##### byte * ','0' + SW_max_nest,13,10
 	db	'	safe,32,16 stack: #### - #### - #### - ffff',13,10
 	db	'	user call buffer: ####:#### - / ##### byte',13,10
+	db	'	free RAM bitmap : ####_#### - / ##### byte',13,10
 	db	'$'
 
 msg_05	db	'Load file name = $'
@@ -214,13 +208,14 @@ _e10	db	'VCPI: Failed to get phisical address of page',13,10,'$'
 
 ; error message for memory allocation
 _e11	db	'Memory allocation failed, not enough heap memory',13,10,'$'
-_e12	db	'CALL buffer allocation failed',13,10,'$'
+_e12	db	'Buffer allocation failed',13,10,'$'
 _e13	db	'Page table memory (real memory) allocation failed',13,10,'$'
 _e14	db	'Not enough stack for switch CPU mode',13,10,'$'
 _e15	db	'Failure to free stack memory for switch CPU mode',13,10,'$'
 
 _e16	db	'User call buufer allocation failed',13,10,'$'
-_e17_20	db	'$$$$'
+_e17	db	'Memory mapping failed. Not enough memory for page table.',13,10,'$'
+_e18_20	db	'$$$'
 
 ; error message for protect mode
 _e21	db	'Can not read executable file',13,10,'$'

@@ -729,17 +729,17 @@ proc4 load_exp
 	;
 	mov	ecx,[esi+74h]		;ecx = program image size
 	mov	eax,[esi+56h]		;eax = mindata
-	call	.calc_4Kmem_eax_ecx
+	mov	edx,ecx
+	call	.add_eax_ecx
 	mov	[5ch],eax		;save to PSP
 
 	mov	eax,[esi+5ah]		;eax = maxdata
-	call	.calc_4Kmem_eax_ecx
-	shr	eax,12			;4KB pages
+	call	.add_eax_ecx
 
 	push	esi
-	mov	ecx,eax			;ecx = allocation pages (max)
-	mov	esi,[esi+5eh]		;esi = base memory address
-	call	make_cs_ds		;
+	mov	ecx, eax		;ecx = request allocate byte
+	mov	esi, [esi+5eh]		;esi = read offset address
+	call	make_cs_ds
 	pop	esi
 	jc	.not_enough_memory	;error
 
@@ -840,16 +840,11 @@ proc4 load_exp
 	jmp	short .fclose_end	;ファイルをクローズしてから終了
 
 
-proc4 .calc_4Kmem_eax_ecx
-	; in eax + ecx
+proc4 .add_eax_ecx			; eax + ecx
 	add	eax, ecx
-	jc	.over
-.step:	add	eax,      0fffh		; round up 4KB
-	jc	.over
-	and	eax, 0fffff000h	
-	ret
-
-.over	mov	eax, 0fffff000h
+	jnc	.add_ret
+	mov	eax, 0ffffffffh
+.add_ret:
 	ret
 
 
@@ -897,21 +892,19 @@ proc4 .load_MZ_exp
 
 	or	eax, ebp	;eax = (512 byteブロック数)*512 + 511以下の端数
 	sub	eax, edx	;eax = ヘッダサイズを引く
-	mov	ebp, eax	;edi = load image size
-	add	eax, 000000fffh	;
-	and	eax, 0fffff000h	;eax = load image size (4KB unit)
+	mov	ebp, eax	;ebp = load image size
 
 	movzx	ebx,w [esi+0ah]	;+0A w "mindata / 4KB"
-	shl	ebx,12
+	shl	ebx, 12
 	add	ebx, eax	;minimum memory size (byte)
 	mov	[5ch], ebx
 
 	movzx	ecx,w [esi+0ch]	;+0C w "maxdata / 4KB"
-	shr	eax,12		;eax = load image pages
+	shl	ecx, 12		;ecx = max data size
 
 	push	esi
-	add	ecx,eax			;ecx = allocate max pages
-	xor	esi,esi			;esi = base offset address
+	add	ecx, eax		;ecx = allocate max memory(byte)
+	xor	esi, esi		;esi = read offset address
 	call	make_cs_ds
 	pop	esi
 	jc	.not_enough_memory	;エラーならメモリ不足
@@ -1149,117 +1142,103 @@ strl_lp_offsetc:	;ebx の 0 にループさせる
 ;======================================================================
 ;○プログラムをロードするセレクタを作成するサブルチーン
 ;======================================================================
-;引数	ecx	要求最大量(page)
-;	esi	読み込み先をずらす量(P3ヘッダ -offset オプション)
+; IN	ecx	requested maximum memory (byte)
+;	esi	read offset (P3 header "-offset" option)
 ;
-;Ret	Cy=0 成功
-;		実際の割り当て量(byte)を PSP の [60h] に記録
-;		Load_cs, Load_ds にロード用セレクタの cs/ds 記録
-;	Cy=1 失敗
+;Ret	Cy=0 Sucesss
+;		PSP [60h] allocated memory size (byte)
+;		set [Load_cs] and [Load_ds]
+;	Cy=1 Fail
 ;
 proc4 make_cs_ds
-	push	eax
-	push	ebx
-	push	ecx
-	push	edx
-	push	esi
-	push	ebp
+	pusha
+	;---------------------------------------------------
+	; calc need pages
+	;---------------------------------------------------
+	mov	eax, esi		;eax = read offset (byte)
+	and	eax, 0fffh		;mod 4K
+	add	ecx, eax		;add offset mod
+	jc	.over
+	add	ecx, 0fffh
+	jc	.over
+	jmp	.skip
+.over:	mov	ecx, 0fffff000h		;max
+.skip:	shr	ecx, 12			;ecx = pages
 
-	mov	ebp,[free_RAM_pages]	;空きメモリと比較
-	add	ebp,[DOS_mem_pages]	;DOSメモリ
+	;---------------------------------------------------
+	; get maximum pages
+	;---------------------------------------------------
+	mov	edx, esi		;edx = read offset (byte)
 
-	mov	[60h],esi		;save base offset
-	mov	edx,esi			;読み込みベース
-	shr	edx,12			;page単位のずれ / 下まで破壊しないこと
+	call	get_free_linear_adr	;esi = linear address
+	mov	ebp, esi		;ebp = linear address
+	add	esi, edx		;esi = allocate start liner address
+	and	esi, 0fffff000h		;unit page
+	call	get_max_alloc_pages	;IN: esi / Ret: eax
 
-	mov	eax,ecx			;割り当て要求量
-	add	eax,edx			;eax = 必要アドレス量
-	add	eax,3ffh		;端数切捨て
-	shr	eax,10			;eax = ページテーブル用に必要なメモリ
-	add	eax,ecx			;要求量のメモリを作成するに必要なメモリ
-	cmp	eax,ebp ;=free_pages	;空きメモリと比較
-	jbe	.do_alloc		;足りればメモリ割り当てへjmp
+	movzx	ebx,b [pool_for_paging]	;pool memory pages
+	sub	eax, ebx		;reserved
+	ja	.pool_ok
+	add	eax, ebx		;not reserve
+.pool_ok:
+	cmp	ecx, eax		;request - max
+	jbe	.enough_memory
+	mov	ecx, eax		;allocate maximum pages
+.enough_memory:
 
-.alloc_all:	;全空きメモリ割り当て
-	mov	ecx,ebp ;=free_pages	;空きメモリをロード
-	movzx	eax,b [pool_for_paging]	;プールメモリ数
-	sub	ecx,eax			;予約メモリページ数を引く
-	ja	.mem_pool		;0 以上なら jmp
-	add	ecx,eax			;値を元に戻す(プールしない)
-.mem_pool:
-	mov	eax,ecx			;全空きページ数
-	add	eax,edx			;アドレスずれ分のアドレス量
-	add	eax,3ffh		;端数切上げ
-	shr	eax,10			;eax = ページテーブル用に必要なメモリ
-	sub	ecx,eax			;空きページ数から引く
-	jb	.no_memory		;マイナスならエラー
+	; ecx = allocate pages
+	; esi = allocate start liner address
+	call	allocate_RAM
+	jc	.not_enough_memory
 
-proc1 .do_alloc
-	call	update_free_linear_adr
-	mov	ebp, [free_linear_adr]	;貼り付け先アドレスを保存
-	push	esi
-	and	esi, 0xfffff000		;ずらし量
-	add	esi, ebp		;空きリニアアドレスに加算
-	mov	[free_linear_adr], esi	;ずらす
-	pop	esi
+	; calc selector pages
+	mov	eax, edx		;eax = read offset
+	shr	eax, 12			;eax = offset pages
+	add	ecx, eax		;ecx = selector pages
 
-	push	ecx
-	call	alloc_DOS_mem		;DOSメモリを先頭に割り当て
-	pop	ecx
-	jc	.no_memory		;エラーjmp
+	; save to PSP
+	mov	eax, ecx
+	shl	eax, 12			;eax = selector size (byte)
+	sub	eax, edx		; - read offset
+	mov	[60h], eax		;save to PSP
 
-	push	ecx
-	sub	ecx, eax		;割り当て済ページ数を引く
-	call	alloc_RAM		;メモリ割り当て
-	pop	ecx		; ecxはまだ使う
-	jc	.no_memory		;エラーjmp
+	;---------------------------------------------------
+	; create selector cs/ds
+	;---------------------------------------------------
+	call	search_free_LDTsel	;eax = selector
+	jc	.error
+	mov	[Load_cs], eax
 
-	;セレクタ作成
-	call	search_free_LDTsel	;eax = 空きセレクタ
-	jc	.no_selector		;if エラー jmp
-	mov	[Load_cs],eax		;セレクタ値記録
+	mov	edi, [work_adr]
+	mov	[edi  ], ebp		;base linear address
+	mov	[edi+4], ecx		;size
+	mov	w [edi+8],1a00h		;R/X 386, AVL=1
 
-	mov	edi,[work_adr]		;edi ワークアドレス
-	add	ecx,edx			;オフセットのずれを加算
-	dec	ecx			;page数 -1
-	mov	[edi  ],ebp		;ベース
-	mov	[edi+4],ecx		;limit
-	mov	d [edi+8],0a00h		;R/X タイプ / 特権レベル=0
+	call	make_selector_4k	;eax = selector, edi = structure
+	call	regist_managed_LDTsel
+	mov	ebx, eax
 
-	mov	esi, [60h]		;load base offset
-	inc	ecx			;ecx = サイズ (page)
+	;create ds
+	call	search_free_LDTsel
+	jc	.error
+	mov	[Load_ds], eax
+	call	regist_managed_LDTsel
 
-	shl	ecx, 12			;ecx = サイズ (byte)
-	sub	ecx, esi		;ベースオフセットを引く
-	mov	[60h],ecx		;PSP 領域に記録
-	call	make_selector_4k	;メモリセレクタ作成 edi=構造体 eax=sel
-	call	regist_managed_LDTsel	;管理セレクタとして登録
-
-	;ds 作成
-	call	search_free_LDTsel	;eax = 空きセレクタ
-	jc	.no_selector		;if エラー jmp
-	mov	[Load_ds],eax		;セレクタ値記録
-
-	mov	ebx,[Load_cs]		;コピー元
-	mov	ecx,eax			;コピー先
-	mov	 ax,0200h		;R/W タイプ / 特権レベル=0
-	call	make_alias		;エイリアス作成
-	call	regist_managed_LDTsel	;管理セレクタとして登録
+	;mov	ebx, [Load_cs]		;copy from
+	mov	ecx, eax		;copy to
+	mov	 ax,0200h		;R/W
+	call	make_alias
 
 	clc				;正常終了
 .exit:
-	pop	ebp
-	pop	esi
-	pop	edx
-	pop	ecx
-	pop	ebx
-	pop	eax
+	popa
 	ret
 
-.no_memory:
-.no_selector:
+.error:
+.not_enough_memory:
 	stc
-	jmp	.exit
+	popa
+	ret
 
 
 ;=============================================================================

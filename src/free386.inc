@@ -5,11 +5,8 @@
 ;--- for selector.asm ------------------------------
 extern		GDT_adr
 extern		LDT_adr
-extern		IDT_adr
 extern		page_dir_ladr
-extern		free_linear_adr
-extern		free_RAM_padr
-extern		free_RAM_pages
+extern		all_mem_pages
 
 ;--- for call_v86.asm -----------------------------
 extern		to_PM_EIP
@@ -59,6 +56,5 @@ extern		end_adr
 extern		work_adr
 
 ; for pc_*.asm
-extern		all_mem_pages
 extern		cpu_is_386sx
 extern		msg_all_mem_type

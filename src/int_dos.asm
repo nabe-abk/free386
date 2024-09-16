@@ -412,6 +412,7 @@ proc4 int_21h_0ah
 	pushad
 	push	es
 	push	ds
+	cld
 
 	push	F386_ds
 	pop	ds
@@ -587,7 +588,7 @@ proc4 int_21h_3fh
 	set_cy
 	iret
 .skip:
-
+	cld
 	push	edx
 	push	esi
 	push	edi
@@ -690,6 +691,7 @@ proc4 int_21h_40h
 	set_cy
 	iret
 .skip:
+	cld
 	push	edx
 	push	esi
 	push	edi
@@ -861,6 +863,7 @@ proc4 int_21h_4eh
 	push	esi
 	push	edi
 	push	ecx
+	cld
 
 	push	F386_ds
 	pop	ds
@@ -896,6 +899,7 @@ proc4 int_21h_4fh
 	push	esi
 	push	edi
 	push	ecx
+	cld
 
 	push	F386_ds
 	pop	ds

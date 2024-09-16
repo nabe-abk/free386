@@ -2,7 +2,7 @@
 ASM   = 00_nasm.bat
 ASMOP = -f obj
 LINK  = 00_link.bat
-LINKOP= -offset 2000h -maxdata 8000h
+LINKOP= -offset 1e00h -maxdata 2100h
 
 all: fault.exp
 

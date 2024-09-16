@@ -42,7 +42,11 @@ BITS	32
 proc4 init_AT_32
 	mov	ebx,offset AT_memory_map	;メモリのマップ
 	call	map_memory			;
+	jnc	.success
+	mov	ah, 17		; not enough page table memory
+	jmp	error_exit_32
 
+.success:
 	mov	esi,offset AT_selector_alias	;エイリアスの作成
 	call	make_aliases			;
 
@@ -109,14 +113,16 @@ AT_VESA30_alloc:
 	mov	[VESA_PMIB],edi		;プロテクトモード構造体の offset
 
 	mov	ecx,64/4 +1 +VESA_buf_size	;64KB + 4KB + buf のメモリ
-	call	alloc_RAM			;メモリアロケーション
-	jc	.exit				;エラーなら exit
+
+	call	get_free_linear_adr	;esi = linear address
+	call	allocate_RAM		;ecx = pages
+	jc	.exit			;エラーなら exit
 
 	mov	edi,[work_adr]		;ワークアドレスロード
 
 	;/// VESA 呼び出し時のワーク ///
 	mov	d [edi  ],esi		;ベースアドレス
-	mov	d [edi+4],VESA_buf_size	;limit値
+	mov	d [edi+4],VESA_buf_size	;size
 	mov	d [edi+8],0200h		;R/X / 特権レベル=0
 	mov	eax,VESA_buf_sel	;VESA buffer segment
 	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
@@ -124,8 +130,8 @@ AT_VESA30_alloc:
 	;/// VESA Code Selector ////////
 	add	esi,(VESA_buf_size+1)*1000h	;4KB 余分にずらす
 	mov	d [edi  ],esi		;ベースアドレス
-	mov	d [edi+4],0ffffh	;limit値 64KB (32KB ではダメ)
-	mov	d [edi+8],1a00h		;R/X 286 / 特権レベル=0
+	mov	d [edi+4],10000h	;size 64KB (32KB ではダメ)
+	mov	d [edi+8], 1a00h	;R/X 286 / 特権レベル=0
 	mov	eax,VESA_cs		;VESA code segment
 	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
 
@@ -138,7 +144,7 @@ AT_VESA30_alloc:
 	sub	esi,1000h		;4KB戻す
 	mov	edi,[work_adr]		;ワークアドレスロード
 	mov	d [edi  ],esi		;ベースアドレス
-	mov	d [edi+4],0		;limit値 (4KB)
+	mov	d [edi+4],1		;size (4KB)
 	mov	d [edi+8],0200h		;R/W / 特権レベル=0
 	mov	eax,VESA_ds2		;VESA data segment
 	call	make_selector_4k		;メモリセレクタ作成 edi=構造体 eax=sel
@@ -298,12 +304,12 @@ segdata	data class=DATA align=4
 
 	align	4
 AT_memory_map:
-		; sel  ,  base     ,     pages -1, type/level
-	dd	100h   , 0ffff0000h,      64/4 -1, 0a00h ;R/X boot-ROM
-	dd	VESA_A0,    0a0000h,      64/4 -1, 0200h ;R/W for VESA 3.0
-	dd	VESA_B0,    0b0000h,      64/4 -1, 0200h ;R/W for VESA 3.0
-	dd	VESA_B8,    0b8000h,      32/4 -1, 0200h ;R/W for VESA 3.0
-	dd	VRAM_sel, VRAM_padr, VRAM_pages-1, 0200h ;R/W VRAM
+		; sel  ,  base     ,     pages, type/level
+	dd	100h   , 0ffff0000h,      64/4, 0a00h ;R/X boot-ROM
+	dd	VESA_A0,    0a0000h,      64/4, 0200h ;R/W for VESA 3.0
+	dd	VESA_B0,    0b0000h,      64/4, 0200h ;R/W for VESA 3.0
+	dd	VESA_B8,    0b8000h,      32/4, 0200h ;R/W for VESA 3.0
+	dd	VRAM_sel, VRAM_padr,VRAM_pages, 0200h ;R/W VRAM
 	dd	0	;end of data
 
 	align	4

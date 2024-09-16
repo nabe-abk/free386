@@ -2,7 +2,7 @@
 ASM   = 00_nasm.bat
 ASMOP = -f obj
 LINK  = 00_link.bat
-LINKOP=
+LINKOP= -maxdata 8000h
 
 all: sel_test.exp
 

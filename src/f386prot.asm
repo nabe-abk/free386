@@ -4,18 +4,18 @@
 ;
 BITS	32
 ;==============================================================================
-;★プロテクトモード スタートラベル
+; Start of protect mode
 ;==============================================================================
 proc4 start32
-	mov	ebx,F386_ds		;ds セレクタ
-	mov	 ds,bx			;ds ロード
-	mov	 es,bx			;es
-	mov	 fs,bx			;fs
-	mov	 gs,bx			;gs
-	lss	esp,[PM_stack_adr]	;スタックポインタロード
+	mov	ebx,F386_ds
+	mov	 ds,bx
+	mov	 es,bx
+	mov	 fs,bx
+	mov	 gs,bx
+	lss	esp,[PM_stack_adr]
 
 ;------------------------------------------------------------------------------
-;●割り込み設定
+; set intrrupt
 ;------------------------------------------------------------------------------
 	;///////////////////////////////
 	;hook int 22h/23h
@@ -31,7 +31,7 @@ proc4 start32
 	mov	 ds,bx			;recovery ds
 
 	;///////////////////////////////
-	;Free386 独自割り込みの設定
+	;Free386 original interrupt
 	;///////////////////////////////
 	call	setup_F386_int		;see int_f386.asm
 
@@ -80,6 +80,33 @@ Debug_code:
 	mov	[ebx], eax
 .skip:
 %endif
+
+;------------------------------------------------------------------------------
+; initalize free memory bitmap
+;------------------------------------------------------------------------------
+proc1 init_free_memory_bitmap
+	mov	ebx, [DOS_mem_ladr]
+	mov	edx, [DOS_mem_pages]
+	call	regist_free_memory
+
+	mov	ebx, [EMB_physi_adr]
+	mov	edx, [EMB_pages]
+	call	regist_free_memory
+
+	;
+	; mapping phisical memory for ALLMEM_sel
+	;
+	mov	esi, [page_init_ladr]
+	mov	ecx, [all_mem_pages]
+	add	ecx, 0xff		;255pages
+	xor	 cl, cl			;unit 1MB
+
+	shl	ecx, 12
+	mov	[page_init_ladr], ecx
+	sub	ecx, esi		;sub mapped address
+	shr	ecx, 12			;ecx = pages
+	mov	edx, esi		;edx = phisical address
+	call	set_physical_memory
 
 ;------------------------------------------------------------------------------
 ; Memory infomation
@@ -205,6 +232,14 @@ proc1 more_memory_infomation
 	add	eax,  WORK_size -1
 	call	rewrite_next_hash_to_hex
 
+	; GP buffer
+	mov	eax, [gp_buffer_table]
+	call	rewrite_next_hash_to_hex
+	add	eax,  GP_BUFFER_SIZE * GP_BUFFERS -1
+	call	rewrite_next_hash_to_hex
+	mov	eax,  GP_BUFFER_SIZE
+	call	rewrite_next_hash_to_dec
+
 	; stack info
 	mov	eax, [sw_stack_bottom_orig]
 	sub	eax,  SW_stack_size * SW_max_nest
@@ -237,57 +272,13 @@ proc1 more_memory_infomation
 	shl	eax, 12
 	call	rewrite_next_hash_to_dec
 
+	; free RAM bitmap
+	mov	eax, [freeRAM_bm_ladr]
+	call	rewrite_next_hash_to_hex
+	mov	eax, [freeRAM_bm_size]
+	call	rewrite_next_hash_to_dec
+
 	PRINT32	msg_02
-.skip:
-
-;------------------------------------------------------------------------------
-;●メモリ管理の設定
-;------------------------------------------------------------------------------
-	mov	eax,[EMB_pages]		;EMBメモリページ数
-	mov	edx,[EMB_physi_adr]	;空き物理メモリ先頭
-	mov	[free_RAM_pages] ,eax	;全プロテクトメモリとして使用する
-	mov	[free_RAM_padr]  ,edx	;空き先頭物理メモリ先頭アドレス
-
-;------------------------------------------------------------------------------
-;●全メモリを示すセレクタを作成
-;------------------------------------------------------------------------------
-proc1 make_all_mem_sel
-	mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
-	mov	edx,ecx
-	mov	edi,[work_adr]		;ワークメモリ
-	dec	edx			;edx = limit値 ( /pages)
-	mov	d [edi  ],0		;
-	mov	d [edi+4],edx		;
-	mov	d [edi+8],0200h		;メモリタイプ / 特権レベル=0
-
-	mov	eax,ALLMEM_sel		;全メモリアクセスセレクタ
-	call	make_selector_4k	;メモリセレクタ作成 edi=構造体 eax=sel
-
-	;
-	;全メモリセレクタ作成後に以下は実行
-	;
-	;mov	ecx,[all_mem_pages]	;eax <- 総メモリページ数
-	mov	esi,[free_linear_adr]	;空きリニアアドレス
-	mov	edx,esi			;物理アドレスと1対1
-
-	add	ecx,0xff		;255pages
-	xor	 cl,cl			;1MB単位に切り上げ
-	shl	ecx,12			;eax = 物理アドレス最大値
-	mov	[free_linear_adr],ecx	;空きリニアアドレス更新
-	sub	ecx,esi			;割り当てるメモリサイズ
-	shr	ecx,12			;割り当てるページ数
-
-	; esi = 張りつけ先リニアアドレス
-	; edx = 張りつける物理アドレス
-	; ecx = 張りつけるページ数
-	call	set_physical_mem
-
-.patch_for_386sx:
-	mov	al, [cpu_is_386sx]
-	test	al, al
-	jz	.skip			;386SX is 24bit address bus.
-	mov	eax, 01000000h		;Therefore, addresses over 1000000h are always free.
-	mov	[free_linear_adr],eax
 .skip:
 
 ;------------------------------------------------------------------------------
@@ -298,7 +289,7 @@ proc1 make_all_mem_sel
 	;-------------------------------
 	mov	edi,[work_adr]		;ワークアドレスロード
 	mov	eax,[top_ladr]		;プログラム先頭リニアアドレス
-	mov	d [edi+4],256 -1	;limit
+	mov	d [edi+4],256		;256 byte
 	mov	d [edi  ],eax		;base
 	mov	d [edi+8],0200h		;R/W タイプ / 特権レベル=0
 	mov	eax,PSP_sel1		;PSP セレクタ1
@@ -317,9 +308,8 @@ proc1 make_all_mem_sel
 	shl	ebx,4			;16 倍してリニアアドレスへ
 	mov	 ax,[fs:ebx -16 + 3]	;PSP のサイズ / MCB を参照している
 	shl	eax,4			;16 倍 para -> byte
-	dec	eax			;size -> limit 値
 	mov	d [edi  ],ebx		;base
-	mov	d [edi+4],eax		;limit / 32KB 固定
+	mov	d [edi+4],eax		;size
 	;mov	d [edi+8],0200h		;R/W タイプ / 特権レベル=0
 	mov	eax,DOSENV_sel		;DOS 環境変数セレクタ
 	call	make_selector		;メモリセレクタ作成 edi=構造体 eax=sel
@@ -328,7 +318,7 @@ proc1 make_all_mem_sel
 	;★DOSメモリセレクタ(in LDT)
 	;-------------------------------
 	mov	d [edi  ],0			;base
-	mov	d [edi+4],(DOSMEMsize / 4096)-1	;1MB空間
+	mov	d [edi+4],DOSMEMsize / 4096	;1MB空間
 	;mov	d [edi+8],0200h			;R/W タイプ / 特権レベル=0
 	mov	eax,DOSMEM_Lsel			;DOS 環境変数セレクタ
 	call	make_selector_4k		;メモリセレクタ作成 edi=構造体
