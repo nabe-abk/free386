@@ -9,34 +9,22 @@
 ;
 seg16	text class=CODE align=4 use16
 ;==============================================================================
-;★PC-98 簡易チェック
+; check maachine type is PC-98
 ;==============================================================================
-;Ret	Cy=0	PC-98 だと思ふ
-;	Cy=1	PC-98 じゃない可能性が大きい
+;Ret	Cy=0	is PC-98
+;	Cy=1	is not PC-98
+;
+; in al,90h - TOWNS is 0ffh, PC/AT is 0ffh
+; in al,94h - TOWNS is 0ffh, PC/AT is 0ffh
 ;
 proc2 check_PC98_16
-	xor	bx,bx
-	mov	cx,6
-	; Do not use multiples of 4.
-	; "multiple of 4" is result 0 on timer#01/02
-.loop:
-	in	al,71h		;timer #00
-	xor	bl,al		;xor
-	in	al,73h		;timer #01
-	xor	bh,al		;xor
-	loop	.loop
+	in	al,90h		;FD I/O
+	add	al, 1		;cy = al is 0ffh
+	jc	.ret
 
- 	test	bx,bx
- 	jz	.not_pc98
- 	clc
- 	ret
-.not_pc98:
-	stc
-	ret
-
-	;*** 仕組み解説 ***
-	;タイマはたえず変化してるので、何度読みだしても変化がなければ
-	;そのI/O に タイマがある = PC-98 だと考える。
+	in	al,94h		;FD I/O
+	add	al, 1		;cy = al is 0ffh
+.ret: 	ret
 
 ;==============================================================================
 ; init PC-98x1 in 16bit mode

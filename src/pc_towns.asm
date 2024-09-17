@@ -4,16 +4,17 @@
 ;
 seg16	text class=CODE align=4 use16
 ;==============================================================================
-;★TOWNS 簡易チェック
+; check maachine type is TOWNS
 ;==============================================================================
-;Ret	Cy=0	TOWNS かもしれない
-;	Cy=1	TOWNS でないかも?
+;Ret	Cy=0	is TOWNS
+;	Cy=1	is not TOWNS
+;
+; in al, 30h	- PC-98 is 0ffh, PC/AT is 0ffh
+; in al,20eh	- PC-98 is 0ffh, PC/AT is 0ffh
 ;
 proc4 check_TOWNS_16
-	in	al,30h		;CPU register
-	test	al,al
-	jz	.not_fm		;0 is not FM series
-	inc	al		;
+	in	al, 30h		;CPU register
+	cmp	al, 0ffh
 	jz	.not_fm		;0ffh is not FM series
 
 	mov	dx,020eh	;Drive switch register
@@ -23,7 +24,6 @@ proc4 check_TOWNS_16
 
 	clc
 	ret
-
 .not_fm:
 .not_TOWNS:
 	stc

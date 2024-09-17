@@ -9,24 +9,17 @@ seg16	text class=CODE align=4 use16
 ;Ret	Cy=0	true
 ;	Cy=1	false
 ;
+; in al,0D0h - TOWNS is 0ffh, PC-98 is 0ffh
+; in al,0DAh - TOWNS is 0ffh, PC-98 is 0ffh
+;
 proc2 check_AT_16
-	xor	bx,bx		;AH = 0
-	mov	cx,16
-.loop:
-	in	al,40h		;timer #00
-	xor	bl,al		;xor
-	in	al,41h		;timer #01
-	xor	bh,al		;xor
-	loop	.loop
+	in	al,0D0h		;DMA Status Register
+	add	al, 1		;cy = al is 0ffh
+	jc	.ret
 
- 	test	bx,bx
- 	jz	.not_AT
-	clc
-	ret
-
-.not_AT:
-	stc
-	ret
+	in	al,0DAh		;DMS I/O
+	add	al, 1		;cy = al is 0ffh
+.ret:	ret
 
 ;==============================================================================
 ; init PC/AT in 16bit mode
