@@ -49,12 +49,6 @@ proc2 setup_cv86
 	mov	[int_from_V86.rseg],         ax
 	mov	[call32_from_V86.rseg],      ax
 
-	%ifdef PATCH_UNZ_BUG
-	mov	[call_V86_clear_stack.rsegu], ax
-	mov	[int_from_V86.rsegu],         ax
-	mov	[call32_from_V86.rsegu],      ax
-	%endif
-
 	;//////////////////////////////////////////////////
 	; make realmode to Protect mode entries
 	;//////////////////////////////////////////////////
@@ -92,8 +86,52 @@ proc2 setup_cv86
 seg32	text32 class=CODE align=4 use32
 ;******************************************************************************
 ;******************************************************************************
-; call V86 main
+; call V86
 ;******************************************************************************
+;------------------------------------------------------------------------------
+; call V86 support routine
+;------------------------------------------------------------------------------
+; stack
+;	+00h d Interrupt number
+;	+04h d eip
+;	+08h d cs
+;	+0ch d eflags
+;
+proc4 call_V86_int21_iret
+	push	21h
+
+proc1 call_V86_int_iret
+	btc	dword [esp+0ch], 0	; set caller carry status
+
+	push	(O_CV86_INT | O_CV86_CLSEG)
+	call	call_V86_clear_stack
+
+	iret_save_cy
+	iret
+
+	; for hardware interrupt
+proc4 call_V86_HW_int_iret
+	push	O_CV86_INT
+	call	call_V86_clear_stack
+	iret
+
+proc4 all_flags_save_iret	; exclude IF
+	xchg	[esp+8], eax
+
+	push	ebx
+	pushf
+	pop	ebx
+	and	eax, 0fffff200h
+	and	ebx, 1101_1111_1111b
+	or	eax, ebx
+	pop	ebx
+
+	xchg	[esp+8], eax
+	iret
+
+;------------------------------------------------------------------------------
+; call V86 main
+;------------------------------------------------------------------------------
 ; in	cli
 ;
 ; stack	+00h	ret address
@@ -218,7 +256,21 @@ proc4 call_V86_clear_stack
 	; jmp to real mode
 	;--------------------------------------------------
 proc4 .jmp_to_real_mode
+	db	0eah			;far jmp
+	dd	offset .286		;
+	dw	F386_cs286		;286 code segment
+
+	BITS	16
+.286:
 	lidt	[RM_LIDT_data]
+
+	;clear shadow D bit of selectors
+	mov	ax, F386_ds286
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax
 
 	mov	eax,cr0
 	and	eax,07ffffffeh		;PG=PE=0
@@ -227,9 +279,6 @@ proc4 .jmp_to_real_mode
 	db	0eah			;far jmp
 	dw	offset .in_real_mode	;
 .rseg	dw	0000h			;segment
-	%ifdef PATCH_UNZ_BUG
-.rsegu	dw	0000h
-	%endif
 
 ;--------------------------------------------------------------------
 BITS	16
@@ -347,47 +396,6 @@ proc4 .ret_PM
 	end_sdiff
 
 	ret	8	; remove 8byte stack
-
-;------------------------------------------------------------------------------
-; call V86 support routine
-;------------------------------------------------------------------------------
-; stack
-;	+00h d Interrupt number
-;	+04h d eip
-;	+08h d cs
-;	+0ch d eflags
-;
-proc4 call_V86_int21_iret
-	push	21h
-
-proc1 call_V86_int_iret
-	btc	dword [esp+0ch], 0	; set caller carry status
-
-	push	(O_CV86_INT | O_CV86_CLSEG)
-	call	call_V86_clear_stack
-
-	iret_save_cy
-	iret
-
-	; for hardware interrupt
-proc4 call_V86_HW_int_iret
-	push	O_CV86_INT
-	call	call_V86_clear_stack
-	iret
-
-proc4 all_flags_save_iret	; exclude IF
-	xchg	[esp+8], eax
-
-	push	ebx
-	pushf
-	pop	ebx
-	and	eax, 0fffff200h
-	and	ebx, 1101_1111_1111b
-	or	eax, ebx
-	pop	ebx
-
-	xchg	[esp+8], eax
-	iret
 
 
 ;******************************************************************************
@@ -531,6 +539,21 @@ proc4 .jmp_to_real_mode
 	mov	[cf32_esp], eax		;V86 esp
 	pop	d [cf32_ss_32]		;V86 ss
 
+	db	0eah			;far jmp
+	dd	offset .286		;
+	dw	F386_cs286		;286 code segment
+
+	BITS	16
+.286:
+	lidt	[RM_LIDT_data]
+
+	;clear shadow D bit of selectors
+	mov	ax, F386_ds286
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax
 	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
@@ -540,9 +563,6 @@ proc4 .jmp_to_real_mode
 	db	0eah			;far jmp
 	dw	offset .ret_real_mode	;
 .rseg	dw	0000h			;segment
-	%ifdef PATCH_UNZ_BUG
-.rsegu	dw	0000h
-	%endif
 
 ;--------------------------------------------------------------------
 BITS	16
@@ -748,6 +768,21 @@ proc4 .in_PM
 	call 	far [VCPI_entry]	;VCPI far call
 
 proc4 .jmp_to_real_mode
+	db	0eah			;far jmp
+	dd	offset .286		;
+	dw	F386_cs286		;286 code segment
+
+	BITS	16
+.286:
+	lidt	[RM_LIDT_data]
+
+	;clear shadow D bit of selectors
+	mov	ax, F386_ds286
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax
 	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
@@ -757,9 +792,6 @@ proc4 .jmp_to_real_mode
 	db	0eah			;far jmp
 	dw	offset .ret_real_mode	;
 .rseg	dw	0000h			;segment
-	%ifdef PATCH_UNZ_BUG
-.rsegu	dw	0000h
-	%endif
 
 ;--------------------------------------------------------------------
 BITS	16

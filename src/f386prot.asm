@@ -645,13 +645,24 @@ proc4	exit_to_V86_mode
 
 
 proc4	exit_to_16bit_mode
-	LIDT	[RM_LIDT_data]
+	db	0eah			;far jmp
+	dd	offset .286		;
+	dw	F386_cs286		;286 code segment
+
+	BITS	16
+.286:
+	lidt	cs:[RM_LIDT_data]
 
 	mov	ebx, [V86_cs]
 	mov	[.seg], bx
-	%ifdef PATCH_UNZ_BUG
-	mov	[.segu],bx
-	%endif
+
+	;clear shadow D bit of selectors
+	mov	ax, F386_ds286
+	mov	ds, ax
+	mov	es, ax
+	mov	fs, ax
+	mov	gs, ax
+	mov	ss, ax
 
 	mov	eax,cr0
 	and	eax,07ffffffeh		;PG=PE=0
@@ -659,12 +670,8 @@ proc4	exit_to_16bit_mode
 
 	db	0eah			;far jmp
 	dw	offset .16		;
-.seg	dw	0000h			;segment
-	%ifdef PATCH_UNZ_BUG
-.segu	dw	0000h
-	%endif
+.seg	dw	0000h			;real mode segment
 
-	BITS	16
 .16:
 	mov	ds, bx
 	mov	es, bx

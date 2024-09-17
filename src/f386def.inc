@@ -153,8 +153,8 @@ DOSMEMsize	equ	110000h	;1MB + 64KB (HMA)
 
 F386_cs		equ	08h	;Free386's CS
 F386_ds		equ	10h	;Free386's DS
-F386_cs2	equ	18h	;Free386 CS (286 attribute / not use)
-F386_ds2	equ	20h	;Free386 DS (286 attribute / not use)
+F386_cs286	equ	18h	;Free386 CS (286 attribute / not use)
+F386_ds286	equ	20h	;Free386 DS (286 attribute / not use)
 
 PSP_sel1	equ	24h	;PSP
 PSP_sel2	equ	04h	;

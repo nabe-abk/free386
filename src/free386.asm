@@ -847,26 +847,26 @@ proc1 setup_LDT_IDT_TSS
 
 	mov	cl,40h			;386形式
 	mov	dh,9ah			;R/X 386
-	mov	[di + F386_cs    ],ax
-	mov	[di + F386_cs  +2],bx
-	mov	[di + F386_cs  +4],dx
-	mov	[di + F386_cs  +6],cl
+	mov	[di + F386_cs   ],ax
+	mov	[di + F386_cs +2],bx
+	mov	[di + F386_cs +4],dx
+	mov	[di + F386_cs +6],cl
 
 	mov	dh,92h			;R/W 386
-	mov	[di + F386_ds    ],ax
-	mov	[di + F386_ds  +2],bx
-	mov	[di + F386_ds  +4],dx
-	mov	[di + F386_ds  +6],cl
+	mov	[di + F386_ds   ],ax
+	mov	[di + F386_ds +2],bx
+	mov	[di + F386_ds +4],dx
+	mov	[di + F386_ds +6],cl
 
 	mov	dh,9ah			;R/X 286
-	mov	[di + F386_cs2   ],ax
-	mov	[di + F386_cs2 +2],bx
-	mov	[di + F386_cs2 +4],dx
+	mov	[di + F386_cs286   ],ax
+	mov	[di + F386_cs286 +2],bx
+	mov	[di + F386_cs286 +4],dx
 
 	mov	dh,92h			;R/W 286
-	mov	[di + F386_ds2   ],ax
-	mov	[di + F386_ds2 +2],bx
-	mov	[di + F386_ds2 +4],dx
+	mov	[di + F386_ds286   ],ax
+	mov	[di + F386_ds286 +2],bx
+	mov	[di + F386_ds286 +4],dx
 
 
 	;/// LDT セレクタの設定 /////////////////////////////////////
