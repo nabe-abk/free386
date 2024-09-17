@@ -275,9 +275,9 @@ proc2 print_title
 .skip:
 
 ;------------------------------------------------------------------------------
-;●簡易機種判別
+; machine check
 ;------------------------------------------------------------------------------
-%if MACHINE_CODE			;機種汎用でない
+%if MACHINE_CODE			;not DOS general purpose
 
 proc1 machine_check
 	mov	al,[check_MACHINE]	;機種判別フラグ
@@ -298,10 +298,11 @@ proc1 machine_check
 
 .no_check:
 .check_true:
+
 %endif
 
 ;------------------------------------------------------------------------------
-;●VCPI の存在確認
+; check VCPI
 ;------------------------------------------------------------------------------
 %if CHECK_EMS
 proc1 check_ems_driver
@@ -327,13 +328,8 @@ proc1 check_ems_driver
 	je	short .skip
 
 .not_found:
-	%ifdef SUPPORT_NON_VCPI
-		mov	b [use_vcpi], 0
-		jmp	skip_vcpi_check
-	%else
-		mov	ah, 03		; 'EMS not found'
-		jmp	error_exit_16
-	%endif
+	mov	b [use_vcpi], 0
+	jmp	skip_vcpi_check
 .skip:
 %endif
 
@@ -346,13 +342,9 @@ VCPI_check:
 	test	ah,ah		; 戻り値 check
 	jz	short .found	; found VCPI
 
-	%ifdef SUPPORT_NON_VCPI
-		mov	b [use_vcpi], 0
-		jmp	.skip
-	%else
-		mov	ah, 04		; 'VCPI not found'
-		jmp	error_exit_16
-	%endif
+	mov	b [use_vcpi], 0
+	jmp	.skip
+
 .found:
 	cmp	b [verbose], 0
 	jz	.skip
@@ -527,7 +519,7 @@ proc1 XMS_setup
 	mov	w [XMS_entry+2], cs
 	jmp	.setted_xms_entry
 %endif
-
+.not_found:
 	mov	ah, 05		;'XMS not found'
 	jmp	error_exit_16
 
@@ -544,10 +536,12 @@ proc1 XMS_setup
 	;バージョン番号の取得
 	xor	ah,ah		;ah = 0
 	call	far [XMS_entry]	;XMS call
-	mov	[XMS_Ver],ah	;Driver 仕様のメジャーバージョンを記録
+	test	ah,ah		;check ah for XMS emulator
+	jz	.not_found	;error
 
-	cmp	ah,3		;XMS 3.0?
-	mov	al,[verbose]	;冗長表示フラグ
+	mov	[XMS_Ver], ah	;save XMS spec version
+	cmp	ah, 3		;XMS 3.0?
+	mov	al, [verbose]	;冗長表示フラグ
 	je	get_EMB_XMS30	;等しければ jmp
 
 ;------------------------------------------------------------------------------
@@ -753,11 +747,13 @@ proc1 init_page_directory
 	;///////////////////////////////////////////////////
 	;割り込みマスク保存
 	;///////////////////////////////////////////////////
-%if Restore8259A && I8259A_IMR_S
+%if Restore8259A
+%ifdef I8259A_IMR_S
 	in	al,I8259A_IMR_S		;8259A スレーブ
 	mov	ah,al			;ah へ移動
 	in	al,I8259A_IMR_M		;8259A マスタ
 	mov	[intr_mask_org],ax	;記憶
+%endif
 %endif
 
 ;------------------------------------------------------------------------------
@@ -797,7 +793,7 @@ proc1 init_first_page_table
 	test	ah,ah			;戻り値 check
 	jz	.save			;問題なければ jmp
 
-	mov	ah,08			; 'VCPI: Failed to get protected mode interface'
+	mov	ah, 08			; 'VCPI: Failed to get protected mode interface'
 	jmp	error_exit_16
 
 .save:
@@ -971,9 +967,23 @@ proc1 setup_IDT
 proc1 setup_hardware_int_IDT
 
 %ifdef USE_VCPI_8259A_API
-	mov	ax,0de0ah		;VCPI function  0Ah
-	int	67h			;get 8259 interrupt vector
+	cmp	b [use_vcpi], 0
+	jnz	.call_vcpi
 
+	%if DOS_GENERAL_PURPOSE
+	push	edx			;keep edx
+	call	get_8259a_vector	;auto detect machine
+	pop	edx
+	jnc	.continue		;ret bx/cx
+	%endif
+
+	mov	ah, 04			;'VCPI not found and failed to detect machine'
+	jmp	error_exit_16
+
+.call_vcpi:
+	mov	ax,0de0ah		;VCPI function 0Ah
+	int	67h			;get 8259 interrupt vector
+.continue:
 	mov	[vcpi_8259m], bl
 	mov	[vcpi_8259s], cl
 	mov	si, cx
@@ -1000,7 +1010,7 @@ proc1 setup_hardware_int_IDT
 	call	write_IDT		;IDT へ書き込み
 
 ;------------------------------------------------------------------------------
-;●hook int 24h
+; hook int 24h
 ;------------------------------------------------------------------------------
 proc1 setup_int_24h
 	push	es
@@ -1054,7 +1064,7 @@ proc1 cpu_mode_change_from_real_mode
 	BITS	32
 .32:
 	lldt	cs:[to_PM_LDTR]
-	ltr	cs:[to_PM_TR]
+	;ltr	cs:[to_PM_TR]
 	jmp	start32
 	BITS	16
 
@@ -1124,11 +1134,13 @@ proc2 hook_int_24h
 proc2 exit_16
 	;////////////////////////////////////////////////////////////
 	;/// 割り込みマスク復元 /////////////////////////////////////
-	%if Restore8259A && I8259A_IMR_S
+	%if Restore8259A
+	%ifdef I8259A_IMR_S
 		mov	ax,[intr_mask_org]	;復元情報
 		out	I8259A_IMR_M, al	;マスタ側
 		mov	al,ah			;
 		out	I8259A_IMR_S, al	;スレーブ側
+	%endif
 	%endif
 
 	;///////////////////////////////

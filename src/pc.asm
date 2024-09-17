@@ -17,4 +17,6 @@
 	%include "pc_98.asm"
 %elif PC_AT
 	%include "pc_at.asm"
+%elif DOS_GENERAL_PURPOSE
+	%include "pc_dos.asm"
 %endif

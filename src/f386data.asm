@@ -197,8 +197,8 @@ err_msg_table:
 _e01	db	'Do not execute free386.exe (please run free386.com)',13,10,'$'
 _e02	db	'Incompatible binary! This binary for ',MACHINE_STRING,'.',13,10
 	db	'If you do not want to check the machine, please execute with the -i option.',13,10,'$'
-_e03	db	'EMS Device Header not found',13,10,'$'
-_e04	db	'VCPI not found',13,10,'$'
+_e03	db	'$'
+_e04	db	'VCPI not found and failed to detect machine',13,10,'$'
 _e05	db	'XMS driver not found',13,10,'$'
 _e06	db	'XMS memory allocation failed',13,10,'$'
 _e07	db	'XMS memory lock failed',13,10,'$'

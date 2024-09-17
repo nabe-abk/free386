@@ -694,10 +694,10 @@ proc4 DOSX_fn_2509h
 proc4 DOSX_fn_250ch
 
 	%ifdef USE_VCPI_8259A_API
-		mov	ax,[cs:vcpi_8259m]
+		mov	ax, [cs:vcpi_8259m]
 	%else
-		mov	al,HW_INT_MASTER
-		mov	ah,HW_INT_SLAVE
+		mov	al, HW_INT_MASTER
+		mov	ah, HW_INT_SLAVE
 	%endif
 
 	clear_cy

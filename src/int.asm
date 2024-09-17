@@ -24,12 +24,8 @@ global		int21h_table
 seg32	text32 class=CODE align=4 use32
 ;******************************************************************************
 ;//////////////////////////////////////////////////////////////////////////////
-; Interrupt main
+; dummy handler for chain dos
 ;//////////////////////////////////////////////////////////////////////////////
-;------------------------------------------------------------------------------
-; Dummy for chain dos handler
-;------------------------------------------------------------------------------
-;
 proc4 PM_int_dummy
 	push	ebx
 	push	ds
@@ -47,9 +43,9 @@ proc4 PM_int_dummy
 	jmp	call_V86_int_iret
 
 
-;------------------------------------------------------------------------------
+;//////////////////////////////////////////////////////////////////////////////
 ; CPU Interrupt / int 00h - 1fh
-;------------------------------------------------------------------------------
+;//////////////////////////////////////////////////////////////////////////////
 ; *** Interrupt Routine MUST be "4 bytes".
 ;
 %define calc_CPU_int_adr(x,y)	PM_int_00h + x*4 + y*4
@@ -251,53 +247,74 @@ proc4 cpu_fault_with_error_code
 	jmp	exit_32
 
 
-;------------------------------------------------------------------------------
+;//////////////////////////////////////////////////////////////////////////////
 ; Hardware Interrupt / Master
-;------------------------------------------------------------------------------
+;//////////////////////////////////////////////////////////////////////////////
 proc4 HW_int_master_table
-	push	byte 0
-	jmp	short HW_int_master_common
-	push	byte 1
-	jmp	short HW_int_master_common
-	push	byte 2
-	jmp	short HW_int_master_common
-	push	byte 3
-	jmp	short HW_int_master_common
-	push	byte 4
-	jmp	short HW_int_master_common
-	push	byte 5
-	jmp	short HW_int_master_common
-	push	byte 6
-	jmp	short HW_int_master_common
-	push	byte 7
-	; jmp	short HW_int_master_common
 
-proc4 HW_int_master_common
+%if (1fh < HW_INT_MASTER) && (HW_INT_MASTER < 100h)
+	push	byte (0 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (1 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (2 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (3 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (4 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (5 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (6 + HW_INT_MASTER)
+	jmp	short .common
+	push	byte (7 + HW_INT_MASTER)
+	;jmp	short .common
+
+proc4 .common
+	jmp	call_V86_HW_int_iret
+;------------------------------------------------------------------------------
+%else
+;------------------------------------------------------------------------------
+	push	byte 0
+	jmp	short .common
+	push	byte 1
+	jmp	short .common
+	push	byte 2
+	jmp	short .common
+	push	byte 3
+	jmp	short .common
+	push	byte 4
+	jmp	short .common
+	push	byte 5
+	jmp	short .common
+	push	byte 6
+	jmp	short .common
+	push	byte 7
+	;jmp	short .common
+
 	;///////////////////////////////////////////////
 	; common routine
 	;///////////////////////////////////////////////
+proc4 .common
+
 %ifdef USE_VCPI_8259A_API
 	push	eax
-	mov	al, [cs:vcpi_8259m]
+	mov	al, cs:[vcpi_8259m]
 	add	[esp+4], al
 	pop	eax
-	jmp	call_V86_HW_int_iret
-
-%elif (HW_INT_MASTER > 1fh)
-	add	b [esp], HW_INT_MASTER
 	jmp	call_V86_HW_int_iret
 
 %else	;*** CPU 割り込みと被っている ******************
 	push	edx
 	push	eax
 
-	mov	edx,[esp+8]		; load IRQ number
+	mov	edx, [esp+8]		; load IRQ number
 
-	mov	al,0bh			; read ISR
-	out	I8259A_ISR_M, al	;
-	in	al, I8259A_ISR_M	; read DATA
-	bt	eax,edx			; ハードウェエ割り込み？
-	jnc	.CPU_int		; bit が 0 なら CPU割り込み
+	mov	al, 0bh			; write to OCW3
+	out	I8259A_ISR_M, al	; set ISR read mode
+	in	al, I8259A_ISR_M	; read ISR
+	bt	eax, edx		; hardware int?
+	jnc	.CPU_int		; if not set, goto CPU int
 
 	add	edx, HW_INT_MASTER		; edx = INT番号
 	mov	eax,[cs:intr_table + edx*8 +4]	; edx = 呼び出し先selector
@@ -330,41 +347,64 @@ proc4 HW_int_master_common
 	pop	edx
 	ret				;CPU 例外呼び出し
 %endif
-
 ;------------------------------------------------------------------------------
+%endif
+
+;//////////////////////////////////////////////////////////////////////////////
 ; Hardware Interrupt / Slave
-;------------------------------------------------------------------------------
+;//////////////////////////////////////////////////////////////////////////////
 proc4 HW_int_slave_table
-	push	byte 0
-	jmp	short HW_int_slave_common
-	push	byte 1
-	jmp	short HW_int_slave_common
-	push	byte 2
-	jmp	short HW_int_slave_common
-	push	byte 3
-	jmp	short HW_int_slave_common
-	push	byte 4
-	jmp	short HW_int_slave_common
-	push	byte 5
-	jmp	short HW_int_slave_common
-	push	byte 6
-	jmp	short HW_int_slave_common
-	push	byte 7
-	; jmp	short HW_int_slave_common
 
-proc4 HW_int_slave_common
+%if (1fh < HW_INT_SLAVE) && (HW_INT_SLAVE < 100h)
+	push	byte (0 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (1 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (2 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (3 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (4 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (5 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (6 + HW_INT_SLAVE)
+	jmp	short .common
+	push	byte (7 + HW_INT_SLAVE)
+	;jmp	short .common
+
+proc4 .common
+	jmp	call_V86_HW_int_iret
+;------------------------------------------------------------------------------
+%else
+;------------------------------------------------------------------------------
+	push	byte 0
+	jmp	short .common
+	push	byte 1
+	jmp	short .common
+	push	byte 2
+	jmp	short .common
+	push	byte 3
+	jmp	short .common
+	push	byte 4
+	jmp	short .common
+	push	byte 5
+	jmp	short .common
+	push	byte 6
+	jmp	short .common
+	push	byte 7
+	;jmp	short .common
+
 	;///////////////////////////////////////////////
 	; common routine
 	;///////////////////////////////////////////////
+proc4 .common
+
 %ifdef USE_VCPI_8259A_API
 	push	eax
-	mov	al, [cs:vcpi_8259s]
+	mov	al, cs:[vcpi_8259s]
 	add	[esp+4], al
 	pop	eax
-	jmp	call_V86_HW_int_iret
-
-%elif (HW_INT_SLAVE > 1fh)
-	add	b [esp], HW_INT_SLAVE
 	jmp	call_V86_HW_int_iret
 
 %else	;*** CPU 割り込みと被っている ******************
@@ -373,11 +413,11 @@ proc4 HW_int_slave_common
 
 	mov	edx,[esp+8]		;edx = IRQ番号 - 8
 
-	mov	al,0bh			;ISR 読み出しコマンド
-	out	I8259A_ISR_S, al	;8259A に書き込み
-	in	al, I8259A_ISR_S	;サービスレジスタ読み出し
-	bt	eax,edx			;ハードウェエ割り込み？
-	jnc	.CPU_int		;bit が 0 なら CPU割り込み
+	mov	al, 0bh			; write to OCW3
+	out	I8259A_ISR_S, al	; set ISR read mode
+	in	al, I8259A_ISR_S	; read ISR
+	bt	eax, edx		; hardware int?
+	jnc	.CPU_int		; if not set, goto CPU int
 
 	add	edx, HW_INT_SLAVE		; edx = INT番号
 	mov	eax,[cs:intr_table + edx*8 +4]	; edx = 呼び出し先selector
@@ -410,7 +450,8 @@ proc4 HW_int_slave_common
 	pop	edx
 	ret				;CPU 例外呼び出し
 %endif
-
+;------------------------------------------------------------------------------
+%endif
 
 ;//////////////////////////////////////////////////////////////////////////////
 ; Services

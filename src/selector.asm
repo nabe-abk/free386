@@ -468,7 +468,7 @@ proc4 free_RAM
 	shr	eax, 12			;eax = phisical page number
 	bts	es:[edi], eax		;set free RAM bitmap flag
 	inc	edx			;collection counter
-.skip
+.skip:
 	; counter check
 	dec	ecx
 	jz	.loop_end

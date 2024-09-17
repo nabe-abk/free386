@@ -112,7 +112,7 @@ V86_stack_size	equ	 200h	; byte
 PM_stack_size	equ	 300h	; byte
 VCPI_stack_size	equ	 100h	; VCPI call(to V86) dedicated stack
 
-SW_stack_size	equ	200h	; CPU switch stack size
+SW_stack_size	equ	180h	; CPU switch stack size
 SW_max_nest	equ	4	; CPU switch max nest
 
 LADR_ROOM_size	equ 0200000h	; 4MB, Room for memory address expansion
@@ -307,15 +307,10 @@ MACHINE_CODE	equ	00h
 %define	MACHINE_STRING	'MS-DOS'
 %define	Free386_API	'f386_all.api'	; dummy
 
+%define DOS_GENERAL_PURPOSE	1
 %define USE_VCPI_8259A_API
 
-HW_INT_MASTER	equ	0f0h	; dummy
-HW_INT_SLAVE	equ	0f0h	; dummy
-I8259A_IMR_M	equ	0	; dummy
-I8259A_IMR_S	equ	0	; dummy
-
-%else
-
-%define SUPPORT_NON_VCPI
+HW_INT_MASTER	equ	100h	; dummy, do not set other value
+HW_INT_SLAVE	equ	100h	; dummy, do not set other value
 
 %endif

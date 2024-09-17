@@ -3,7 +3,7 @@
 Ver 0.91 - 2024-09-13
 ===============================================================================
 
-- Support non VCPI enviroment (exclude DOS general purpose binary).
+- Support non VCPI enviroment.
 - Add memory management system.
 - [TOWNS] Support TownsOS (not require XMS/VCPI).
 - [PC-98] Update memory mapping code.

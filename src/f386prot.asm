@@ -28,7 +28,7 @@ proc4 start32
 	pop	ds			;ds:edx = エトリーアドレス
 	int	21h
 
-	mov	 ds,bx			;recovery ds
+	mov	ds,bx			;recovery ds
 
 	;///////////////////////////////
 	;Free386 original interrupt
@@ -98,7 +98,7 @@ proc1 init_free_memory_bitmap
 	;
 	mov	esi, [page_init_ladr]
 	mov	ecx, [all_mem_pages]
-	add	ecx, 0xff		;255pages
+	add	ecx, 0ffh		;255pages
 	xor	 cl, cl			;unit 1MB
 
 	shl	ecx, 12

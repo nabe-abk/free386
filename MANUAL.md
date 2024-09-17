@@ -10,7 +10,6 @@ This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 	* You can use it with XMS 2.0 by defining USE_XMS20 and reassembling it.
 	* [TOWNS] TownsOS does not require XMS/VCPI (HIMEM.SYS, EMM386.EXE).
 * Basically, it complies with Ver1.2, which is the version of RUN386 for TOWNS.
-* DOS general purpose binary requires VCPI.
 
 このソフトは、Phar-Lap RUN386 ほぼ互換の DOS-Extender です。
 FM TOWNS / PC-98x1 / AT互換機で動作します。
@@ -18,10 +17,9 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 - このソフトは .EXP 形式（P3 or MP形式）のファイルを実行することができます。
 - 実行には XMS 3.0 メモリサーバ（HIMEM.SYS 3.xx）が必要です。
     - VCPI環境（EMM386.EXE or other）でも使用できます。
-	- TOWNS版以外では、非VCPI環境では物理メモリ量が推定値になります。
+	- TOWNS版以外では、非VCPI環境で物理メモリ量が推定値になります。
 	- USE_XMS20 を定義して再アセンブルすれば、XMS 2.0環境でも使用できます。
 - 基本的に、TOWNS用RUN386のバージョンである、Ver1.2に準拠しています。
-- DOS汎用バイナリの実行には、VCPIが必須です。
 
 ## Usage
 

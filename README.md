@@ -12,7 +12,7 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
 * Require: MS-DOS and XMS (with HIMEM.SYS) or TownsOS
-* Compatible: VCPI (with EMM386.EXE)
+* Available: VCPI (with EMM386.EXE)
 * Language: NASM (Full assembly language)
 * Licence: PDS
 	* Only Free386.com and Free386's source files. This repository contains files with different licenses.

@@ -82,11 +82,9 @@ is_unknown	db	'Ret=4: Unknown',13,10,'$'
 ;------------------------------------------------------------------------------
 	align	2
 check_TOWNS:
-	in	al,30h		;CPU register
-	test	al,al
-	jz	.not_fm		;0 is not FM
-	inc	al		;
-	jz	.not_fm		;0ffh is not FM
+	in	al, 30h		;CPU register
+	cmp	al, 0ffh
+	jz	.not_fm		;0ffh is not FM series
 
 	mov	dx,020eh	;Drive switch register
 	in	al,dx		;
@@ -102,42 +100,23 @@ check_TOWNS:
 
 	align	2
 check_PC98:
-	xor	bx,bx
-	mov	cx,6
-	; Do not use multiples of 4.
-	; "multiple of 4" is result 0 on timer#01/02
-.loop:
-	in	al,71h		;timer #00
-	xor	bl,al		;xor
-	in	al,73h		;timer #01
-	xor	bh,al		;xor
-	loop	.loop
+	in	al,90h		;FD I/O
+	add	al, 1		;cy = al is 0ffh
+	jc	.ret
 
- 	test	bx,bx
- 	jz	.not_pc98
- 	clc
- 	ret
-.not_pc98:
-	stc
-	ret
+	in	al,94h		;FD I/O
+	add	al, 1		;cy = al is 0ffh
+.ret: 	ret
+
 
 	align	2
 check_AT:
-	xor	bx,bx
-	mov	cx,16
-.loop:
-	in	al,40h		;timer #00
-	xor	bl,al		;xor
-	in	al,41h		;timer #01
-	xor	bh,al		;xor
-	loop	.loop
+	in	al,0D0h		;DMA Status Register
+	add	al, 1		;cy = al is 0ffh
+	jc	.ret
 
- 	test	bx,bx
- 	jz	.not_AT
-	clc
-	ret
-.not_AT:
-	stc
-	ret
+	in	al,0DAh		;DMS I/O
+	add	al, 1		;cy = al is 0ffh
+.ret:	ret
 
 
