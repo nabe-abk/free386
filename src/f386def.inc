@@ -16,7 +16,7 @@ F386_Date	equ		20240911h	;Release date
 ; Default build target
 ;==============================================================================
 %ifndef BUILD_TARGET
-		; Target Machine / If all of zero, for DOS general purpose.
+		; if all of zero, for DOS general purpose.
 %define	TOWNS		1	; for FM TOWNS binary
 %define	PC_98		0	; for PC-9801/9821 binary
 %define	PC_AT		0	; for PC/AT binary
