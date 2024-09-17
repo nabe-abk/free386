@@ -38,14 +38,14 @@ BITS	32
 ; init PC-9801/PC-9821
 ;==============================================================================
 proc4 init_PC98_32
-	mov	esi, 8000A8000h			;張り付け先リニアアドレス = RGB GVRAM
-	mov	edx, 0000A8000h			;張り付ける物理アドレス
+	mov	esi, 800A8000h			;張り付け先リニアアドレス = RGB GVRAM
+	mov	edx, 000A8000h			;張り付ける物理アドレス
 	mov	ecx, 24				;96KB
 	call	set_physical_memory
 	jc	.error
 
-	mov	esi, 8000A8000h + 24*4096	;上の続き
-	mov	edx, 0000E0000h			;Sub VRAM / palette
+	mov	esi, 800A8000h + 24*4096	;上の続き
+	mov	edx, 000E0000h			;Sub VRAM / palette
 	mov	ecx, 8				;32KB
 	call	set_physical_memory
 	jc	.error
