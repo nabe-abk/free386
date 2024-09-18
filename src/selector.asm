@@ -169,9 +169,8 @@ proc4 map_memory
 	jz	.exit			;0 なら終了
 
 	mov	edx,[ebx + 04h]		;edx = 張りつける物理アドレス
-	mov	ecx,[ebx + 08h]		;ecx = 張りつけるページ数 -1
+	mov	ecx,[ebx + 08h]		;ecx = 張りつけるページ数
 	mov	esi,edx			;esi = 張りつけ先リニアアドレス
-	inc	ecx			;+1 する
 	call	set_physical_memory	;物理メモリの配置
 	jc	.error
 
