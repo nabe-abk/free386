@@ -148,7 +148,9 @@ TSS_sel		equ	88h	;TSS access
 
 ALLMEM_sel	equ	40h	;ALL RAM selector
 DOSMEM_sel	equ	60h	;DOS 1MB memory
-DOSMEMsize	equ	100000h	;1MB
+DOSMEMsize	equ	110000h	;1MB + 64KB(HMA)
+	; DOSMEM_sel is used for read/write to DOS memory, so 1.1MB is required.
+	; In RUN386.exe, size of DOSMEM_sel is 1MB
 
 F386_cs		equ	08h	;Free386's CS
 F386_ds		equ	10h	;Free386's DS
