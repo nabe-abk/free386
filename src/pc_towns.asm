@@ -44,7 +44,7 @@ proc4 init_TOWNS_16
 	mov	b [cpu_is_386sx], 1
 .skip_386sx:
 	;
-	; VCPI情報から総メモリ容量の修正
+	; 総メモリ容量の訂正
 	;
 	in	al, 31h
 	cmp	ax, 01h			; 初代TOWNS
@@ -53,7 +53,7 @@ proc4 init_TOWNS_16
 	xor	eax, eax
 	mov	dx, 5e8h		; メモリ容量レジスタ（初代にはない）
 	in	al, dx			; al = MB
-	and	al, 07fh
+	and	al, 0ffh
 	shl	eax, 8			; MB to pages
 	mov	[all_mem_pages], eax
 	mov	d [msg_all_mem_type], '5E8h'
@@ -89,14 +89,25 @@ proc4 init_CoCo
 	cmp	di, 656eh	; 'en'
 	jne	.fail
 
-	; int 8eh ax=c10ch
-	;	機能不明だが、何かを登録している。
-	;	この処理をしないと TMENU.EXG が起動しない。
-	;	仕方ないので、RUN386の値をコピーし定数で処理。
+proc1 .call_coco
+	;
+	; [Regist] call buffer
+	;
+	mov	esi, 0ffff0000h
+	mov	dx,   [user_cbuf_seg16]
+	movzx	cx, b [user_cbuf_pages]
+	mov	ax, cx
+	shr	cx, 2
+	jnz	.skip
+
+	mov	si, 8000h
+	mov	cx, 15
+	shl	ax, 2		; ax = buf size [KB]
+	sub	cx, ax		; 15 - size
+	sar	si, cl		; 
+	mov	cx, 1		; cx = 0
+.skip:
 	mov	ax, 0c10ch
-	mov	cx, 2
-	mov	si, 0
-	mov	dx, 0b107h
 	int	8eh
 
 	;
@@ -596,6 +607,13 @@ proc4 exit_TOWNS_16
 	xor	bx, bx
 	xor	dx, dx
 	mov	ax, 0c207h
+	int	8eh
+	;
+	; [clear] call buffer
+	;
+	xor	dx, dx
+	xor	cx, cx
+	mov	ax, 0c10ch
 	int	8eh
 .no_nsdd:
 	;///////////////////////////////
