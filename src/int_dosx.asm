@@ -94,12 +94,8 @@ proc4 int_21h_48h
 	call	search_free_LDTsel	;eax = selector
 	jc	.fail	; use esi for get_max_alloc in .fail
 
-	push	eax
-	call	get_gp_buffer_32	;get buffer
-	mov	edi, eax		;edi = buffer
-	test	eax, eax
-	pop	eax
-	jz	.fail
+	call	get_gp_buffer_32	;edi = buffer
+	jc	.fail
 
 	mov	[edi  ], esi		;base
 	mov	[edi+4], ebx		;size (pages)
@@ -109,10 +105,7 @@ proc4 int_21h_48h
 	call	make_selector_4k	;eax=selector, [edi]=options
 	call	regist_managed_LDTsel	;ax=selector
 
-	push	eax
-	mov	eax, edi
-	call	free_gp_buffer_32
-	pop	eax
+	call	free_gp_buffer_32	;in edi=buffer
 
 	pop	ds
 	pop	ecx

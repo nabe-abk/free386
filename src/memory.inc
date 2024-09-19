@@ -34,9 +34,7 @@ extern	DOS_mem_pages
 extern	DOS_alloc_sizep
 extern	DOS_alloc_seg
 
-extern	gp_buffer_remain
 extern	gp_buffer_table
 extern	sw_stack_bottom
 extern	sw_stack_bottom_orig
-
 

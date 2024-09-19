@@ -137,10 +137,12 @@ proc4 copy_esi_to_edi
 ; out	eax = destroy
 ;
 proc4 register_dump
-	call	get_gp_buffer_32
-	test	eax, eax
-	jnz	.step		; success
-	ret			; alloc error
+	push	edi
+	call	get_gp_buffer_32	; edi = buffer
+	mov	eax, edi
+	pop	edi
+	jnc	.step			; success
+	ret				; alloc error
 	;stack
 	;	+04h	eax
 	;	+08h	ds
@@ -261,7 +263,7 @@ proc4 register_dump
 	PRINT32	ebp
 
 	; free buffer
-	mov	eax, ebp
+	mov	edi, ebp
 	call	free_gp_buffer_32
 
 	pop_x	es

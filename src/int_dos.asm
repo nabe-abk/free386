@@ -145,65 +145,71 @@ proc4 PM_int_21h
 
 
 ;------------------------------------------------------------------------------
-;【汎用】DS:EDXに NULL で終わる文字列
+; [general purpose] DS:EDX is ASCIIZ (=NULL terminated string)
 ;------------------------------------------------------------------------------
 proc4 int_21h_ds_edx
 	push	ds
 	push	es
 	push	edx
+	push	edi		; keep stack top
 
-	push	F386_ds		;F386 ds
-	pop	es		;es に load
+	push	F386_ds
+	pop	es			;load to es
 
+	call	get_gp_buffer_32	;
+	jc	.error
+
+	;------------------------------------------------------------
+	; copy asciiz
+	;------------------------------------------------------------
 	push	eax
+	push	ecx
+	push	edi
 
-	call	get_gp_buffer_32
-	test	eax, eax
-	jz	.error
-
-	;------------------------------------------------------------
-	;引数のコピー
-	;------------------------------------------------------------
-	pushad
-	mov	edi, eax
-	mov	ecx,(GP_BUFFER_SIZE /4)-1	;転送最大サイズ /4
-	mov	ebp,4				;アドレス加算値
-	mov	b [es:edi + ecx*4], 00h
-
-	align	4
+	mov	ecx, GP_BUFFER_SIZE /4
 .loop:
-	mov	eax,[edx]
-	mov	[es:edi],eax
+	mov	eax, [edx]		;copy ds:[edx]
+	mov	es:[edi], eax		;  to es:[edi]
 	test	al,al
-	jz	short .exit
+	jz	.exit
 	test	ah,ah
-	jz	short .exit
-	shr	eax,16			;上位→下位へ
+	jz	.exit
+	shr	eax,16
 	test	al,al
-	jz	short .exit
+	jz	.exit
 	test	ah,ah
-	jz	short .exit
-	add	edx,ebp		;+4
-	add	edi,ebp		;+4
+	jz	.exit
+	add	edx, 4
+	add	edi, 4
 	loop	.loop
 .exit:
-	popad
+	mov	b es:[edi+3], 00h	;safety
 
-	mov	edx, eax	; edx <- GP buffer address
-	xchg	[esp], eax	; recovery eax
-	V86_INT	21h
-
-	xchg	[esp], eax	; eax <- GP buffer address
-	call	free_gp_buffer_32
+	pop	edi
+	pop	ecx
 	pop	eax
 
+	;------------------------------------------------------------
+	; call V86
+	;------------------------------------------------------------
+	mov	edx, edi		;set edx for V86 int
+	xchg	[esp], edi		;edi recovery
+
+	V86_INT	21h
+
+	xchg	[esp], edi		;edi = buffer pointer
+	pushf
+	call	free_gp_buffer_32
+	popf
+
+	pop	edi
 	pop	edx
 	pop	es
 	pop	ds
 	iret_save_cy		;キャリーセーブ & iret
 
 .error:
-	pop	eax
+	pop	edi
 	pop	edx
 	pop	es
 	pop	ds
@@ -279,45 +285,40 @@ proc4 int_21h_09h
 proc4 int_21h_09h_output_file
 	; 強制ファイル出力
 	pushad
-	push	ds
 	push	es
+	push	ds
+	push	edx		;keep stack top
 
 	push	F386_ds
 	pop	ds
 
 	; file open
-	push	edx
 	mov	al, 0001_0010b
 	mov	ah, 3dh
 	mov	edx, offset .file
 	V86_INT	21h
-	pop	edx
 	jc	.exit
 
 	mov	ebx, eax	; bx = handle
 
 	; file seek
-	push	edx
 	mov	al, 02h
 	mov	ah, 42h
 	xor	ecx,ecx
 	xor	edx,edx
 	V86_INT	21h
-	pop	edx
 
 	; get buffer
 	call	get_gp_buffer_32
-	mov	ebp, eax
-	test	eax, eax
-	jz	.exit
+	mov	ebp, edi
+	jc	.exit
 
-	mov	es,[esp+4]	; original ds
-	mov	esi, edx
-	mov	edi, ebp
-	mov	edx, edi
+	mov	es,  [esp+8]	; original ds
+	mov	esi, [esp]	; original edx
+	;mov	edi, ebp
 	xor	ecx, ecx
 .loop:
-	mov	al, [es:esi]
+	mov	al, es:[esi]
 	mov	[edi], al
 	cmp	al, '$'
 	jz	short .loop_end
@@ -325,10 +326,11 @@ proc4 int_21h_09h_output_file
 	inc	edi
 	inc	ecx
 	cmp	ecx, GP_BUFFER_SIZE
-	jnz	short .loop
+	jb	.loop
 .loop_end:
 	; write
 	mov	ah, 40h
+	mov	edx, ebp
 	V86_INT	21h
 
 	; close
@@ -336,12 +338,13 @@ proc4 int_21h_09h_output_file
 	V86_INT	21h
 
 	; free buffer
-	mov	eax, ebp
+	mov	edi, ebp
 	call	free_gp_buffer_32
 
 .exit:
-	pop	es
+	pop	edx
 	pop	ds
+	pop	es
 	popad
 	iret
 
@@ -355,24 +358,23 @@ proc4 int_21h_09h_output_file
 
 proc4 int_21h_09h_output_tsugaru
 	pushad
-	push	ds
 	push	es
+	push	ds
 
 	push	F386_ds
 	pop	ds
-	mov	es,[esp+4]	; original ds
+	mov	es, [esp]	; original ds
 
 	; get buffer
 	call	get_gp_buffer_32
-	mov	ebx, eax
-	test	eax, eax
-	jz	.exit
+	mov	ebx, edi
+	jc	.exit
 
 	mov	esi, edx
-	mov	edi, ebx
+	;mov	edi, ebx
 	xor	ecx, ecx
 .loop:
-	mov	al, [es:esi]
+	mov	al, es:[esi]
 	mov	[edi], al
 	cmp	al, '$'
 	jz	short .loop_end
@@ -384,20 +386,21 @@ proc4 int_21h_09h_output_tsugaru
 .loop_end:
 	mov	[edi], byte 0
 	cmp	w [edi-2], 0a0dh
+	jne	.skip
 	mov	b [edi-1], 0
-
+.skip:
 	; output for Tsugaru API
 	mov	dx, 2f18h
 	mov	al, 09h
-	out	dx, al
+	out	dx, al		; output ds:[ebx]
 
 	; free buffer
-	mov	eax, ebx
+	mov	edi, ebx
 	call	free_gp_buffer_32
 
 .exit:
-	pop	es
 	pop	ds
+	pop	es
 	popad
 	iret
 
@@ -417,18 +420,15 @@ proc4 int_21h_0ah
 	push	F386_ds
 	pop	ds
 
-	push	eax
 	call	get_gp_buffer_32
-	mov	ebp, eax		; save gp buffer address
-	test	eax, eax
-	pop	eax
-	jz	.exit
+	mov	ebp, edi		; save gp buffer address
+	jc	.exit
 
 	mov	esi, edx		; esi <- caller buffer
-	mov	edi, ebp		; edi <- gp buffer
-	movzx	ecx, b [edi]		; ecx = maximum characters
+	;mov	edi, ebp		; edi <- gp buffer
+	movzx	ecx, b [esi]		; ecx = maximum characters
 	add	ecx, b 2
-	rep	movsb			; copy [ds:esi] -> [es:edi]
+	rep	movsb			; copy ds:[esi] -> es:[edi]
 
 	push	edx
 	mov	edx, ebp		; ds:edx is gp buffer
@@ -438,17 +438,17 @@ proc4 int_21h_0ah
 	; edx = caller buffer
 	; ebp = gp buffer
 	push	ds			; exchange ds<>es
-	mov	eax,  es
-	mov	  ds,ax		; ds = F386 ds
+	push	es
+	pop	ds			; ds = F386 ds
 	pop	es			; es = caller selector
 
-	mov	esi, ebp		; [ds:esi] gp buffer
-	mov	edi, edx		; [es:edi] caller buffer
+	mov	esi, ebp		; ds:[esi] gp buffer
+	mov	edi, edx		; es:[edi] caller buffer
 	movzx	ecx,b [esi]		; ecx = maximum characters
 	add	ecx,b 2			; ecx is buffer size
-	rep	movsb			; copy [ds:esi] -> [es:edi]
+	rep	movsb			; copy ds:[esi] -> es:[edi]
 
-	mov	eax, ebp
+	mov	edi, ebp
 	call	free_gp_buffer_32
 
 .exit:
@@ -519,62 +519,58 @@ proc4 int_21h_38h
 	je	call_V86_int21_iret	; setting is jmp
 
 	;------------------------------------------------------------
-	; read 
+	; read
 	;------------------------------------------------------------
-	push	edx
-	push	edi
-	push	esi
+	; IN	   AL = country code
+	;	   BX = country code
+	;	DS:DX = buffer
+	;
+	pusha
 
-	push	eax
 	call	get_gp_buffer_32
-	mov	esi, eax		;esi = GP buffer
-	pop	eax
+	mov	ebp, edi		;ebp = GP buffer
+	jc	.error
 
-	test	esi, esi
-	jz	short .error
+	mov	edi, edx		;edi = caller buffer
 
-	mov	edi, edx		;edi = プログラム側バッファ
-	mov	edx, esi		;バッファアドレス
-	V86_INT	21h			;int 21h 割り込み処理ルーチン呼び出し
-	jc	short .error2
+	mov	edx, ebp
+	V86_INT	21h
+	jc	.error2
 
 	;------------------------------------------------------------
-	; copy es:[edx] to ds:[edi]
+	; copy f386ds:[ebp] to ds:[edi]
 	;------------------------------------------------------------
-	push	ecx
+	push	ds
 	push	es
+
 	push	F386_ds
-	pop	es
-
-	xor	ecx, ecx
-	mov	cl, 32			;32 byte
-	align	4
-.loop:	mov	ch,[es:edx]		;1 byte
-	mov	[edi],ch		;  copy
-	inc	edx			;
-	inc	edi			;
-	dec	cl
-	jnz	short .loop
+	pop	ds
+	mov	es, [esp]
+	;------------------------------------------------------------
+	; copy ds:[ebp] to es:[edi]
+	;------------------------------------------------------------
+	mov	esi, ebp
+	mov	ecx, 32/4	; 32byte
+	rep	movsd
 
 	pop	es
-	pop	ecx
+	pop	ds
+	;------------------------------------------------------------
+	; end of copy
+	;------------------------------------------------------------
 
-	mov	eax, esi
+	mov	edi, ebp
 	call	free_gp_buffer_32
 
-	pop	esi
-	pop	edi
-	pop	edx
+	popa
 	clear_cy
 	iret
 
 .error2:
-	mov	eax, esi
+	mov	edi, ebp
 	call	free_gp_buffer_32
 
-.error:	pop	esi
-	pop	edi
-	pop	edx
+.error:	popa
 	set_cy
 	iret
 
@@ -804,30 +800,24 @@ proc4 int_21h_47h
 	push	edi
 	push	esi
 
-	push	eax
-	call	get_gp_buffer_32
-	mov	esi, eax
-	mov	edi, eax
-	pop	eax
-	test	esi, esi
-	jz	.error
+	call	get_gp_buffer_32	;edi = buffer
+	mov	esi, edi
+	jc	.error
 
-	V86_INT	21h		;save to ds:si
+	V86_INT	21h			;save to ds:si
 	jc	.error_free_gp
 
-	mov	esi, [esp]	;copy cs:edi to ds:esi
+	mov	esi, [esp]		;copy cs:edi to ds:esi
 	xor	ecx, ecx
 .loop:
-	mov	edx,[cs:edi+ecx]
-	mov	[esi+ecx],edx
+	mov	edx, cs:[edi+ecx]
+	mov	[esi+ecx], edx
 	add	cl, 4
 	cmp	cl, 64
 	jb	.loop
 
-	push	eax
-	mov	eax, edi
+	; edi = buffer
 	call	free_gp_buffer_32
-	pop	eax
 
 	pop	esi
 	pop	edi
@@ -837,10 +827,8 @@ proc4 int_21h_47h
 	iret
 
 .error_free_gp:
-	push	eax
-	mov	eax, edi
+	; edi = buffer
 	call	free_gp_buffer_32
-	pop	eax
 
 .error:
 	pop	esi
@@ -918,8 +906,9 @@ proc4 int_21h_ret_esbx
 ;------------------------------------------------------------------------------
 ;・ファイルの移動（リネーム）  AH=56h
 ;------------------------------------------------------------------------------
-;	ds:edx	move from
+; IN	ds:edx	move from
 ;	es:edi	move to
+; Ret	Cy
 ;
 proc4 int_21h_56h
 	push	edi
@@ -932,22 +921,24 @@ proc4 int_21h_56h
 	push	F386_ds
 	pop	ds
 
+	push	edi
 	call	get_gp_buffer_32
-	test	eax, eax
-	jz	short .error
+	mov	ebx, edi		;ebx = buffer
+	pop	edi
+	jc	.error
 
-	mov	ebx, eax
 	xor	ecx, ecx
 .loop:
-	mov	al,[es:edi+ecx]		; copy from [es:edi]
-	mov	[ebx+ecx],al		; copy to   [ds:ebx]
+	mov	al, es:[edi+ecx]	; copy from [es:edi]
+	mov	[ebx+ecx], al		; copy to   [ds:ebx]
 	test	al,al
 	jz	.skip
 
 	inc	ecx
 	cmp	ecx, GP_BUFFER_SIZE
 	jb	.loop
-	mov	b [ebx], 0		; force fail
+
+	mov	b [ebx + GP_BUFFER_SIZE-1], 0	;safety
 
 .skip:
 	mov	edi, ebx		; buffer address
@@ -958,11 +949,8 @@ proc4 int_21h_56h
 	pop	eax
 	callint	int_21h_ds_edx		;call DOS
 
-	pushf
-	push	eax
-	mov	eax, edi
+	pushf	;edi = buffer
 	call	free_gp_buffer_32
-	pop	eax
 	popf
 
 	pop	edi

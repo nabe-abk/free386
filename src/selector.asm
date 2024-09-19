@@ -1031,9 +1031,7 @@ freeRAM_bm_ladr	dd	0		; free phisical memory bitmap address
 		dw	ALLMEM_sel
 
 	align	4
-managed_LDTsels	dd	0
+managed_LDTsels		dd	0
 managed_LDTsel_list:			; managed LDT selector list
-%rep	(LDTsize/8)
-	dw	0
-%endrep
+  times (LDTsize/8)	dw	0
 

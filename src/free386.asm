@@ -530,8 +530,6 @@ proc1 memory_setting
 	cmp	si, gp_buffer_table + GP_BUFFERS*4
 	jb	.gp_loop
 
-	mov	b [gp_buffer_remain], GP_BUFFERS
-
 	;//////////////////////////////////////////////////
 	; Universal buffer
 	;//////////////////////////////////////////////////

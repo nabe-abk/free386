@@ -172,7 +172,7 @@ proc4 call_V86_clear_stack
 	;--------------------------------------------------
 	; alloc V86 stack
 	;--------------------------------------------------
-	call	alloc_sw_stack_32	; eax <- pointer 
+	call	alloc_sw_stack_32	; eax <- pointer
 
 	mov	ebx, esp
 	push	ss
@@ -294,8 +294,7 @@ proc4 .in_V86
 	mov	[cv86_fs], fs
 	mov	[cv86_gs], gs
 
-	mov	[tmp_esp], sp
-	mov	w [tmp_esp+2], 0
+	mov	[tmp_esp], esp
 
 	;--------------------------------------------------
 	; jmp to Protect mode
@@ -406,7 +405,7 @@ proc4 int_from_V86
 	; make PM->V86 stack
 	;--------------------------------------------------
 	push	ax		; reserved
-	mov	cs:[tmp_esp],esp
+	mov	cs:[tmp_esp], esp
 
 	push	ax		;
 	push	gs		;
@@ -437,13 +436,13 @@ proc4 int_from_V86
 	mov	[.int_opcode +1], al	;rewrite int opcode imm
 
 	;--------------------------------------------------
-	; calc sp
+	; calc ss:sp linear address
 	;--------------------------------------------------
 	xor	eax, eax
+	xor	esi, esi
 	mov	 ax, ss
 	shl	eax, 4
-	mov	esi, esp
-	and	esi, 0ffffh
+	mov	 si, sp
 	add	eax, esi
 	mov	[cf32_esp], eax
 
@@ -524,10 +523,10 @@ proc4 .in_PM
 	; jmp to real mode
 	;--------------------------------------------------
 proc4 .jmp_to_real_mode
-	pop	eax
-	sub	eax, 10h
-	mov	[cf32_esp], eax		;V86 esp
+	pop	eax			;V86 esp
 	pop	d [cf32_ss_32]		;V86 ss
+	sub	eax, 10h		;-10h
+	mov	[cf32_esp], eax		;save V86 esp
 
 	db	0eah			;far jmp
 	dd	offset .286		;
@@ -669,12 +668,12 @@ proc4 call32_from_V86
 	; calc stack pointer linear address
 	;--------------------------------------------------
 	xor	eax, eax
+	xor	esi, esi
 	mov	 ax, ss
 	shl	eax, 4
-	mov	esi, esp
-	and	esi, 0ffffh
+	mov	 si, sp
 	add	eax, esi
-	mov	[cf32_esp], eax		;linear adddress of ss:esp
+	mov	[cf32_esp], eax
 
 	;--------------------------------------------------
 	; jmp to protect mode

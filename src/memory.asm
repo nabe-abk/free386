@@ -167,7 +167,6 @@ proc2 malloc_dos_page
 	jmp	error_exit_16
 
 
-
 ;******************************************************************************
 ; General purpose buffer function
 ;******************************************************************************
@@ -175,104 +174,90 @@ BITS	32
 ;==============================================================================
 ; Get general purpose buffer
 ;==============================================================================
-; out	eax = buffer pointer, 0 is failed
+; IN	ds = any
+; Ret	Cy = 0 Success
+;		edi = buffer pointer
+;	Cy = 1 Fail
+;		edi = destroy
 ;
 proc4 get_gp_buffer_32
-	pushf
+	push	eax
 	push	ebx
-	push	ecx
 	push	ds
+	pushf
 
 	push	F386_ds
 	pop	ds
 
 	cli
-	mov	eax, [gp_buffer_remain]
-	test	eax, eax
-	jz	.fail
+	mov	ebx, [gp_buffer_free_bitmap]	; free bitmap
+	bsf	eax, ebx			; search '1' bit from ebx low bit.
+	jz	.fail				; not found
+	cmp	eax, GP_BUFFERS
+	jae	.fail
 
-	dec	eax
-	mov	[gp_buffer_remain], eax
+	btr	ebx, eax			; reset eax bit in ebx
+	mov	[gp_buffer_free_bitmap], ebx	; save
 
-	mov	eax, 80000000h
-	mov	ebx, [gp_buffer_used]
-	xor	ecx, ecx
-.loop:
-	inc	ecx
-	cmp	cl, 32
-	jz	short .fail
-	rol	eax, 1
-	test	ebx, eax
-	jnz	short .loop
+	mov	edi, [gp_buffer_table + eax*4]
 
-	or	ebx, eax
-	mov	[gp_buffer_used], ebx	; set used flag
-
-	mov	eax, [gp_buffer_table -4 + ecx*4]
+	popf
+	clc
 .ret:
 	pop	ds
-	pop	ecx
 	pop	ebx
-	popf
+	pop	eax
 	ret
 .fail:
-	xor	eax, eax
-	jmp	short .ret
+	popf
+	stc
+	jmp	.ret
 
 ;==============================================================================
 ; free general purpose buffer
 ;==============================================================================
-; in	eax = buffer pointer
-; out	eax = 0 success
-;	    = 1 failed
+; IN	edi = buffer pointer
+;	 ds = any
+; Ret	 Cy = 0 Success
+;	 Cy = 1 Fail
 ;
 proc4 free_gp_buffer_32
-	pushf
+	push	eax
 	push	ebx
-	push	ecx
 	push	ds
 
 	push	F386_ds
 	pop	ds
 
 	mov	ebx, gp_buffer_table
-	xor	ecx, ecx
+	xor	eax, eax
 .loop:
-	cmp	[ebx], eax
+	cmp	[ebx], edi
 	je	.found
 	add	ebx, 4
-	inc	ecx
-	cmp	cl, GP_BUFFERS
+	inc	eax
+	cmp	al, GP_BUFFERS
 	jb	.loop
-	jmp	.fail
+
+	; fail
+	stc
+	jmp	.ret
 
 .found:
-	mov	ebx, [gp_buffer_used]
-	btc	ebx, ecx	; cy <- ecx bit and ecx bit revers
-	jnc	.fail		; used flag not set
+	bts	[gp_buffer_free_bitmap], eax	; set free bit
 
-	mov	[gp_buffer_used], ebx
-	inc	d [gp_buffer_remain]
-
-	xor	eax, eax
+	clc
 .ret:
 	pop	ds
-	pop	ecx
 	pop	ebx
-	popf
+	pop	eax
 	ret
-
-.fail:
-	mov	eax, 1
-	jmp	short .ret
-
 
 ;==============================================================================
 ; clear general purpose buffer
 ;==============================================================================
 proc4 clear_gp_buffer_32
-	mov	d [gp_buffer_used],   0
-	mov	d [gp_buffer_remain], GP_BUFFERS
+	mov	d [gp_buffer_free_bitmap], 0ffff_ffffh
 	ret
 
 
@@ -337,7 +322,6 @@ proc4 clear_sw_stack_32
 	pop	eax
 	ret
 
-
 ;==============================================================================
 ; allocation from heap (16bits)
 ;==============================================================================
@@ -394,7 +378,6 @@ global	DOS_mem_pages
 global	DOS_alloc_sizep		; use only memory information
 global	DOS_alloc_seg		; use only memory information
 
-global	gp_buffer_remain
 global	gp_buffer_table
 global	sw_stack_bottom
 global	sw_stack_bottom_orig
@@ -407,8 +390,7 @@ DOS_alloc_sizep		dd	0		;allocate DOS memory size(para)
 DOS_mem_ladr		dd	0		;can use DOS memory linear address
 DOS_mem_pages		dd	0		;can use DOS memory pages
 
-gp_buffer_remain	dd	GP_BUFFERS	; remain buffers
-gp_buffer_used		dd	0		; buffer used flag
+gp_buffer_free_bitmap	dd	0ffffffffh	; buffer free flags
 gp_buffer_table:
   times	GP_BUFFERS	dd	0		; address
 

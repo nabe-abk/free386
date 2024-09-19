@@ -1,5 +1,5 @@
 ;******************************************************************************
-; file search test
+; int 21 / GP_BUFFER test
 ;******************************************************************************
 ;
 ;[TAB=8]
@@ -13,41 +13,41 @@
 segment	text align=4 class=CODE use32
 ;------------------------------------------------------------------------------
 ..start:
-	; set FF to buffer
-	mov	eax, -1
-	mov	edi, buffer
-	mov	ecx, 256/4
-	rep	stosd
-
-	; set DTA
-	mov	 ah, 1ah
-	mov	edx, buffer	;ds:edx
+main:
+	mov	ah, 38h
+	mov	al, 00h
+	mov	dx, buf
 	int	21h
 
-	; search file
-	mov	 ah, 4eh
-	xor 	ecx, ecx	;attribute = 0
-	mov	edx, file	;file name
+	; file create
+	mov	ah, 3ch
+	mov	al, 0001_0010b
+	xor	ecx, ecx
+	mov	edx, file0
 	int	21h
-	jc	end
 
-.loop:
-	mov	edi, buffer + 1eh
-	mov	ecx, 20h
-	xor	al, al
-	repne	scasb
-	mov	dword [edi-1], 24_0A_0Dh	; 13 10 '$'
+	mov	ebx, eax		; bx = file handle
 
-	mov	ah, 09h
-	mov	edx, buffer + 1eh
-	int	21h		;print file name
-
-	; search next file
-	mov	ah, 4fh
+	; file close
+	mov	ah, 3eh
 	int	21h
-	jnc	.loop
 
-end:
+	; rename file
+	mov	edx, file0
+	mov	edi, file1
+	mov	ah, 56h
+	int	21h
+
+	; rename file
+	mov	edx, file1
+	mov	eax, 24h	; PSP
+	mov	 es, ax
+	mov	edi, 80h	; DTA
+	mov	dword es:[edi  ], '1234'
+	mov	dword es:[edi+4], '567'
+	mov	ah, 56h
+	int	21h
+
 	mov	ah, 4ch
 	int	21h
 
@@ -55,8 +55,10 @@ end:
 ;------------------------------------------------------------------------------
 	align	16
 ;------------------------------------------------------------------------------
-file	db	'*.asm',0
+buf  times 64	db 0ffh
 
-	align	16
-buffer	resb	64
-	db	'$$',0	;safety
+file0		db '__test__',0
+file1		db '..\test.obj',0
+
+
+

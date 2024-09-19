@@ -11,6 +11,7 @@ Ver 1.00 - 2024-09-19
 - Fix: Improper management of free linear address (int 21h 48h/250Ah and more).
 - Fix: In V86, 32bit interrupt will crash if ESP's upper 16 bits are non-zero.
 - Fix: If called init_XXX_16, will be called end_XXX_16 when exiting V86 mode.
+- Fix: Do not work int 21h, AH=56h (rename file).
 - [TOWNS] Fix: CoCo initialization miss. This fix stabilizes TMENU.
 
 ===============================================================================
