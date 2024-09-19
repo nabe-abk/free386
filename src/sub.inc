@@ -2,8 +2,8 @@
 ;16 bit
 ;
 extern	get_next_parameter
+extern	parse_decimal_string
 extern	bin2hex4_16
-
 ;
 ;32 bit
 ;

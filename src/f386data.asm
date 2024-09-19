@@ -174,19 +174,22 @@ msg_07	db	'Found XMS 3.0',13,10,'$'
 msg_08	db	'Found VCPI',13,10,'$'
 msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	13,10
-	db	'	-v	Verbose (memory information and other)',13,10
-	db	'	-vv	More verbose (internal memory information)',13,10
-	db	"	-q	Do not output Free386's title and this help",13,10
-	db	'	-p	Search .exp file from PATH (with default from PATH386)',13,10
-	db	'	-m	Set reserved DOS memory to 0 byte for allocate more memory',13,10
-	db	'	-2	Set PharLap version is 2.2 (ebx=20643232h)',13,10
+	db	'  -v		Verbose (memory information and other)',13,10
+	db	'  -vv		More verbose (internal memory information)',13,10
+	db	"  -q		Do not output Free386's title and this help",13,10
+	db	'  -p		Search .exp file from PATH (with default from PATH386)',13,10
+	db	'  -m		Set reserved DOS memory to 0 byte for allocate more memory',13,10
+	db	'  -2		Set PharLap version is 2.2 (ebx=20643232h)',13,10
 %if MACHINE_CODE
-	db	'	-c?     Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
-	db	'	-i	Do not check machine',13,10
+	db	'  -c?		Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
+	db	'  -i		Do not check machine',13,10
 %endif
 %if TOWNS
-	db	'	-n	Do not load NSD driver',13,10
+	db	'  -n		Do not load NSD driver',13,10
 %endif
+	db	'  -maxreal nn	Set minimum dos free memory [byte]' ,13,10
+	db	'  -minreal nn	Set maximum dos free memory [byte]' ,13,10
+	db	'  -callbuf nn	Set user call buffer size [KB]',13,10
 	db	'$'
 
 err_head	db	'[F386] $'

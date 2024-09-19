@@ -92,9 +92,8 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 
 _pool_for_paging equ	2	; pool RAM pages for paging (1page=4KB)
 _call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function
-_resv_real_memKB equ	32	; reserved real memory (KB) for DOS
-
-_user_cbuf_pages equ	4	; call buffer for client (int 21h, AX=250Dh)
+_resv_real_memKB equ	8	; reserved real memory (KB) for DOS
+_user_cbuf_pages equ	4	; user call buffer (int 21h, AX=250Dh)
 				; if set 0, this buffer same free386 internal
 
 ;==============================================================================
@@ -113,7 +112,7 @@ PM_stack_size	equ	 300h	; byte
 VCPI_stack_size	equ	 100h	; VCPI call(to V86) dedicated stack
 
 SW_stack_size	equ	180h	; CPU switch stack size
-SW_max_nest	equ	6	; CPU switch max nest
+SW_max_nest	equ	4	; CPU switch max nest
 
 LADR_HROOM_size	equ 0200000h	; 2MB, Head room for linear address expansion
 LADR_UNIT	equ 0400000h	; 4MB, Memory address allocation unit

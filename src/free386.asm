@@ -110,76 +110,32 @@ start:
 	int	21h			;DOS call
 
 ;------------------------------------------------------------------------------
-;●パラメタ確認 (free386 への動作指定)
+; parse arguments
 ;------------------------------------------------------------------------------
 proc2 parameter_check
 	mov	si, 81h			;argument string pointer
 	mov	bp, 7fh			;argument max length
 	xor	bx, bx
 
-	jmp	short .loop
-
-%if TOWNS
-	;///////////////////////////////
-	; -n, do not load CoCo/NSD
-	;///////////////////////////////
-.para_n:
-	and	ah,01h			;al = -n?
-	mov	b [load_nsdd],ah
-	jmp	short .loop
-%endif
-
-	;///////////////////////////////
-	; set PharLap version to 2.2 (compatible EXE386)
-	;///////////////////////////////
-.para_2:
-	mov	d [pharlap_version], 20643232h	; ' d22'
-	jmp	short .loop
-
-	;///////////////////////////////
-	; -m : Use memory maximum
-	;///////////////////////////////
-.para_m:
-	xor	ax, ax
-	mov	[pool_for_paging], al	;reserved paging memory = 0
-	mov	[resv_real_memKB], ax	;reserved dos memory = 0
-	mov	b [user_cbuf_pages],1	;user call buffer size = 1page(4KB)
-	jmp	short .loop
-
-.para_maxreal:
-.para_minreal:
-.para_callbuf:
-	add	si, bx
-	call	get_next_parameter	;skip next parameter
-	jmp	short .loop
-
-.sp_param:
-	; RUN386 some parameters
-	cmp	eax, 'maxr'
-	je	.para_maxreal
-	cmp	eax, 'minr'
-	je	.para_minreal
-	cmp	eax, 'call'
-	je	.para_callbuf
-	jmp	short .sp_param_return
-
 .loop:
 	add	si, bx
 	call	get_next_parameter	;si=string, bx=length
 	test	bx, bx
-	jz	.end_paras		;0
+	jz	.end			;0
 
 	cmp	b [si],'-'		;'-' parameter?
-	jne	.end_paras		;
+	jne	.end			;
 
 	mov	eax,[si+1]		;load 4 byte
 	cmp	ah, 20h
 	ja	.skip
 	mov	ah, 0			;rewrite CR and other
 .skip:
-	jmp	short .sp_param		;for short jump
-	.sp_param_return:		;
-
+	jmp	.run386_parameters
+.run386_parameters_ret:
+	;---------------------------------------------------
+	; Free386 parameters
+	;---------------------------------------------------
 	cmp	al,'v'
 	je	.para_v
 	cmp	al,'q'
@@ -198,7 +154,7 @@ proc2 parameter_check
 %endif
 	cmp	al,'i'
 	je	.para_i
-	jmp	short .loop
+	jmp	.loop
 
 	;///////////////////////////////
 	; -v, -vv
@@ -207,18 +163,18 @@ proc2 parameter_check
 	cmp	ah,'v'			; -vv?
 	je	.para_vv
 	mov	b [verbose], 1
-	jmp	short .loop
+	jmp	.loop
 .para_vv:
 	mov	b [verbose],    2
 	mov	b [show_title], 0
-	jmp	short .loop
+	jmp	.loop
 
 	;///////////////////////////////
 	; -q
 	;///////////////////////////////
 .para_q:
 	mov	b [show_title],0	;no title output
-	jmp	short .loop
+	jmp	.loop
 
 	;///////////////////////////////
 	; -p?
@@ -226,7 +182,7 @@ proc2 parameter_check
 .para_p:
 	and	ah,01			;-p? / al = ?
 	mov	[search_PATH],ah	;search PATH flag
-	jmp	short .loop
+	jmp	.loop
 
 	;///////////////////////////////
 	; -c?
@@ -237,7 +193,7 @@ proc2 parameter_check
 	mov	ah,01			;指定なしなら -c1 と解釈
 .c0:	and	ah,03			;bit 1,0 取り出し
 	mov	[reset_CRTC],ah
-	jmp	short .loop
+	jmp	.loop
 
 	;///////////////////////////////
 	; -i?
@@ -245,12 +201,105 @@ proc2 parameter_check
 .para_i:
 	and	ah,01h			;-i? / al = ?
 	mov	b [check_MACHINE],ah
-	jmp	short .loop
+	jmp	.loop
+
+
+%if TOWNS
+	;///////////////////////////////
+	; -n, do not load CoCo/NSD
+	;///////////////////////////////
+.para_n:
+	and	ah,01h			;al = -n?
+	mov	b [load_nsdd],ah
+	jmp	.loop
+%endif
 
 	;///////////////////////////////
-	; save exp file name
+	; set PharLap version to 2.2 (compatible EXE386)
 	;///////////////////////////////
-.end_paras:
+.para_2:
+	mov	d [pharlap_version], 20643232h	; ' d22'
+	jmp	.loop
+
+	;///////////////////////////////
+	; -m : Use memory maximum
+	;///////////////////////////////
+.para_m:
+	xor	ax, ax
+	mov	[pool_for_paging], al	;reserved paging memory = 0
+	mov	[resv_real_memKB], ax	;reserved dos memory = 0
+	mov	b [user_cbuf_pages],1	;user call buffer size = 1page(4KB)
+	jmp	.loop
+
+	;---------------------------------------------------
+	; RUN386 parameters
+	;---------------------------------------------------
+proc1 .run386_parameters
+	cmp	eax, 'maxr'
+	je	.para_maxreal
+	cmp	eax, 'minr'
+	je	.para_minreal
+	cmp	eax, 'call'
+	je	.para_callbuf
+	jmp	.run386_parameters_ret
+
+proc1 .parse_next_decimal
+	add	si, bx
+	call	get_next_parameter	;skip next parameter
+	test	bx, bx
+	jz	.parse_fail		;0
+	jmp	parse_decimal_string	;parse [si]
+	; eax = number, ret to caller
+
+.parse_fail:
+	pop	ax			;remove ret address
+	jmp	.end			;exit
+
+	;///////////////////////////////
+	; -maxreal 32768 [byte]
+	;///////////////////////////////
+.para_maxreal:
+	call	.parse_next_decimal
+	shr	eax, 10			;byte to KB
+	mov	cx, [resv_real_memKB]
+	cmp	cx, ax			;current -  max
+	jbe	.maxr_skip		;current <= max
+	mov	[resv_real_memKB], ax	;if set current>max
+.maxr_skip:
+	jmp	.loop
+
+	;///////////////////////////////
+	; -minreal 8192 [byte]
+	;///////////////////////////////
+.para_minreal:
+	call	.parse_next_decimal
+	add	eax, 03ffh		;+1023 byte
+	shr	eax, 10			;byte to KB
+	mov	cx, [resv_real_memKB]
+	cmp	cx, ax			;current -  min
+	jae	.minr_skip		;current >= min
+	mov	[resv_real_memKB], ax	;if set current>min
+.minr_skip:
+	jmp	.loop
+
+	;///////////////////////////////
+	; -callbuf 32 [KB]
+	;///////////////////////////////
+.para_callbuf:
+	call	.parse_next_decimal
+	add	eax, 3		;round up 4KB
+	shr	eax, 2		;KB to page
+	cmp	eax, 0ffh
+	jbe	.cb_skip
+	mov	al, 255
+.cb_skip:
+	mov	[user_cbuf_pages], al
+	jmp	.loop
+
+	;---------------------------------------------------
+	; save exp file name
+	;---------------------------------------------------
+.end:
 	mov	[exp_name_adr], si
 	mov	[exp_name_len], bx
 

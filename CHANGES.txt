@@ -5,6 +5,7 @@ Ver 1.00 - 2024-09-19
 
 - Support non VCPI enviroment.
 - Add memory management system.
+- Add command line options: "-maxreal, -minreal, -callbuf"
 - [TOWNS] Support TownsOS (not require XMS/VCPI).
 - [PC-98] Update memory mapping code.
 - Fix: Improper management of free linear address (int 21h 48h/250Ah and more).

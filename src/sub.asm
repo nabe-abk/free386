@@ -51,10 +51,44 @@ proc2 get_next_parameter
 
 
 ;------------------------------------------------------------------------------
+; parse decimal string
+;------------------------------------------------------------------------------
+; in	si  = decimal string
+; ret	eax = number
+;	si  = end of decimal address + 1
+;
+proc2 parse_decimal_string
+	push	ebx
+	push	ecx
+	push	edx
+	push	si
+
+	xor	eax, eax
+	xor	ebx, ebx
+	mov	ecx, 10
+.loop:
+	mov	bl, [si]
+	inc	si
+	sub	bl, '0'
+	cmp	bl, 9
+	ja	.exit
+
+	mul	ecx		;edx:eax = eax*10
+	add	eax, ebx	;add number
+	jmp	.loop
+
+.exit:
+	pop	si
+	pop	edx
+	pop	ecx
+	pop	ebx
+	ret
+
+
+;------------------------------------------------------------------------------
 ; number to hex digits
 ;------------------------------------------------------------------------------
 ; in	eax = value
-;	 cx = number of digits
 ;	 di = store string
 ;
 ; ret	 di = last store address +1
@@ -71,10 +105,6 @@ proc2 bin2hex4_16
 	and	bl, 0fh
 	mov	dl, [hex_str + bx]
 
-	cmp	b [di], '_'
-	jne	.skip
-	inc	di
-.skip:
 	mov	[di], dl
 	inc	di
 	loop	.loop

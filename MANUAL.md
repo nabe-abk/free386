@@ -68,6 +68,12 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 	* -i1 Auto detect machines type for prevents execution of Free386 binaries on different machines.
 * -n (only TOWNS)
 	* Do not initialize CoCo/NSD driver. Improved execution speed for EXP files that do not require CoCo.
+* -maxreal nn
+	* Set minimum dos free memory "nn [byte]". Actually, it is set in 1KB units.
+* -minreal nn
+	* Set maximum dos free memory "nn [byte]". Actually, it is set in 1KB units.
+* -callbuf nn
+	* Set user call buffer size "nn [KB]". Actually, it is set in 4KB units. If set to 0, This will be the same as Free386's internal call buffer.
 
 ## Options (in Japanese)
 
@@ -101,6 +107,12 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 	* -i1 実行時機種判別を行い、機種の異なるFree386バイナリの実行を防止します。
 * -n (only TOWNS)
 	* CoCo/NSD ドライバの初期化を行わず、CoCoが不要なEXPファイルにおいて動作速度を向上させます。
+* -maxreal nn
+	* DOSフリーメモリの最大値を「nn [byte]」に設定します。実際は 1KB 単位で設定されます。
+* -minreal nn
+	* DOSフリーメモリの最小値を「nn [byte]」に設定します。実際は 1KB 単位で設定されます。
+* -callbuf nn
+	* ユーザーコールバッファのサイズを「nn [KB]」に設定します。実際は 4KB 単位で設定されます。0に設定すると、Free386内部コールバッファと共通になります。
 
 ## Binary Hack for default setting
 
@@ -122,8 +134,8 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +0ah	|  0	|  b | (Reserved) |
 | +0bh	|  0	|  b | (Reserved) |
 | +0ch	|  2	|  b | Reserved memory pages for paging table (unit is page). 1page=4KB. |
-| +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
-| +0eh	| 32	|  b | Reserved minimum DOS memory(KB). |
+| +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. Reducing this value does not increase free memory. Because, this memory allocate from Free386 internal 64KB memory. |
+| +0eh	|  8	|  b | Reserved minimum DOS memory(KB). |
 | +10h	|  4	|  b | User's call buffer pages for ax=250Dh/ax=2517h. If set to 0, it will be the same as the internal call buffer. 1page=4KB. [TOWNS] If you run TownsMENU, this will need at least 4 pages (=16KB). |
 
 In addition, if you want to rewrite the default value of Phar Lap's DOS-Extender Version information,
@@ -140,8 +152,8 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 | +0ah	|  0	|  b | （予約済） |
 | +0bh	|  0	|  b | （予約済） |
 | +0ch	|  2	|  b | ページングテーブル用の予約済ページ数。1ページ=4KB。 |
-| +0dh	| 32	|  b | コールバッファサイズKB単位で設定します。最小は4KBです。 |
-| +0eh	| 32	|  w | 空けておくDOSメモリの量をKB単位で設定します。 |
+| +0dh	| 32	|  b | コールバッファサイズをKB単位で設定します。最小は4KBです。このメモリはFree386本体の64KB領域から確保されるため、この値を減らしてもフリーメモリは増えません。 |
+| +0eh	|  8	|  w | 空けておくDOSメモリをKB単位で設定します。 |
 | +10h	|  4	|  b | ユーザー用コールバッファをページ単位で設定します。int 21h, ax=250Dh/ax=2517h で返されるバッファです。0に設定すると、内部コールバッファをユーザーに返すようになります。[TOWNS] TownsMENUを起動するには最低4ページ（16KB）必要です。 |
 
 その他、Phar Lap DOS-Extender Versionのデフォルト値を書き換えたいときは、
@@ -193,7 +205,9 @@ If you have requests for implementation, please contact us.
 
 * Usable memory is limited to a maximum of 1GB.
 * When setting the EXP file name to the ENV command name, it will be truncated if there is not enough space.
+* EXP linker options "-maxreal, -minreal, -callbuf" are ignored.
 
 - 使用できる最大メモリが1GBに制限されています。
 - ENV領域のコマンド名にEXPファイル名を設定する際、領域が足りないときはファイル名が途中で切り捨てられます。
+- EXPリンカオプションの「-maxreal, -minreal, -callbuf」は無視されます。
 
