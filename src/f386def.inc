@@ -6,11 +6,11 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver0.91'
-%define RELEASE_DATE	'2024-09-11'
-Major_ver	equ		00h
-Minor_ver	equ		91h
-F386_Date	equ		20240911h	;Release date
+%define	VER_STRING	'Ver1.00'
+%define RELEASE_DATE	'2024-09-19'
+Major_ver	equ		01h
+Minor_ver	equ		00h
+F386_Date	equ		20240919h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -90,12 +90,12 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 				;	3 = auto
 				; Not support PC/AT machine.
 
-_pool_for_paging equ	8	; pool RAM pages for paging (1page=4KB)
+_pool_for_paging equ	2	; pool RAM pages for paging (1page=4KB)
 _call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function
 _resv_real_memKB equ	32	; reserved real memory (KB) for DOS
 
-_user_cbuf_pages equ	1	; call buffer for client (int 21, AX=250Dh)
-				; if set 0, user call buffer same internal
+_user_cbuf_pages equ	4	; call buffer for client (int 21h, AX=250Dh)
+				; if set 0, this buffer same free386 internal
 
 ;==============================================================================
 ; General define
@@ -106,16 +106,16 @@ CPU_Fault	equ	0fdh	; CPU fault        error code
 WORK_size	equ	200h	; Universal work size, min 200h
 
 GP_BUFFERS	equ	4	; number of general purpose buffers, max 32
-GP_BUFFER_SIZE	equ	200h	; 512 byte, min 100h
+GP_BUFFER_SIZE	equ	200h	; min 100h
 
 V86_stack_size	equ	 200h	; byte
 PM_stack_size	equ	 300h	; byte
 VCPI_stack_size	equ	 100h	; VCPI call(to V86) dedicated stack
 
 SW_stack_size	equ	180h	; CPU switch stack size
-SW_max_nest	equ	4	; CPU switch max nest
+SW_max_nest	equ	6	; CPU switch max nest
 
-LADR_ROOM_size	equ 0200000h	; 4MB, Room for memory address expansion
+LADR_HROOM_size	equ 0200000h	; 2MB, Head room for linear address expansion
 LADR_UNIT	equ 0400000h	; 4MB, Memory address allocation unit
 
 ;==============================================================================
@@ -149,7 +149,7 @@ TSS_sel		equ	88h	;TSS access
 
 ALLMEM_sel	equ	40h	;ALL RAM selector
 DOSMEM_sel	equ	60h	;DOS 1MB memory
-DOSMEMsize	equ	110000h	;1MB + 64KB (HMA)
+DOSMEMsize	equ	100000h	;1MB
 
 F386_cs		equ	08h	;Free386's CS
 F386_ds		equ	10h	;Free386's DS

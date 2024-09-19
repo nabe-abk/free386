@@ -94,23 +94,25 @@ proc4 int_21h_48h
 	call	search_free_LDTsel	;eax = selector
 	jc	.fail	; use esi for get_max_alloc in .fail
 
-	mov	edi, [work_adr]
+	push	eax
+	call	get_gp_buffer_32	;get buffer
+	mov	edi, eax		;edi = buffer
+	test	eax, eax
+	pop	eax
+	jz	.fail
+
 	mov	[edi  ], esi		;base
 	mov	[edi+4], ebx		;size (pages)
 	mov	w [edi+8],1200h		;R/W 386, DPL=0, AVL=1
 					;AVL bit is only FreeRAM selector
 	test	ebx, ebx
-	jz	.zero_selector
-
 	call	make_selector_4k	;eax=selector, [edi]=options
-	jmp	.end
-
-.zero_selector:		; pages = 0
-	mov	[edi+4], ebx		;0
-	call	make_selector		;eax=selector, [edi]=options
-
-.end:
 	call	regist_managed_LDTsel	;ax=selector
+
+	push	eax
+	mov	eax, edi
+	call	free_gp_buffer_32
+	pop	eax
 
 	pop	ds
 	pop	ecx
@@ -833,7 +835,7 @@ proc4 DOSX_fn_250eh
 	push	O_CV86_FARCALL
 	call	call_V86_clear_stack
 	clc
-	jmp	all_flags_save_iret
+	jmp	keep_all_flags_iret
 
 .fail:
 	mov	eax, 1
@@ -937,7 +939,7 @@ proc4 DOSX_fn_2510h
 	end_sdiff
 
 	clc
-	jmp	all_flags_save_iret
+	jmp	keep_all_flags_iret
 
 .fail:
 	mov	eax, 1
@@ -1013,7 +1015,7 @@ proc4 DOSX_fn_2511h
 
 	pop	eax
 	pop	es
-	jmp	all_flags_save_iret
+	jmp	keep_all_flags_iret
 
 
 ;------------------------------------------------------------------------------
@@ -1216,3 +1218,19 @@ proc4 DOSX_fn_25c2h		; resize memory block
 ;	jmp	int_21h_4bh		;int 21h / 4bh ‚Æ“¯‚¶
 ;
 ;//////////////////////////////////////////////////////////////////////////////
+;------------------------------------------------------------------------------
+; keep all flag and iret
+;------------------------------------------------------------------------------
+proc4 keep_all_flags_iret	; exclude IF
+	xchg	[esp+8], eax
+
+	push	ebx
+	pushf
+	pop	ebx
+	and	eax, 0fffff200h
+	and	ebx, 1101_1111_1111b
+	or	eax, ebx
+	pop	ebx
+
+	xchg	[esp+8], eax
+	iret

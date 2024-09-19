@@ -47,10 +47,11 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 * -p1
 	* -p1 After the environment variable PATH386, the environment variable PATH to find the EXP executable file.
 * -m
-	* Memory pages reserved for paging are set to '1'.
+	* Memory pages reserved for paging are set to 0.
 	* Real memory reserved for DOS is set to 0 bytes and 
 	  allocate as much memory as possible for "EXP" file.
-	* Note) It is not completely 0 bytes due to 4KB fragmentation.
+	* User call buffer pages set to 1 (=4KB).
+	* Note) DOS free memory is not completely 0 bytes due to 4KB fragmentation.
 * -2
 	* Set Phar Lap's DOS-Extender Version information to "2.2". Usually "1.2".
 * -c0
@@ -80,9 +81,10 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
 * -p1
 	* -p1 環境変数PATH386の次に、環境変数PATHを参照して EXP実行ファイルを検索します。
 * -m
-	* ページテーブル用予備メモリページ数を1に設定します。
+	* ページテーブル用の予備メモリページ数を「0」に設定します。
     * DOS用に空けておくメモリを0バイトに設定し、可能な限り多くのメモリをEXP用に割り当てます。
-    * ※メモリは4KBごとでしか使用できないため、空きDOSメモリは完全に0byteにはなりません。
+	* ユーザーコールバッファのページ数を「1（=4KB）」に設定します。
+    * ※メモリは4KB単位でしか使用できないため、DOS空きメモリは「0 byte」にはなりません。
 * -2
 	* Phar Lap DOS-Extender Versionを "2.2" に設定します。通常は "1.2" です。
 * -c0
@@ -119,10 +121,10 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +09h	|  1	|  b | Auto detect machines type: 0=off, 1=on (See -i option) |
 | +0ah	|  0	|  b | (Reserved) |
 | +0bh	|  0	|  b | (Reserved) |
-| +0ch	|  8	|  b | Reserved memory pages for paging table (unit is page). 1page=4KB. |
+| +0ch	|  2	|  b | Reserved memory pages for paging table (unit is page). 1page=4KB. |
 | +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. |
 | +0eh	| 32	|  b | Reserved minimum DOS memory(KB). |
-| +10h	|  1	|  b | User's call buffer pages for ax=250Dh/ax=2517h. If set to 0, it will be the same as the internal call buffer. 1page=4KB. |
+| +10h	|  4	|  b | User's call buffer pages for ax=250Dh/ax=2517h. If set to 0, it will be the same as the internal call buffer. 1page=4KB. [TOWNS] If you run TownsMENU, this will need at least 4 pages (=16KB). |
 
 In addition, if you want to rewrite the default value of Phar Lap's DOS-Extender Version information,
 search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20) or other.
@@ -137,10 +139,10 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 | +09h	|  1	|  b | 機種判別機能を実行します: 0=off, 1=on （"-i"オプション参照）|
 | +0ah	|  0	|  b | （予約済） |
 | +0bh	|  0	|  b | （予約済） |
-| +0ch	|  8	|  b | ページングテーブル用の予約済ページ数（単位ページ数）。1ページ=4KB。 |
+| +0ch	|  2	|  b | ページングテーブル用の予約済ページ数。1ページ=4KB。 |
 | +0dh	| 32	|  b | コールバッファサイズKB単位で設定します。最小は4KBです。 |
 | +0eh	| 32	|  w | 空けておくDOSメモリの量をKB単位で設定します。 |
-| +10h	|  1	|  b | ユーザー用コールバッファをページ単位で設定します。int 21h, ax=250Dh/ax=2517h で返されるバッファです。0に設定すると、内部コールバッファをユーザーに返すようになります。 |
+| +10h	|  4	|  b | ユーザー用コールバッファをページ単位で設定します。int 21h, ax=250Dh/ax=2517h で返されるバッファです。0に設定すると、内部コールバッファをユーザーに返すようになります。[TOWNS] TownsMENUを起動するには最低4ページ（16KB）必要です。 |
 
 その他、Phar Lap DOS-Extender Versionのデフォルト値を書き換えたいときは、
 "12aJ"(31 32 61 4A) を文字列検索し、"22d "(32 32 64 20) 等に書き換えてください。
@@ -194,3 +196,4 @@ If you have requests for implementation, please contact us.
 
 - 使用できる最大メモリが1GBに制限されています。
 - ENV領域のコマンド名にEXPファイル名を設定する際、領域が足りないときはファイル名が途中で切り捨てられます。
+

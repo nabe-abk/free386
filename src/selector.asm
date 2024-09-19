@@ -21,22 +21,27 @@ seg32	text32 class=CODE align=4 use32
 ; supprot only 32bit meomory selector.
 ;
 proc4 make_selector
-	push	ebx
+	push	edx
+
+	xor	edx, edx
 	call	do_make_selector
-	pop	ebx
+
+	pop	edx
 	ret
 
 proc4 make_selector_4k
-	push	ebx
+	push	edx
+
+	mov	edx, 80_0000h	;G bit=1, size unit is 4K
 	call	do_make_selector
-	or	b [ebx+6], 80h	;G bit=1, limit unit is 4K
-	pop	ebx
+
+	pop	edx
 	ret
 
 proc4 do_make_selector
 	push	eax
+	push	ebx
 	push	ecx
-	push	edx
 
 	mov	ebx, [GDT_adr]
 	test	al, 4		;check bit 2
@@ -47,10 +52,12 @@ proc4 do_make_selector
 	add	ebx, eax	;ebx = target selector pointer
 
 	mov	eax, [edi+4]	;eax = size
-	test	eax, eax	;size is zero
-	jz	.skip
-	dec	eax
-.skip:
+	test	eax, eax	;size check
+	jnz	.skip		; is non zero
+	xor	edx, edx	;G bit clear
+	inc	eax		;eax = 1
+.skip:	dec	eax		;eax = limit = size -1
+
 	mov	[ebx], ax	;save bit0-15
 	and	eax,0f0000h	;eax = limit bit16-19
 
@@ -74,10 +81,11 @@ proc4 do_make_selector
 	or	ah, 90h		;eax bit12=DT=1(code or data)
 				;eax bit15=Present=1
 	bts	eax, 22		;eax bit22=Operation size=1(32bit seg)
+	or	eax, edx	;mix G bit
 	mov	[ebx+4], eax	;save
 
-	pop	edx
 	pop	ecx
+	pop	ebx
 	pop	eax
 	ret
 
@@ -889,52 +897,43 @@ proc4 remove_managed_LDTsel
 proc4 get_free_linear_adr
 	pusha
 
-	mov	eax, ALLMEM_sel
-	lsl	edi, eax		; edi = current upper linear address
-
-	mov	ebx, [LDT_adr]
 	mov	ecx, [managed_LDTsels]
-	mov	esi, managed_LDTsel_list
-
+	mov	ebx, managed_LDTsel_list
+	xor	edi, edi		; edi = current highest linear address
+	inc	ecx
 .loop:
-	test	ecx, ecx
-	jz	.exit
 	dec	ecx
+	jz	.exit
 
-	movzx	eax, w [esi]		; eax = selector
-	add	esi, 2
+	movzx	eax, w [ebx]		; eax = selector
+	add	ebx, 2
 
-	lsl	ebp, eax		; ebp = limit
-	inc	ebp			; ebp = size
-
-	and	al, 0f8h		; 0ch -> 08h(offset)
-
-	mov	edx, [ebx + eax +2]	; base bit0-23
-	mov	eax, [ebx + eax +4]	; base bit24-31
-	and	edx, 000ffffffh
-	and	eax, 0ff000000h
-	or	eax, edx		; eax = base
-
-	cmp	eax, 040000000h		; 1GB / ignore system mapping?
+	; in eax = selector
+	call	get_selector_end_ladr	; esi = selector end linear address
+	cmp	esi, 4000_0000h		; 1GB / non RAM mapping?
 	ja	.loop
 
-	add	eax, ebp		; base + size
-	cmp	eax, edi		; tmp - current
-	jbe	.loop
+	add	esi, LADR_HROOM_size	; head room for linear address
+	cmp	edi, esi
+	jae	.loop
 
-	mov	edi, eax
+	mov	edi, esi		; save current highest
 	jmp	.loop
 
 .exit:
-	add	edi, LADR_ROOM_size + (LADR_UNIT -1)	;
-	and	edi, 0ffffffffh     - (LADR_UNIT -1)	;
+	; edi = highest linear address
+	mov	eax, [all_mem_pages]
+	shl	eax, 12			; all RAM size
 
-	mov	ebp, 1000000h		; minimum 16MB
-	cmp	edi, ebp
-	jae	.skip
-	mov	edi, ebp
+	cmp	edi, eax
+	ja	.skip
+	mov	edi, eax
 .skip:
-	mov	[esp +4], edi				; esi
+	; adjust to multiple of LADR_UNIT
+	add	edi, LADR_UNIT -1
+	and	edi, 0ffff_ffffh - (LADR_UNIT -1)
+
+	mov	[esp +4], edi		; save to esi
 
 	popa
 	ret

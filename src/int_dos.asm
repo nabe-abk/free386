@@ -855,8 +855,9 @@ proc4 int_21h_47h
 ;・最初に一致するファイルの検索  AH=4eh
 ;------------------------------------------------------------------------------
 proc4 int_21h_4eh
-	callint	int_21h_ds_edx		;DOS call
+	callint	int_21h_ds_edx	;DOS call
 
+.copy_dta:
 	pushfd			;FLAGS save
 	push	ds
 	push	es
@@ -868,14 +869,14 @@ proc4 int_21h_4eh
 	push	F386_ds
 	pop	ds
 
-	mov	ecx,28h /4	;データ領域サイズ /4
+	mov	esi,80h		;PSP ds:[80h]
 	mov	es ,[DTA_seg]
-	mov	esi,80h
 	mov	edi,[DTA_off]
-	rep	movsd		;一括データ転送
+	mov	ecx,28h /4	;DTA size 2Bh
+	rep	movsd		;copy 28h byte
 
-	mov	cl,3		;残り 3byte 転送
-	rep	movsb		;バイト転送
+	mov	cl, 3
+	rep	movsb		;copy 3 byte
 
 	pop	ecx
 	pop	edi
@@ -891,36 +892,8 @@ proc4 int_21h_4eh
 ;・次に一致するファイルの検索  AH=4fh
 ;------------------------------------------------------------------------------
 proc4 int_21h_4fh
-	V86_INT	21h		;DOS call
-
-	pushfd			;FLAGS save
-	push	ds
-	push	es
-	push	esi
-	push	edi
-	push	ecx
-	cld
-
-	push	F386_ds
-	pop	ds
-
-	mov	ecx,28h /4	;データ領域サイズ /4
-	mov	es ,[DTA_seg]
-	mov	esi,80h
-	mov	edi,[DTA_off]
-	rep	movsd		;一括データ転送
-
-	mov	cl,3		;残り 3byte 転送
-	rep	movsb		;バイト転送
-
-	pop	ecx
-	pop	edi
-	pop	esi
-	pop	es
-	pop	ds
-
-	popfd
-	iret_save_cy		;Carry save & return
+	V86_INT	21h
+	jmp	int_21h_4eh.copy_dta
 
 
 ;------------------------------------------------------------------------------

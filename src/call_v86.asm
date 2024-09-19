@@ -115,20 +115,6 @@ proc4 call_V86_HW_int_iret
 	call	call_V86_clear_stack
 	iret
 
-proc4 all_flags_save_iret	; exclude IF
-	xchg	[esp+8], eax
-
-	push	ebx
-	pushf
-	pop	ebx
-	and	eax, 0fffff200h
-	and	ebx, 1101_1111_1111b
-	or	eax, ebx
-	pop	ebx
-
-	xchg	[esp+8], eax
-	iret
-
 ;------------------------------------------------------------------------------
 ; call V86 main
 ;------------------------------------------------------------------------------
@@ -273,7 +259,7 @@ proc4 .jmp_to_real_mode
 	mov	ss, ax
 
 	mov	eax,cr0
-	and	eax,07ffffffeh		;PG=PE=0
+	and	eax,7fff_fffeh		;PG=PE=0
 	mov	cr0,eax
 
 	db	0eah			;far jmp
@@ -325,9 +311,11 @@ proc4 .in_V86
 proc4 .jmp_from_real_mode
 	lgdt	[LGDT_data]
 	lidt	[LIDT_data]
+	mov	eax, [to_PM_CR3]
+	mov	cr3, eax
 
 	mov	eax, cr0
-	or	eax, 80000001h		; PG=PE=1
+	or	eax, 8000_0001h		; PG=PE=1
 	mov	cr0, eax
 
 	db	0eah			;＝far jmp
@@ -365,7 +353,7 @@ proc4 .ret_PM
 	; calc current switch stack bottom pointer
 	mov	ebx, [sw_stack_bottom]
 	add	ebx, SW_stack_size - 8
-	lss	esp,[ebx]		; load caller stack
+	lss	esp, [ebx]		; load caller stack
 
 	call	free_sw_stack_32	; free V86 stack // no argument
 
@@ -380,8 +368,8 @@ proc4 .ret_PM
 	;	+08h	cs:ip / int number(00h-ffh)
 
 	pop_x	ebx			; caller eflags
-	and	eax, 000000fffh		; V86    eflags mask system bits
-	and	ebx, 0fffff000h		; caller eflags mask status bits
+	and	eax, 00000_0fffh	; V86    eflags mask system bits
+	and	ebx, 0ffff_f000h	; caller eflags mask status bits
 	or	ebx, eax
 
 	push	ebx
@@ -474,9 +462,11 @@ proc4 int_from_V86
 proc4 .jmp_from_real_mode
 	lgdt	[LGDT_data]
 	lidt	[LIDT_data]
+	mov	eax, [to_PM_CR3]
+	mov	cr3, eax
 
 	mov	eax, cr0
-	or	eax, 80000001h		; PG=PE=1
+	or	eax, 8000_0001h		; PG=PE=1
 	mov	cr0, eax
 
 	db	0eah			;＝far jmp
@@ -554,10 +544,9 @@ proc4 .jmp_to_real_mode
 	mov	fs, ax
 	mov	gs, ax
 	mov	ss, ax
-	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
-	and	eax,07ffffffeh		;PG=PE=0
+	and	eax,7fff_fffeh		;PG=PE=0
 	mov	cr0,eax
 
 	db	0eah			;far jmp
@@ -701,9 +690,11 @@ proc4 call32_from_V86
 proc4 .jmp_from_real_mode
 	lgdt	[LGDT_data]
 	lidt	[LIDT_data]
+	mov	eax, [to_PM_CR3]
+	mov	cr3, eax
 
 	mov	eax, cr0
-	or	eax, 80000001h		; PG=PE=1
+	or	eax, 8000_0001h		; PG=PE=1
 	mov	cr0, eax
 
 	db	0eah			;＝far jmp
@@ -783,10 +774,9 @@ proc4 .jmp_to_real_mode
 	mov	fs, ax
 	mov	gs, ax
 	mov	ss, ax
-	lidt	[RM_LIDT_data]
 
 	mov	eax,cr0
-	and	eax,07ffffffeh		;PG=PE=0
+	and	eax,7fff_fffeh		;PG=PE=0
 	mov	cr0,eax
 
 	db	0eah			;far jmp

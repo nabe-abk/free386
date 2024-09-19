@@ -97,7 +97,7 @@ top_ladr	dd	0		;プログラム先頭リニアアドレス
 intr_mask_org	dw	0		;8259A オリジナル値バックアップ
 
 DTA_off		dd	80h		;DTA 初期値
-DTA_seg		dw	PSP_sel1,0	;
+DTA_seg		dw	PSP_sel1, 0	;
 
 ;-----------------------------------------------------------
 	align	4

@@ -140,11 +140,11 @@ proc2 parameter_check
 	; -m : Use memory maximum
 	;///////////////////////////////
 .para_m:
-	mov	b [pool_for_paging], 1	;ページング用プールメモリ
-	mov	w [resv_real_memKB], 0	;reserved dos memory = 0
+	xor	ax, ax
+	mov	[pool_for_paging], al	;reserved paging memory = 0
+	mov	[resv_real_memKB], ax	;reserved dos memory = 0
+	mov	b [user_cbuf_pages],1	;user call buffer size = 1page(4KB)
 	jmp	short .loop
-	;/// Move some parameters to this location. Because does not fit in jmp short.
-	;/// jmp short に収まらないので一部解析をここに記述
 
 .para_maxreal:
 .para_minreal:
@@ -491,6 +491,41 @@ proc1 memory_setting
 	mov	[work_adr],di
 
 ;------------------------------------------------------------------------------
+; alloc dos memory
+;------------------------------------------------------------------------------
+	call	init_dos_malloc		;memory.asm
+
+;------------------------------------------------------------------------------
+; alloc user call buffer	// use by init_TOWNS_16
+;------------------------------------------------------------------------------
+proc1 alloc_user_call_buffer
+	movzx	ax, b [user_cbuf_pages]
+	test	ax, ax
+	jz	.use_internal_buffer
+
+	mov	cl, 16			;error code: 'User call buffer allocation failed'
+	call	malloc_dos_page
+
+	mov	[user_cbuf_ladr], eax	;linear address
+	shr	eax, 4
+	mov	[user_cbuf_seg16], ax	;dos segment
+	jmp	short .skip
+
+.use_internal_buffer:
+	mov	eax, [call_buf_adr16]
+	mov	ebx, [call_buf_adr32]
+	add	ebx, [top_ladr]
+	mov	[user_cbuf_adr16], eax	; Seg:Off
+	mov	[user_cbuf_ladr],  ebx	; linear address
+
+	; rewrite size
+	movzx	ax, [call_buf_sizeKB]
+	shr	ax, 2
+	mov	[user_cbuf_pages], al
+
+.skip:
+
+;------------------------------------------------------------------------------
 ;●機種固有の初期化設定（メモリ設定済後、XMS直前）
 ;------------------------------------------------------------------------------
 %if TOWNS || PC_98 || PC_AT
@@ -663,40 +698,6 @@ proc1 estimate_all_mem_pages
 	mov	d [msg_all_mem_type], 'est.'
 .skip:
 
-;------------------------------------------------------------------------------
-; alloc dos memory
-;------------------------------------------------------------------------------
-	call	init_dos_malloc		;memory.asm
-
-;------------------------------------------------------------------------------
-; alloc user call buffer
-;------------------------------------------------------------------------------
-proc1 alloc_user_call_buffer
-	movzx	ax, b [user_cbuf_pages]
-	test	ax, ax
-	jz	.use_internal_buffer
-
-	mov	cl, 16			;error code: 'User call buffer allocation failed'
-	call	malloc_dos_page
-
-	mov	[user_cbuf_ladr], eax	;linear address
-	shr	eax, 4
-	mov	[user_cbuf_seg16], ax	;dos segment
-	jmp	short .skip
-
-.use_internal_buffer:
-	mov	eax, [call_buf_adr16]
-	mov	ebx, [call_buf_adr32]
-	add	ebx, [top_ladr]
-	mov	[user_cbuf_adr16], eax	; Seg:Off
-	mov	[user_cbuf_ladr],  ebx	; linear address
-
-	; rewrite size
-	movzx	ax, [call_buf_sizeKB]
-	shr	ax, 2
-	mov	[user_cbuf_pages], al
-
-.skip:
 ;------------------------------------------------------------------------------
 ; initalize page directory and first page table
 ;------------------------------------------------------------------------------
@@ -1064,7 +1065,7 @@ proc1 cpu_mode_change_from_real_mode
 	BITS	32
 .32:
 	lldt	cs:[to_PM_LDTR]
-	;ltr	cs:[to_PM_TR]
+	ltr	cs:[to_PM_TR]
 	jmp	start32
 	BITS	16
 
