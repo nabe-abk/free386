@@ -171,7 +171,7 @@ segdata	data class=DATA align=4
 	align	4
 PC98_memory_map:
 		;sel, base     ,  pages,  type
-	dd	120h, 8000A8000h, 128/4,  0200h	;VRAM (16c) 96K + sub VRAM 16K
+	dd	120h,  800A8000h, 128/4,  0200h	;VRAM (16c) 96K + sub VRAM 16K
 	dd	128h, 0fff00000h, 512/4,  0200h	;VRAM (256c)
 	dd	130h, 0000A0000h,  16/4,  0200h	;VRAM (TVRAM)
 	dd	138h, 0000A4000h,   4/4,  0200h	;VRAM (CG Window)
