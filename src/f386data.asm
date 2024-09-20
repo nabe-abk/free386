@@ -69,7 +69,6 @@ TSS_adr		dd	0
 ;==============================================================================
 ; XMS
 ;==============================================================================
-XMS_Ver		dd	0		;XMS のメジャー Version
 XMS_entry	dd	0		;XMS 呼び出しアドレス
 
 EMB_handle	 dw	0		;EMB handle
@@ -170,8 +169,9 @@ msg_02	db	'	code and static	: 0100 - #### / cs=ds=####',13,10
 
 msg_05	db	'Load file name = $'
 msg_06	db	'Found XMS 2.0',13,10,'$'
-msg_07	db	'Found XMS 3.0',13,10,'$'
-msg_08	db	'Found VCPI',13,10,'$'
+msg_07	db	'Found XMS'
+msg_xms_ver db	' 3.0',13,10,'$'	; Do not change message size
+msg_09	db	'Found VCPI',13,10,'$'
 msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	13,10
 	db	'  -v		Verbose (memory information and other)',13,10
@@ -202,7 +202,11 @@ _e02	db	'Incompatible binary! This binary for ',MACHINE_STRING,'.',13,10
 	db	'If you do not want to check the machine, please execute with the -i option.',13,10,'$'
 _e03	db	'$'
 _e04	db	'VCPI not found and failed to detect machine',13,10,'$'
-_e05	db	'XMS driver not found',13,10,'$'
+_e05	db	'XMS '
+%if !USE_XMS20
+	db	'3.0 '
+%endif
+	db	'driver not found',13,10,'$'
 _e06	db	'XMS memory allocation failed',13,10,'$'
 _e07	db	'XMS memory lock failed',13,10,'$'
 _e08	db	'VCPI: Failed to get protected mode interface',13,10,'$'

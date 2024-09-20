@@ -3,6 +3,7 @@
 ;******************************************************************************
 ;
 seg16	text class=CODE align=4 use16
+%ifndef XMS_EMULATOR_ONLY
 ;==============================================================================
 ; check maachine type is TOWNS
 ;==============================================================================
@@ -12,7 +13,7 @@ seg16	text class=CODE align=4 use16
 ; in al, 30h	- PC-98 is 0ffh, PC/AT is 0ffh
 ; in al,20eh	- PC-98 is 0ffh, PC/AT is 0ffh
 ;
-proc4 check_TOWNS_16
+proc2 check_TOWNS_16
 	in	al, 30h		;CPU register
 	cmp	al, 0ffh
 	jz	.not_fm		;0ffh is not FM series
@@ -30,11 +31,14 @@ proc4 check_TOWNS_16
 	ret
 
 ;==============================================================================
-;★CoCo情報の保存
+; initalize for TOWNS
 ;==============================================================================
-; ※CALLバッファに保存する
-;
-proc4 init_TOWNS_16
+proc2 init_TOWNS_16
+	;
+	; regist XMS emulator
+	;
+	mov	w [XMS_entry  ], towns_xms_emulator
+	mov	w [XMS_entry+2], cs
 	;
 	; 386SX判定
 	;
@@ -72,7 +76,7 @@ proc4 init_TOWNS_16
 ;★CoCo情報の保存
 ;==============================================================================
 ; ※CALLバッファに保存する
-proc4 init_CoCo
+proc2 init_CoCo
 	mov	ax, 0c000h	; CoCo存在確認
 	int	8eh
 	test	ah, ah
@@ -629,13 +633,14 @@ proc4 exit_TOWNS_16
 	ret
 
 
+%endif	;XMS_EMULATOR_ONLY
 ;==============================================================================
 ;XMS emulator for TownsOS
 ;==============================================================================
 ; Translate XMS function to TownsOS's extend memory function.
 ; See more info: http://www.purose.net/befis/download/ito/tos.sys.txt
 ;
-proc2 xms_emulator
+proc2 towns_xms_emulator
 	cmp	ah, 00h
 	je	get_xms_version
 
@@ -660,10 +665,22 @@ proc2 xms_error
 	retf
 
 proc2 get_xms_version
+	;
 	; IN	AH = 00h
 	;
+	mov	ax, 0c701h
+	xor	dl, dl
+	int	8eh		; check TOS.SYS function
+	test	ah, ah
+	jz	.found		; found
+
+	xor	ah, ah		; AH=0 is error
+	retf
+.found:
+	mov	d [msg_xms_ver], '-EMU'	; original ' 3.0'
+
 	push	di
-	mov	ax, XMS_HANDLES_MAX*4
+	mov	ax, XMS_EMU_HANDLES*4
 	call	heap_malloc
 	mov	[xms_handle_adr], di
 	pop	di
@@ -712,7 +729,7 @@ proc2 xms_allocate_extended_memory
 	jnz	.error
 
 	mov	ax, [xms_handle_num]
-	cmp	ax, XMS_HANDLES_MAX
+	cmp	ax, XMS_EMU_HANDLES
 	jae	.error
 
 	mov	bx, [xms_handle_adr]
@@ -803,17 +820,17 @@ proc2 xms_unlock_extended_memory
 ;******************************************************************************
 segdata	data class=DATA align=4
 
+xms_handle_num	dw	0
+xms_handle_adr	dw	0
+
+%ifndef XMS_EMULATOR_ONLY
+;------------------------------------------------------------------------------
 global	load_nsdd
 
 is_emulator	db	0
 load_nsdd	db	1
 init_coco	db	0
 loaded_nsdd	db	0
-
-	align	2
-xms_handle_num	dw	0
-xms_handle_adr	dw	0
-
 
 ;==============================================================================
 ;★CRTC 操作テーブル
@@ -881,3 +898,5 @@ T_OS_selector_alias:
 	dd	120h,   1ch,  0200h	;不明な alias / VRAM(16/32K)
 	dd	0	;end of data
 
+;------------------------------------------------------------------------------
+%endif	;XMS_EMULATOR_ONLY

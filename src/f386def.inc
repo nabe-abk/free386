@@ -120,6 +120,8 @@ SW_max_nest	equ	  4	; CPU switch max nest
 LADR_HROOM_size	equ 0200000h	; 2MB, Head room for linear address expansion
 LADR_UNIT	equ 0400000h	; 4MB, Memory address allocation unit
 
+XMS_EMU_HANDLES	equ	10h	; XMS emulator handles, use in pc_towns.asm
+
 ;==============================================================================
 ; Function call setting
 ;==============================================================================
@@ -217,7 +219,6 @@ MACHINE_CODE	equ	20h	;FM TOWNS
 %define	Free386_API	'f386_fmt.api'
 
 %define PATCH_UNZ_BUG		;patch for emulator UNZ's bug
-%define XMS_EMULATOR
 
 INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する
 
@@ -228,8 +229,6 @@ NSDD_stra_adr	equ	06h	;strategy エントリーのあるオフセット
 NSDD_intr_adr	equ	08h	;interruptエントリーのあるオフセット
 NSDD_sleep	equ	0c0h	; intr/sleep  request
 NSDD_wakeup	equ	0c1h	; intr/wakeup request
-
-XMS_HANDLES_MAX	equ	10h	;XMS handles max
 
 HW_INT_MASTER	equ	40h	;マスタ：ハードウェア割り込み先頭
 HW_INT_SLAVE	equ	48h	;スレーブ

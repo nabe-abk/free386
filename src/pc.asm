@@ -19,4 +19,7 @@
 	%include "pc_at.asm"
 %elif DOS_GENERAL_PURPOSE
 	%include "pc_dos.asm"
+
+	%define XMS_EMULATOR_ONLY
+	%include "pc_towns.asm"
 %endif

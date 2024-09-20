@@ -58,3 +58,6 @@ extern		work_adr
 ; for pc_*.asm
 extern		cpu_is_386sx
 extern		msg_all_mem_type
+extern		XMS_entry
+extern		msg_xms_ver
+

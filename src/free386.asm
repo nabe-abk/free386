@@ -75,8 +75,11 @@ global		top_ladr
 global		end_adr
 global		work_adr
 
+; for pc_*.asm
 global		cpu_is_386sx
 global		msg_all_mem_type
+global		XMS_entry
+global		msg_xms_ver
 
 ;******************************************************************************
 ;■コード(16 bit)
@@ -397,7 +400,7 @@ VCPI_check:
 .found:
 	cmp	b [verbose], 0
 	jz	.skip
-	PRINT16	msg_08		;'Found VCPI'
+	PRINT16	msg_09		;'Found VCPI'
 .skip:
 skip_vcpi_check:
 	push	ds
@@ -584,30 +587,31 @@ proc1 alloc_user_call_buffer
 	%elif PC_AT
 		call	init_AT_16
 	%endif
+
+%elif DOS_GENERAL_PURPOSE
+	call	init_DOS_general_purpose_16
 %endif
 
 ;------------------------------------------------------------------------------
-;●XMS の確認と呼び出しアドレスの取得
+; setup XMS
 ;------------------------------------------------------------------------------
 proc1 XMS_setup
-	mov	ax,4300h	;AH=43h : XMS
+	mov	ax,4300h	;AH=43h
 	int	2fh		;2fh call
 	cmp	al,80h		;XMS install?
-	je	.found		;等しければ jmp
+	je	.found
 
-%ifdef XMS_EMULATOR
-	extern	xms_emulator
-	mov	w [XMS_entry  ], xms_emulator
-	mov	w [XMS_entry+2], cs
-	jmp	.setted_xms_entry
-%endif
+	mov	ax, [XMS_entry]	;xms_emulator registed?
+	test	ax, ax
+	jnz	.setted_xms_entry
+
 .not_found:
 	mov	ah, 05		;'XMS not found'
 	jmp	error_exit_16
 
 .found:
 	push	es
-	mov	ax,4310h		;XMS エントリポイントの取得
+	mov	ax,4310h		;get XMS Entry
 	int	2fh			
 	mov	[XMS_entry  ],bx	;OFF
 	mov	[XMS_entry+2],es	;SEG
@@ -615,16 +619,20 @@ proc1 XMS_setup
 
 .setted_xms_entry:
 	;/////////////////////////////
-	;バージョン番号の取得
-	xor	ah,ah		;ah = 0
+	; get XMS version
+	;/////////////////////////////
+	xor	ah, ah		;ah = 0
 	call	far [XMS_entry]	;XMS call
-	test	ah,ah		;check ah for XMS emulator
-	jz	.not_found	;error
+	test	ah, ah		;check ah for XMS emulator
+	jz	.not_found	;occurs only on XMS emulator
 
-	mov	[XMS_Ver], ah	;save XMS spec version
 	cmp	ah, 3		;XMS 3.0?
 	mov	al, [verbose]	;冗長表示フラグ
 	je	get_EMB_XMS30	;等しければ jmp
+
+%if !USE_XMS20
+	jmp	.not_found
+%endif
 
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS2.0) / Max 64MB
@@ -661,7 +669,6 @@ proc1 get_EMB_XMS20
 get_EMB_failed:
 	mov	ah, 06		; 'XMS memory allocation failed'
 	jmp	error_exit_16
-
 
 ;------------------------------------------------------------------------------
 ;●拡張メモリの確保 (use XMS3.0)
