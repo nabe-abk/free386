@@ -117,7 +117,7 @@ SAFE_stack_size equ	100h	; safe stack, use by CPU Fault
 SW_stack_size	equ	180h	; CPU switch stack size
 SW_max_nest	equ	  4	; CPU switch max nest
 
-LADR_HROOM_size	equ 0200000h	; 2MB, Head room for linear address expansion
+LADR_HROOM_size	equ 0400000h	; 4MB, Head room for linear address expansion
 LADR_UNIT	equ 0400000h	; 4MB, Memory address allocation unit
 
 XMS_EMU_HANDLES	equ	10h	; XMS emulator handles, use in pc_towns.asm

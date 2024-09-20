@@ -178,8 +178,8 @@ msg_10	db	'Usage: free386 <target.exp>',13,10
 	db	'  -vv		More verbose (internal memory information)',13,10
 	db	"  -q		Do not output Free386's title and this help",13,10
 	db	'  -p		Search .exp file from PATH (with default from PATH386)',13,10
-	db	'  -m		Set reserved DOS memory to 0 byte for allocate more memory',13,10
-	db	'  -2		Set PharLap version is 2.2 (ebx=20643232h)',13,10
+	db	'  -m		Reduce free memory to increase execution memory',13,10
+	db	'  -2		Set Phar Lap version is 2.2 (ebx=20643232h)',13,10
 %if MACHINE_CODE
 	db	'  -c?		Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
 	db	'  -i		Do not check machine',13,10
