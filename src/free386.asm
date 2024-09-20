@@ -444,7 +444,7 @@ proc1 alloc_stack
 	call	stack_malloc		;下位メモリ割り当て
 	mov	[PM_stack_adr],di	;記録
 
-	mov	ax,VCPI_stack_size	;CPU Prot->V86 切り換え時専用 stack
+	mov	ax,SAFE_stack_size	;CPU Prot->V86 切り換え時専用 stack
 	call	stack_malloc		;下位メモリ割り当て
 	mov	[safe_stack_adr],di	;記録
 

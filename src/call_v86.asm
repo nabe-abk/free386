@@ -740,7 +740,7 @@ proc4 .in_PM
 
 	lss	esp, [safe_stack_adr]	;switch stack
 
-	mov	eax,[V86_cs]
+	mov	eax, [V86_cs]
 	push	dword [esi + 06h]	;** V86 gs
 	push	dword [esi + 04h]	;** V86 fs
 	push	eax			;** V86 ds

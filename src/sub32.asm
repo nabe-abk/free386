@@ -13,13 +13,8 @@
 %include "free386.inc"
 %include "memory.inc"
 %include "selector.inc"
-;------------------------------------------------------------------------------
-global	dump_orig_eax
-global	dump_orig_ds
-global	dump_orig_esp
-global	dump_orig_ss
-;------------------------------------------------------------------------------
 
+;------------------------------------------------------------------------------
 seg32	text32 class=CODE align=4 use32
 ;##############################################################################
 ;register dump
@@ -632,7 +627,7 @@ proc4 search_path_env
 %endif
 
 	mov	edi, ebp
-	call	check_readable_file
+	call	check_file_readable
 	jnc	.success
 
 	cmp	byte fs:[edx-1], 0
@@ -650,13 +645,13 @@ proc4 search_path_env
 
 
 ;/////////////////////////////////////////////////////////////////////////////
-; check readable file
+; check file is readable
 ;/////////////////////////////////////////////////////////////////////////////
 ; in	[edi]	file name
 ; ret	cy=0	success
 ;	cy=1	fail
 ;
-proc4 check_readable_file
+proc4 check_file_readable
 	push	eax
 	push	ebx
 	push	edx
@@ -1320,6 +1315,10 @@ cpu_fault_name_table:
 .err_11		db	'Alignment Fault',0
 cpu_fault_unknown:
 		db	'Unknown',0
+
+;------------------------------------------------------------------------------
+global	dump_orig_esp
+global	dump_orig_ss
 
 	align	4
 dump_orig_esp	dd	0

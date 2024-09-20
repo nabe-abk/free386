@@ -250,7 +250,7 @@ proc1 more_memory_infomation
 	call	rewrite_next_hash_to_dec
 
 	mov	eax, [safe_stack_adr]
-	sub	eax,  VCPI_stack_size
+	sub	eax,  SAFE_stack_size
 	call	rewrite_next_hash_to_hex
 
 	mov	eax, [PM_stack_adr]
@@ -470,7 +470,7 @@ proc1 search_exp_file
 	; read command line name
 	;--------------------------------------------------
 	mov	edi, [work_adr]		; edi = file name
-	call	check_readable_file
+	call	check_file_readable
 	jnc	.found
 
 	;--------------------------------------------------

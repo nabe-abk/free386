@@ -12,12 +12,9 @@ extern	set_dump_head_is_fault
 
 extern	search_env
 extern	search_path_env
-extern	check_readable_file
+extern	check_file_readable
 extern	load_exp
 extern	run_exp
 
-extern	dump_err_code
-extern	dump_orig_eax
-extern	dump_orig_ds
 extern	dump_orig_esp
 extern	dump_orig_ss

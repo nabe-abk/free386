@@ -7,10 +7,10 @@
 ; Version setting
 ;==============================================================================
 %define	VER_STRING	'Ver1.00'
-%define RELEASE_DATE	'2024-09-19'
+%define RELEASE_DATE	'2024-09-20'
 Major_ver	equ		01h
 Minor_ver	equ		00h
-F386_Date	equ		20240919h	;Release date
+F386_Date	equ		20240920h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -103,16 +103,19 @@ F386ERR		equ	0fch	; Free386 internal error code
 CPU_Fault	equ	0fdh	; CPU fault        error code
 
 WORK_size	equ	200h	; Universal work size, min 200h
+				; 200h area used to load the EXP header.
 
-GP_BUFFERS	equ	4	; number of general purpose buffers, max 32
-GP_BUFFER_SIZE	equ	200h	; min 100h
+GP_BUFFER_SIZE	equ	200h	; size of buffer for interrupt, min 100h
+GP_BUFFERS	equ	  4	; number of general purpose buffers, max 32
+				; GP_BUFFER mainly used to store file names.
+				; 200h area used by reg_dump and debug print.
 
-V86_stack_size	equ	 200h	; byte
-PM_stack_size	equ	 300h	; byte
-VCPI_stack_size	equ	 100h	; VCPI call(to V86) dedicated stack
+V86_stack_size	equ	200h	; byte
+PM_stack_size	equ	200h	; byte
+SAFE_stack_size equ	100h	; safe stack, use by CPU Fault 
 
 SW_stack_size	equ	180h	; CPU switch stack size
-SW_max_nest	equ	4	; CPU switch max nest
+SW_max_nest	equ	  4	; CPU switch max nest
 
 LADR_HROOM_size	equ 0200000h	; 2MB, Head room for linear address expansion
 LADR_UNIT	equ 0400000h	; 4MB, Memory address allocation unit

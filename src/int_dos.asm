@@ -238,19 +238,18 @@ proc4 int_21h_09h
 	push	F386_ds
 	pop	es
 
-	mov	b [es:call_buf_used], 1	; use call buffer
+	mov	b es:[call_buf_used], 1	; use call buffer
 
 	; copy string
 	pushad
-	mov	edi,[es:call_buf_adr32]
-	mov	ecx,[es:call_buf_size]
+	mov	edi, es:[call_buf_adr32]
+	mov	ecx, es:[call_buf_size]
 	shr	ecx, 2			; ecx = buffer size /4
 	xor	ebx, ebx
 
-	align	4
 .loop:
 	mov	eax, [edx + ebx]	; copy [ds:edx]
-	mov	[es:edi + ebx], eax	;   to [es:edi]
+	mov	es:[edi + ebx], eax	;   to [es:edi]
 	cmp	al,'$'
 	jz	short .exit
 	cmp	ah,'$'
