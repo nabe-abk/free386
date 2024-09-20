@@ -1,4 +1,4 @@
-@echo off
+echo off
 
 echo ************************************************************
 echo Auto detect build target from the execution environment.
