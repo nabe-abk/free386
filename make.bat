@@ -1,10 +1,10 @@
 @echo off
 
-echo ********************************************************
-echo Auto detect build target.
-echo Running "make.bat" selects the default build target.
-echo Default build target is defined in "src\f386def.inc".
-echo ********************************************************
+echo ************************************************************
+echo Auto detect build target from the execution environment.
+echo Running "make.bat default" will select default build target.
+echo This default is defined in "src\f386def.inc".
+echo ************************************************************
 
 cd src
 ..\test.com\check_pc.com %1
