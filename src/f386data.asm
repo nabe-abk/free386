@@ -172,7 +172,7 @@ msg_06	db	'Found XMS 2.0',13,10,'$'
 msg_07	db	'Found XMS'
 msg_xms_ver db	' 3.0',13,10,'$'	; Do not change message size
 msg_09	db	'Found VCPI',13,10,'$'
-msg_10	db	'Usage: free386 <target.exp>',13,10
+msg_10	db	13,10,'Usage: free386 <target.exp>',13,10
 	db	13,10
 	db	'  -v		Verbose (memory information and other)',13,10
 	db	'  -vv		More verbose (internal memory information)',13,10

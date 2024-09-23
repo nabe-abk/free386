@@ -163,13 +163,11 @@ proc2 parameter_check
 	; -v, -vv
 	;///////////////////////////////
 .para_v:
+	mov	cl, 1
 	cmp	ah,'v'			; -vv?
-	je	.para_vv
-	mov	b [verbose], 1
-	jmp	.loop
-.para_vv:
-	mov	b [verbose],    2
-	mov	b [show_title], 0
+	sete	ch			; if ah='v' set ch=1
+	add	cl, ch
+	mov	[verbose], cl
 	jmp	.loop
 
 	;///////////////////////////////

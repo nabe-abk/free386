@@ -347,9 +347,8 @@ proc1 copy_exp_filename_to_work
 	test	ecx, ecx
 	jnz	.exists_name
 
-	mov	al, [show_title]
-	test	al, al
-	jz	.skip
+	cmp	b [verbose], 2
+	jae	.skip
 	PRINT32	msg_10			; show help
 .skip:
 	jmp	exit_32
