@@ -956,6 +956,31 @@ proc4 DOSX_fn_2510h
 proc4 DOSX_fn_2511h
 	call_DumpDsEdx	12h		; dump, if set DUMP_DS_EDX
 
+	;----------------------------------------------------------------------
+	%ifdef PATCH_TOWNS_SYSINIT_BUG
+	proc1 .patch_sysinit
+		cmp	b cs:[use_vcpi], 0	; is VCPI skip
+		jnz	.skip_cr3
+		cmp	b ds:[edx], 21h		; int 21h
+		jne	.skip_cr3
+		cmp	b ds:[edx+0bh], 52h	; AH=52h?
+		jne	.skip_cr3
+		;
+		;　TOWNS の SYSINIT ライブラリは、mma_freeSeg() 時に
+		;ページテーブルおよびLDTを自力で初期化するが、CR3の
+		;リロードを忘れている。
+		;　これによるバグを防ぐため、mma_allocSeg() 内で、
+		;int 21h, AX=2511h にて DOS int 21h, AH=52h を呼び出して
+		;いることを利用し、ページキャッシをクリアする。
+		;
+		;※後半に置くと flags の破壊してしまうため、前半に配置。
+		;
+		mov	eax, cr3
+		mov	cr3, eax
+	.skip_cr3:
+	%endif
+	;----------------------------------------------------------------------
+
 	push	es
 	push	edx
 

@@ -6,11 +6,11 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver1.00'
-%define RELEASE_DATE	'2024-09-20'
+%define	VER_STRING	'Ver1.01dev'
+%define RELEASE_DATE	'2024-09-22'
 Major_ver	equ		01h
-Minor_ver	equ		00h
-F386_Date	equ		20240920h	;Release date
+Minor_ver	equ		01h
+F386_Date	equ		20240922h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -70,6 +70,8 @@ MAX_RAM		equ 40000000h	; 1GB
 USE_MZ_EXP	equ	1	; support MP Header EXP file.
 CHECK_EMS	equ	1	; check EMS installed
 USE_XMS20	equ	0	; support XMS Ver2.0 (not need)
+RELOAD_CR3	equ	0	; force reload CR3 in call_V86.
+				; if set 1, processing is a little slow.
 
 Restore8259A	equ	1	; Restore hardware interrupt mask on end
 RestoreRealVec	equ	1	; Restore real mode interrupt vectors on end
@@ -215,10 +217,12 @@ IntVectors	equ	100h	;Interrupt vectors, fixed
 
 MACHINE_CODE	equ	20h	;FM TOWNS
 
-%define	MACHINE_STRING	'FM TOWNS'
+%define	MACHINE_STRING	'TOWNS'
 %define	Free386_API	'f386_fmt.api'
 
-%define PATCH_UNZ_BUG		;patch for emulator UNZ's bug
+%if !RELOAD_CR3
+%define PATCH_TOWNS_SYSINIT_BUG	;patch for TOWNS SYSINIT library bug
+%endif	
 
 INIT_KEY_BIOS	equ	1	;èIóπéûÇ… key-BIOS Çèâä˙âªÇ∑ÇÈ
 

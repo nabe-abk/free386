@@ -310,8 +310,11 @@ proc4 .in_V86
 proc4 .jmp_from_real_mode
 	lgdt	[LGDT_data]
 	lidt	[LIDT_data]
-	mov	eax, [to_PM_CR3]
-	mov	cr3, eax
+
+	%if RELOAD_CR3
+		mov	eax, [to_PM_CR3]
+		mov	cr3, eax
+	%endif
 
 	mov	eax, cr0
 	or	eax, 8000_0001h		; PG=PE=1
@@ -461,8 +464,11 @@ proc4 int_from_V86
 proc4 .jmp_from_real_mode
 	lgdt	[LGDT_data]
 	lidt	[LIDT_data]
-	mov	eax, [to_PM_CR3]
-	mov	cr3, eax
+
+	%if RELOAD_CR3
+		mov	eax, [to_PM_CR3]
+		mov	cr3, eax
+	%endif
 
 	mov	eax, cr0
 	or	eax, 8000_0001h		; PG=PE=1
@@ -689,8 +695,11 @@ proc4 call32_from_V86
 proc4 .jmp_from_real_mode
 	lgdt	[LGDT_data]
 	lidt	[LIDT_data]
-	mov	eax, [to_PM_CR3]
-	mov	cr3, eax
+
+	%if RELOAD_CR3
+		mov	eax, [to_PM_CR3]
+		mov	cr3, eax
+	%endif
 
 	mov	eax, cr0
 	or	eax, 8000_0001h		; PG=PE=1
