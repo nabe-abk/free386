@@ -6,8 +6,8 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 ## Overview
 
-* Version: 1.00
-* Date: **2024-09-20**
+* Version: 1.01
+* Date: **2024-09-25**
 * Author: [nabe@abk](https://twitter.com/nabe_abk)
 * Target: PC/AT
 * Target in Japanese: FM TOWNS, PC-9801/PC-9821
@@ -19,7 +19,7 @@ This software is compatible with 386|DOS-Extender (Phar Lap RUN386.EXE)
 
 [CHANGES.txt](CHANGES.txt) for update information.
 
-## Download
+## Download (free386.com binary)
 
 [https://github.com/nabe-abk/free386/releases](https://github.com/nabe-abk/free386/releases)
 

@@ -9,6 +9,7 @@
 _*
 /free386.com
 /free386.map
+/bin
 
 src/*.com
 src/*.exe
