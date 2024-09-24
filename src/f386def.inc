@@ -7,10 +7,10 @@
 ; Version setting
 ;==============================================================================
 %define	VER_STRING	'Ver1.01dev'
-%define RELEASE_DATE	'2024-09-22'
+%define RELEASE_DATE	'2024-09-24'
 Major_ver	equ		01h
 Minor_ver	equ		01h
-F386_Date	equ		20240922h	;Release date
+F386_Date	equ		20240924h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -277,22 +277,7 @@ MACHINE_CODE	equ	30h	; PC/AT
 %define	MACHINE_STRING	'PC/AT'
 %define	Free386_API	'f386_at.api'	; API file
 
-VESA_DISABLE	equ	1	; Disable VESA
-
-VESA_buf_sel	equ	148h	; VESA-BIOS buffer selector
-VESA_buf_size	equ	1	; VESA-BIOS buffer size (page / 1=4kb)
-VESA_call_adr	equ	0ffc0h	; VESA-BIOS / call VESA_cs:VESA_call_adr
-
-VESA_cs		equ	150h	; VESA-BIOS code selector
-VESA_ds		equ	158h	; VESA-BIOS data selector (cs alias)
-VESA_ds2	equ	160h	; VESA-BIOS data selector 2 (needs 600h)
-VESA_A0		equ	168h	; VESA-BIOS selector A0000h (64kb)
-VESA_B0		equ	170h	; VESA-BIOS selector B0000h (64kb)
-VESA_B8		equ	178h	; VESA-BIOS selector B8000h (32kb)
-
-VRAM_padr	equ 0e6000000h	; VRAM physical address
-VRAM_pages	equ	200h	; size=16MB / [page unit] ex)100h=8MB
-VRAM_sel	equ	120h	; VRAM selector (Change with at.asm)
+VESA_VRAM_sel	equ	120h
 
 HW_INT_MASTER	equ	 08h	; master
 HW_INT_SLAVE	equ	 70h	; slave

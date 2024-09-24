@@ -6,6 +6,7 @@
 %include	"f386def.inc"
 
 %include	"start.inc"
+%include	"sub.inc"
 %include	"memory.inc"
 %include	"selector.inc"
 %include	"call_v86.inc"

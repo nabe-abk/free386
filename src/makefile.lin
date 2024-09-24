@@ -60,7 +60,7 @@ call_v86.obj: call_v86.asm $(base) free386.inc memory.inc
 int.obj: int.asm int_dos.asm int_dosx.asm int_f386.asm int_data.asm $(base) start.inc free386.inc sub32.inc selector.inc call_v86.inc
 	$(ASM) $(ASMOP) int.asm
 
-pc.obj: pc.asm pc_towns.asm pc_98.asm pc_at.asm pc_dos.asm $(base) start.inc memory.inc selector.inc call_v86.inc free386.inc
+pc.obj: pc.asm pc_towns.asm pc_98.asm pc_at.asm pc_dos.asm $(base) start.inc sub.inc memory.inc selector.inc call_v86.inc free386.inc
 	$(ASM) $(ASMOP) pc.asm
 
 free386.obj: free386.asm f386def.inc f386data.asm f386prot.asm $(base) start.inc sub.inc sub32.inc memory.inc selector.inc call_v86.inc int.inc pc.inc
