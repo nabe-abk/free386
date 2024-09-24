@@ -6,11 +6,11 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver1.01dev'
-%define RELEASE_DATE	'2024-09-24'
+%define	VER_STRING	'Ver1.01'
+%define RELEASE_DATE	'2024-09-25'
 Major_ver	equ		01h
 Minor_ver	equ		01h
-F386_Date	equ		20240924h	;Release date
+F386_Date	equ		20240925h	;Release date
 
 ;==============================================================================
 ; Default build target
@@ -68,7 +68,6 @@ EXP_EXT		equ	'.exp'	; Autocomplete extensions
 MAX_RAM		equ 40000000h	; 1GB
 
 USE_MZ_EXP	equ	1	; support MP Header EXP file.
-CHECK_EMS	equ	1	; check EMS installed
 USE_XMS20	equ	0	; support XMS Ver2.0 (not need)
 RELOAD_CR3	equ	0	; force reload CR3 in call_V86.
 				; if set 1, processing is a little slow.

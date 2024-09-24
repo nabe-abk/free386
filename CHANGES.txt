@@ -1,9 +1,10 @@
 [CR/LF]
 ===============================================================================
-Ver 1.01dev - 2024-09-24
+Ver 1.01 - 2024-09-25
 ===============================================================================
 
 - Update: stop reloading CR3 in call_v86.asm.
+- Update: added error when running V86 mode with non-VCPI.
 - Add easy bench mark sample "test-c.exp/bench.exp".
 - Fix: title is not displayed when using the "-vv" option.
 - [TOWNS] Update: int 21h/AX=2511h patch for TownsOS SYSINIT bug.

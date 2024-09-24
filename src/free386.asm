@@ -354,7 +354,6 @@ proc1 machine_check
 ;------------------------------------------------------------------------------
 ; check VCPI
 ;------------------------------------------------------------------------------
-%if CHECK_EMS
 proc1 check_ems_driver
 	;
 	; check EMS
@@ -363,44 +362,37 @@ proc1 check_ems_driver
 	int	21h		;es:[bx] = ベクタ位置
 	mov	bx,000ah	;ドライバ確認用文字列開始位置 'EMMXXXX0'
 
-	mov	ax,[es:bx  ]	;前半の4文字確認
-	mov	dx,[es:bx+2]	;
-	cmp	ax,'EM'
-	jne	short .not_found
-	cmp	dx,'MX'
-	jne	short .not_found
+	cmp	dword es:[bx  ], 'EMMX'
+	jne	.not_found
 
-	mov	ax,[es:bx+4]	;後半4文字
-	mov	dx,[es:bx+6]	;
-	cmp	ax,'XX'
-	jne	short .not_found
-	cmp	dx,'X0'
-	je	short .skip
-
-.not_found:
-	mov	b [use_vcpi], 0
-	jmp	skip_vcpi_check
-.skip:
-%endif
+	cmp	dword es:[bx+4], 'XXX0'
+	jne	.not_found
 
 	;
-	;----- VCPI の存在確認 -----
+	; check VCPI
 	;
-VCPI_check:
 	mov	ax,0de00h	; AL=00 : VCPI check!
 	int	67h		; VCPI call
-	test	ah,ah		; 戻り値 check
-	jz	short .found	; found VCPI
+	test	ah,ah		; check
+	jnz	.not_found	; not found VCPI
 
-	mov	b [use_vcpi], 0
-	jmp	.skip
+	mov	b [use_vcpi], 1
+	jmp	.found
+
+.not_found:
+	mov	eax, cr0
+	test	 al, 1
+	jz	.exit
+
+	mov	ah, 03		; 'VCPI not found and running in V86 mode.'
+	jmp	error_exit_16
 
 .found:
 	cmp	b [verbose], 0
-	jz	.skip
+	jz	.msg_skip
 	PRINT16	msg_09		;'Found VCPI'
-.skip:
-skip_vcpi_check:
+.msg_skip:
+.exit:
 	push	ds
 	pop	es		; recovery ES
 

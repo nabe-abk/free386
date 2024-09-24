@@ -17,7 +17,7 @@ f386err		db	0		; Free386 internal error level
 cpu_is_386sx	db	0		; CPU is 386SX
 init_machine16	db	0		; initalized machine on 16bit
 init_machine32	db	0		; initalized machine on 32bit
-use_vcpi	db	1		; VCPI enviroment
+use_vcpi	db	0		; VCPI enviroment
 
 %ifdef USE_VCPI_8259A_API
 vcpi_8259m	db	0		; 8259A Master interrupt number
@@ -200,8 +200,8 @@ err_msg_table:
 _e01	db	'Do not execute free386.exe (please run free386.com)',13,10,'$'
 _e02	db	'Incompatible binary! This binary for ',MACHINE_STRING,'.',13,10
 	db	'If you do not want to check the machine, please execute with the -i option.',13,10,'$'
-_e03	db	'$'
-_e04	db	'VCPI not found and failed to detect machine',13,10,'$'
+_e03	db	'VCPI not found and running in V86 mode.',13,10,'$'
+_e04	db	'VCPI not found and failed to detect machine.',13,10,'$'
 _e05	db	'XMS '
 %if !USE_XMS20
 	db	'3.0 '
