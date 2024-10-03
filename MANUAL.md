@@ -208,7 +208,7 @@ If you have requests for implementation, please contact us.
 * EXP linker options "-maxreal, -minreal, -callbuf" are ignored.
 * After creating two selectors using int 21h/AH=48h, if you expand the first selector beyond 2MB, the linear address of the second selector may overlap and memory corruption may occur.
 
-- 使用できる最大メモリが1GBに制限されています。
+- 使用できるメモリが最大1GBに制限されています。
 - ENV領域のコマンド名にEXPファイル名を設定する際、領域が足りないときはファイル名が途中で切り捨てられます。
 - EXPリンカオプションの「-maxreal, -minreal, -callbuf」は無視されます。
 - int 21h/AH=48h を使用し2つのセレクタを作成後、1つ目のセレクタを4MBを超えて拡張すると、2つ目のセレクタとリニアアドレスが重複し、メモリ破壊が起こることがあります。
