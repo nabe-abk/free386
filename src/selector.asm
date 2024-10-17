@@ -387,7 +387,6 @@ proc4 allocate_RAM
 	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
 	xor	ebp, ebp
 
-	out 0xEA,AL
 .loop:
 	cmp	b [emulate_backward],0
 	je	.simple_increment

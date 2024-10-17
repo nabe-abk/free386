@@ -221,7 +221,6 @@ proc2 parameter_check
 	; -b for backward physical-memory assignment
 	;///////////////////////////////
 .para_b:
-	out 0xEA,AL
 	mov	b [emulate_backward],1
 	jmp	.loop
 
