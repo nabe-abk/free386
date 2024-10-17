@@ -38,3 +38,4 @@ extern	gp_buffer_table
 extern	sw_stack_bottom
 extern	sw_stack_bottom_orig
 
+extern	emulate_backward

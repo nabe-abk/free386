@@ -155,6 +155,8 @@ proc2 parameter_check
 	cmp	al,'n'
 	je	.para_n
 %endif
+	cmp	al,'b'
+	je	.para_b
 	cmp	al,'i'
 	je	.para_i
 	jmp	.loop
@@ -214,6 +216,14 @@ proc2 parameter_check
 	mov	b [load_nsdd],ah
 	jmp	.loop
 %endif
+
+	;///////////////////////////////
+	; -b for backward physical-memory assignment
+	;///////////////////////////////
+.para_b:
+	out 0xEA,AL
+	mov	b [emulate_backward],1
+	jmp	.loop
 
 	;///////////////////////////////
 	; set PharLap version to 2.2 (compatible EXE386)

@@ -386,11 +386,40 @@ proc4 allocate_RAM
 	;---------------------------------------------------
 	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
 	xor	ebp, ebp
+
+	out 0xEA,AL
 .loop:
+	cmp	b [emulate_backward],0
+	je	.simple_increment
+
+	cmp	ebp,0C0h
+	jae	.reverse_assignment
+
+	inc	ebp
+	cmp	ebp,0C0h
+	jae	.crossed_border
+
+	btr	es:[edi], ebp
+	jnc	.loop
+	jmp	.found_free_memory
+
+.crossed_border:
+	mov	ebp,[all_mem_pages]
+
+.reverse_assignment:
+	dec	ebp
+	btr	es:[edi], ebp
+	jnc	.loop
+	jmp	.found_free_memory
+
+.simple_increment:
+
+
 	inc	ebp
 	btr	es:[edi], ebp
 	jnc	.loop
 
+.found_free_memory:
 	; found free memory
 	mov	eax, ebp
 	shl	eax, 12			;eax = free RAM address

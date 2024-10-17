@@ -60,6 +60,8 @@ PM_stack_adr	dd	0		;プロテクトモード時のスタック
 V86_cs		dw	0,0		;V86モード時 cs
 V86_sp		dw	0,0		;V86モード時 sp
 
+emulate_backward	db	0	; If non-zero, emulate backward physical-memory assignment.
+
 		align	4
 GDT_adr		dd	0
 LDT_adr		dd	0
@@ -187,6 +189,7 @@ msg_10	db	13,10,'Usage: free386 <target.exp>',13,10
 %if TOWNS
 	db	'  -n		Do not load NSD driver',13,10
 %endif
+	db	'  -b		Emulate backward physical memory assignment.',13,10
 	db	'  -maxreal nn	Set minimum dos free memory [byte]' ,13,10
 	db	'  -minreal nn	Set maximum dos free memory [byte]' ,13,10
 	db	'  -callbuf nn	Set user call buffer size [KB]',13,10
