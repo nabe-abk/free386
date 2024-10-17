@@ -344,7 +344,7 @@ proc4 DOSX_fn_250ah
 
 	mov	eax, ebp	;eax = old size
 	shr	eax, 12
-	mov	eax, ecx	;eax = new size/4K
+	add	eax, ecx	;eax = new size/4K
 	dec	eax		;eax = limit
 
 	;-------------------------------------------------------------
