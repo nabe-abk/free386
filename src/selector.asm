@@ -387,34 +387,44 @@ proc4 allocate_RAM
 	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
 	xor	ebp, ebp
 
+; while(page[ebp] is not available && all pages assigned)
+; {
+; 	if(border<=ebp)
+; 	{
+; 		--ebp;
+; 	}
+; 	else
+; 	{
+; 		++ebp;
+; 		if(border<=ebp)
+; 		{
+; 			ebp=all_mem_pages-1;
+; 		}
+; 	}
+; 	Use page[ebp]
+; }
 .loop:
-	cmp	b [emulate_backward],0
-	je	.simple_increment
-
-	cmp	ebp,0C0h
+	cmp	ebp,[emulate_backward]
 	jae	.reverse_assignment
 
-	cmp	ebp,0BFh
-	jne	.simple_increment
+	; If below threshold, try incrementing and see if it crossed the border.
 
-	; Comes here only if incoming ebp is 0BFh.  i.e., Incrementing EBP will cross the border.
+	inc	ebp
+	cmp	ebp,[emulate_backward]
+	jb	.did_not_cross_the_border
+
+	; Comes here only if incoming ebp is 0BFh, and incremented to be 0C0h.
 
 	mov	ebp,[all_mem_pages]	; Crossed border.
 
 .reverse_assignment:
 	dec	ebp
-	btr	es:[edi], ebp
-	jnc	.loop
-	jmp	.found_free_memory
 
-.simple_increment:
-
-
-	inc	ebp
+.did_not_cross_the_border:
 	btr	es:[edi], ebp
 	jnc	.loop
 
-.found_free_memory:
+
 	; found free memory
 	mov	eax, ebp
 	shl	eax, 12			;eax = free RAM address

@@ -60,7 +60,7 @@ PM_stack_adr	dd	0		;プロテクトモード時のスタック
 V86_cs		dw	0,0		;V86モード時 cs
 V86_sp		dw	0,0		;V86モード時 sp
 
-emulate_backward	db	0	; If non-zero, emulate backward physical-memory assignment.
+emulate_backward	dd	0FFFFFFFFh	; Emulate backward physical-memory assignment above this page.
 
 		align	4
 GDT_adr		dd	0
