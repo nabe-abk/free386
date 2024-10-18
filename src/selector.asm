@@ -394,16 +394,12 @@ proc4 allocate_RAM
 	cmp	ebp,0C0h
 	jae	.reverse_assignment
 
-	inc	ebp
-	cmp	ebp,0C0h
-	jae	.crossed_border
+	cmp	ebp,0BFh
+	jne	.simple_increment
 
-	btr	es:[edi], ebp
-	jnc	.loop
-	jmp	.found_free_memory
+	; Comes here only if incoming ebp is 0BFh.  i.e., Incrementing EBP will cross the border.
 
-.crossed_border:
-	mov	ebp,[all_mem_pages]
+	mov	ebp,[all_mem_pages]	; Crossed border.
 
 .reverse_assignment:
 	dec	ebp
