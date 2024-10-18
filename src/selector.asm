@@ -387,7 +387,7 @@ proc4 allocate_RAM
 	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
 	xor	ebp, ebp
 
-; while(page[ebp] is not available && all pages assigned)
+; while(until all pages assigned)
 ; {
 ; 	if(border<=ebp)
 ; 	{
@@ -401,8 +401,12 @@ proc4 allocate_RAM
 ; 			ebp=all_mem_pages-1;
 ; 		}
 ; 	}
-; 	Use page[ebp]
+; 	if(page[ebp] is available)
+; 	{
+; 		Use page[ebp]
+; 	}
 ; }
+
 .loop:
 	cmp	ebp,[emulate_backward]
 	jae	.reverse_assignment
