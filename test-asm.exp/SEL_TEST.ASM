@@ -46,7 +46,13 @@ segment	text align=4 class=CODE use32
 
 	; set phisical memory
 	mov	es, [sel3]
-	mov	ecx, 80h
+	mov	ecx, 80h	; 512KB
+	mov	ebx, 100000h	; address: 1MB-
+	call	mapping_phisical_memory
+
+	; set phisical memory
+	mov	ecx, 80h	; 512KB
+	mov	ebx, 210000h	; address: 2MB-
 	call	mapping_phisical_memory
 
 	; create selector
@@ -219,7 +225,6 @@ mapping_phisical_memory:
 	call	print_eax_hex
 
 	mov	ax, 250ah	; in es, ebx, ecx
-	mov	ebx, 100000h	; address: 1MB-
 	int	21h
 	jc	.error
 

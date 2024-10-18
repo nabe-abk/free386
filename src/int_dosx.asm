@@ -333,7 +333,7 @@ proc4 DOSX_fn_250ah
 	test	edi, 0fffh	;UNIT is 4K?
 	jnz	.fail0
 
-	mov	esi, ecx	;esi = map linear address
+	mov	esi, edi	;esi = map linear address
 	mov	edx, [esp]	;edx = map phisical address
 	mov	ecx, [esp+4]	;ecx = map pages
 	test	ecx, ecx
@@ -344,7 +344,7 @@ proc4 DOSX_fn_250ah
 
 	mov	eax, ebp	;eax = old size
 	shr	eax, 12
-	mov	eax, ecx	;eax = new size/4K
+	add	eax, ecx	;eax = new size/4K
 	dec	eax		;eax = limit
 
 	;-------------------------------------------------------------
