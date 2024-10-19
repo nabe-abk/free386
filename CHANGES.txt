@@ -1,5 +1,6 @@
 [CR/LF]
 
+- Add: tools/free386.com for build.
 - Fix: int 21h/250ah bug, always maps memory to the beginning of the selector.
 
 ===============================================================================

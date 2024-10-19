@@ -56,6 +56,7 @@ Other Japanese documents in [doc-ja/](doc-ja/).
 * tools/flatlink.exp - [FlatLink](https://github.com/nabe-abk/flatlink) - Newly developed free linker
 * tools/flatlink     - FlatLink's Linux ELF binary
 * tools/imake.exe    - "make" for MS-DOS (KI-Make 1.68)
+* tools/free386.com  - Free386 binary for build (dos general purpose, fixed version)
 
 ## Command Line Options
 

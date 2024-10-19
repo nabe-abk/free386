@@ -21,7 +21,7 @@ elif [ "$1" = "at" ]; then
 	export BUILD_TARGET=at
 	shift
 
-elif [ "$1" = "gen" -o "$1" = "uni" ]; then
+elif [ "$1" = "gen" -o "$1" = "uni" -o "$1" = "dos" ]; then
 	export BUILD_TARGET=gen
 	shift
 fi
