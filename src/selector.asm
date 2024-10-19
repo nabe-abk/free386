@@ -5,6 +5,7 @@
 ;
 ;
 %include	"macro.inc"
+%include	"start.inc"
 %include	"f386def.inc"
 %include	"free386.inc"
 %include	"memory.inc"
@@ -386,8 +387,23 @@ proc4 allocate_RAM
 	;---------------------------------------------------
 	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
 	xor	ebp, ebp
+	mov	 dl, [desc_memory_map]	;descending extended memory mapping
+
+.outloop:
+	test	dl, dl
+	jz	.loop
+
+	; descending extended memory mapping
+	cmp	ebp, 100h		;0-1MB low memory?
+	jb	.loop
+
+	xor	dl, dl			;clear flag
+	mov	b [.loop], 4dh		;rewrite "inc ebp" to "dec ebp"
+	mov	ebp, [freeRAM_bm_size]	;bitmap size
+	shl	ebp, 3			;*8 (byte to bits)
+
 .loop:
-	inc	ebp
+	inc	ebp			;opcode=45h
 	btr	es:[edi], ebp
 	jnc	.loop
 
@@ -404,7 +420,7 @@ proc4 allocate_RAM
 	; next page table address
 	add	ebx, 4
 	test	ebx, 0fffh
-	jnz	.loop
+	jnz	.outloop
 
 	; load next page table entry
 	add	esi, 4
@@ -412,7 +428,7 @@ proc4 allocate_RAM
 	test	bl, 1			; P bit
 	jz	.error
 	and	ebx, 0fffff000h		; ebx = page table linear address
-	jmp	.loop
+	jmp	.outloop
 
 .success:
 	clc		;キャリークリア

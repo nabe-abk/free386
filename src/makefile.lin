@@ -48,7 +48,7 @@ sub.obj: sub.asm $(base)
 memory.obj: memory.asm $(base) start.inc free386.inc
 	$(ASM) $(ASMOP) memory.asm
 
-selector.obj: selector.asm $(base) free386.inc memory.inc
+selector.obj: selector.asm $(base) start.inc free386.inc memory.inc
 	$(ASM) $(ASMOP) selector.asm
 
 sub32.obj: sub32.asm $(base) start.inc free386.inc memory.inc selector.inc

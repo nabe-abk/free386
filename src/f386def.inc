@@ -90,6 +90,7 @@ _reset_CRTC	equ	3	; CRTC/VRAM initialization settings at end
 				;	2 = reset only CRTC
 				;	3 = auto
 				; Not support PC/AT machine.
+_desc_memory_map equ	0	; Descending extend memory mapping
 
 _pool_for_paging equ	2	; pool RAM pages for paging (1page=4KB)
 _call_buf_sizeKB equ	32	; call buffer size for 32bit<->16bit function

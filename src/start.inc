@@ -9,6 +9,7 @@ extern	search_PATH
 
 extern	reset_CRTC
 extern	check_MACHINE
+extern	desc_memory_map
 
 extern	pool_for_paging
 extern	call_buf_sizeKB

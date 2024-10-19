@@ -131,7 +131,7 @@ free386.com はファイル先頭に動作定義変数を持っており、書�
 | +07h	|  0	|  b | Find target exp file from PATH of enviroment variable: 0=off, 1=on (See -p option) |
 | +08h	|  3	|  b | Auto CRTC/VRAM clear. (See -c option) |
 | +09h	|  1	|  b | Auto detect machines type: 0=off, 1=on (See -i option) |
-| +0ah	|  0	|  b | (Reserved) |
+| +0ah	|  0	|  b | Descending extended memory mapping: 0=off, 1=on |
 | +0bh	|  0	|  b | (Reserved) |
 | +0ch	|  2	|  b | Reserved memory pages for paging table (unit is page). 1page=4KB. |
 | +0dh	| 32	|  b | Call buffer size (KB). Use 16bit<->32bit function call. min 4KB. Reducing this value does not increase free memory. Because, this memory allocate from Free386 internal 64KB memory. |
@@ -149,7 +149,7 @@ search for the string "12aJ" (31 32 61 4A) and rewrite it to "22d " (32 32 64 20
 | +07h	|  0	|  b | 環境変数PATHの中から実行対象のEXPファイルを検索します: 0=off, 1=on |
 | +08h	|  3	|  b | 自動 CRTC/VRAM 初期化の初期値を設定します（"-c"オプション参照） |
 | +09h	|  1	|  b | 機種判別機能を実行します: 0=off, 1=on （"-i"オプション参照）|
-| +0ah	|  0	|  b | （予約済） |
+| +0ah	|  0	|  b | 1MB以上の拡張メモリを貼り付けるとき、降順で物理メモリを使用します: 0=off, 1=on |
 | +0bh	|  0	|  b | （予約済） |
 | +0ch	|  2	|  b | ページングテーブル用の予約済ページ数。1ページ=4KB。 |
 | +0dh	| 32	|  b | コールバッファサイズをKB単位で設定します。最小は4KBです。このメモリはFree386本体の64KB領域から確保されるため、この値を減らしてもフリーメモリは増えません。 |
