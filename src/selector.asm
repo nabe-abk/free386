@@ -383,18 +383,36 @@ proc4 allocate_RAM
 	add	ebx, eax		; ebx = page table entry
 
 	;---------------------------------------------------
-	; allocate loop
+	; prepare allocate loop
 	;---------------------------------------------------
 	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
-	xor	ebp, ebp
 	mov	 dl, [desc_memory_map]	;descending extended memory mapping
 
+	;
+	; start of zero zone skip
+	;
+	xor	ebp, ebp
+	xor	eax, eax
+.first_skip_loop:
+	cmp	es:[edi+ebp], eax
+	jnz	.found_non_zero
+	add	ebp, 4
+	jmp	.first_skip_loop
+
+.found_non_zero:
+	shl	ebp, 3			;*8
+	jz	.outloop
+	dec	ebp			;need for inc ebp
+
+	;---------------------------------------------------
+	; allocate loop
+	;---------------------------------------------------
 .outloop:
 	test	dl, dl
 	jz	.loop
 
 	; descending extended memory mapping
-	cmp	ebp, 100h		;0-1MB low memory?
+	cmp	ebp, 0ffh		;ebp+1 is dos memory?
 	jb	.loop
 
 	xor	dl, dl			;clear flag
