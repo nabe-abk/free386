@@ -19,6 +19,7 @@ FM TOWNS / PC-98x1 / AT互換機で動作します。
     - VCPI環境（EMM386.EXE or other）でも使用できます。
 	- TOWNS版以外では、非VCPI環境で物理メモリ量が推定値になります。
 	- USE_XMS20 を定義して再アセンブルすれば、XMS 2.0環境でも使用できます。
+	- [TOWNS] TownsOS使用時、XMS/VCPI (HIMEM.SYS, EMM386.EXE) はなくても大丈夫です。
 - 基本的に、TOWNS用RUN386のバージョンである、Ver1.2に準拠しています。
 
 ## Usage
