@@ -180,8 +180,10 @@ msg_10	db	13,10,'Usage: free386 <target.exp>',13,10
 	db	'  -p		Search .exp file from PATH (with default from PATH386)',13,10
 	db	'  -m		Reduce free memory to increase execution memory',13,10
 	db	'  -2		Set Phar Lap version is 2.2 (ebx=20643232h)',13,10
-%if MACHINE_CODE
+%ifdef EXISTS_RESET_CRTC_OPTION
 	db	'  -c?		Reset CRTC/VRAM. 0:No, 1:RESET, 2:CRTC, 3:Auto(default)',13,10
+%endif
+%if MACHINE_CODE
 	db	'  -i		Do not check machine',13,10
 %endif
 %if TOWNS

@@ -221,8 +221,9 @@ MACHINE_CODE	equ	20h	;FM TOWNS
 %define	Free386_API	'f386_fmt.api'
 
 %if !RELOAD_CR3
-%define PATCH_TOWNS_SYSINIT_BUG	;patch for TOWNS SYSINIT library bug
-%endif	
+%define PATCH_TOWNS_SYSINIT_BUG		;patch for TOWNS SYSINIT library bug
+%endif
+%define EXISTS_RESET_CRTC_OPTION
 
 INIT_KEY_BIOS	equ	1	;終了時に key-BIOS を初期化する
 
@@ -252,6 +253,8 @@ MACHINE_CODE	equ	10h	;PC-9801/9821
 
 %define	MACHINE_STRING	'PC-98'
 %define	Free386_API	'f386_98.api'	;機種固有APIのファイル名
+
+%define EXISTS_RESET_CRTC_OPTION
 
 VRAM_16padr	equ 0E00A8000h	;16色VRAM を配置する物理アドレス
 VRAM_CGW	equ 0E00A4000h	;CGW を配置するリニアアドレス
