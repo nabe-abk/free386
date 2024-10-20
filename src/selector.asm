@@ -383,47 +383,30 @@ proc4 allocate_RAM
 	add	ebx, eax		; ebx = page table entry
 
 	;---------------------------------------------------
-	; prepare allocate loop
-	;---------------------------------------------------
-	mov	edi, [freeRAM_bm_ladr]	;edi - free RAM bitmap
-	mov	 dl, [desc_memory_map]	;descending extended memory mapping
-
-	;
-	; start of zero zone skip
-	;
-	xor	ebp, ebp
-	xor	eax, eax
-.first_skip_loop:
-	cmp	es:[edi+ebp], eax
-	jnz	.found_non_zero
-	add	ebp, 4
-	jmp	.first_skip_loop
-
-.found_non_zero:
-	shl	ebp, 3			;*8
-	jz	.outloop
-	dec	ebp			;need for inc ebp
-
-	;---------------------------------------------------
 	; allocate loop
 	;---------------------------------------------------
-.outloop:
-	test	dl, dl
-	jz	.loop
-
-	; descending extended memory mapping
-	cmp	ebp, 0ffh		;ebp+1 is dos memory?
-	jb	.loop
-
-	xor	dl, dl			;clear flag
-	mov	b [.loop], 4dh		;rewrite "inc ebp" to "dec ebp"
-	mov	ebp, [freeRAM_bm_size]	;bitmap size
-	shl	ebp, 3			;*8 (byte to bits)
+	mov	edi, [freeRAM_bm_ladr]	; edi = free RAM bitmap
+	mov	 dl, [desc_memory_map]	; descending extended memory mapping
+	xor	ebp, ebp
 
 .loop:
 	inc	ebp			;opcode=45h
 	btr	es:[edi], ebp
 	jnc	.loop
+
+	; descending extended memory mapping?
+	test	dl, dl
+	jz	.skip_desc_map
+	cmp	ebp, 100h		;ebp is dos memory?
+	jb	.skip_desc_map
+
+	xor	dl, dl			;clear flag
+	bts	es:[edi], ebp		;recovery bitmap flag
+	mov	b [.loop], 4dh		;rewrite "inc ebp" to "dec ebp"
+	mov	ebp, [freeRAM_bm_size]	;bitmap size
+	shl	ebp, 3			;*8 (byte to bits)
+	jmp	.loop
+.skip_desc_map:
 
 	; found free memory
 	mov	eax, ebp
@@ -438,7 +421,7 @@ proc4 allocate_RAM
 	; next page table address
 	add	ebx, 4
 	test	ebx, 0fffh
-	jnz	.outloop
+	jnz	.loop
 
 	; load next page table entry
 	add	esi, 4
@@ -446,10 +429,10 @@ proc4 allocate_RAM
 	test	bl, 1			; P bit
 	jz	.error
 	and	ebx, 0fffff000h		; ebx = page table linear address
-	jmp	.outloop
+	jmp	.loop
 
 .success:
-	clc		;キャリークリア
+	clc
 .exit:
 	pop	es
 	popa
