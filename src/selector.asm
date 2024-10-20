@@ -386,25 +386,28 @@ proc4 allocate_RAM
 	; allocate loop
 	;---------------------------------------------------
 	mov	edi, [freeRAM_bm_ladr]	; edi = free RAM bitmap
-	mov	 dl, [desc_memory_map]	; descending extended memory mapping
+	mov	 dh, [desc_memory_map]	; descending extended memory mapping
+	mov	 dl, 1			; for increment
 	xor	ebp, ebp
 
 .loop:
-	inc	ebp			;opcode=45h
+	movsx	eax, dl			; eax = 1 or -1
+.loop_inner:
+	add	ebp, eax		; ebp += dl
 	btr	es:[edi], ebp
-	jnc	.loop
+	jnc	.loop_inner
 
 	; descending extended memory mapping?
-	test	dl, dl
+	test	dh, dh
 	jz	.skip_desc_map
-	cmp	ebp, 100h		;ebp is dos memory?
+	cmp	ebp, 100h		; ebp is dos memory?
 	jb	.skip_desc_map
 
-	xor	dl, dl			;clear flag
-	bts	es:[edi], ebp		;recovery bitmap flag
-	mov	b [.loop], 4dh		;rewrite "inc ebp" to "dec ebp"
-	mov	ebp, [freeRAM_bm_size]	;bitmap size
-	shl	ebp, 3			;*8 (byte to bits)
+	xor	dh, dh			; clear flag
+	bts	es:[edi], ebp		; recovery bitmap flag
+	mov	dl, -1			; for decrement
+	mov	ebp, [freeRAM_bm_size]	; bitmap size
+	shl	ebp, 3			; *8 (byte to bits)
 	jmp	.loop
 .skip_desc_map:
 
