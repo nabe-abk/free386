@@ -17,6 +17,11 @@ segment	text align=4 class=CODE use32
 	mov	ebx,'RAHP'
 	int	21h
 
+	mov	[ext_ver_str+1], ebx
+	mov	bh, '.'
+	mov	[ext_ver_str], bx
+	PRINT	msg_ext_ver
+
 	mov	ah ,30h
 	mov	ebx,'F386'
 	int	21h
@@ -37,6 +42,8 @@ end:
 
 
 
+msg_ext_ver	db	'DOS-Extender Version: '
+ext_ver_str	db	'X.XXX',13,10,'$'
 
 msg_is_f386	db	'DOS-Extender is Free386!',13,10
 		db	'Do register dump by Free386 int 0ffh function.',13,10,13,10,'$'
