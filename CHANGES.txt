@@ -1,5 +1,9 @@
 [CR/LF]
 
+===============================================================================
+Ver 1.02 - 2024-10-21
+===============================================================================
+
 - Support descending extended memory mapping.
 - Add: tools/free386.com for build.
 - Fix: int 21h/250ah bug, always maps memory to the beginning of the selector.
