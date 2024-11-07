@@ -1,6 +1,6 @@
 # Free386 User's Manual
 
-This software is a DOS-Extender that is almost compatible with Phar-Lap RUN386.
+This software is a DOS-Extender that is compatible with Phar-Lap RUN386.
 This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 
 * This software can run .EXP format (P3 or MP format) files on DOS.
@@ -11,7 +11,7 @@ This is works with "FM TOWNS" and "PC-9801(9821)" and "AT compatible machines".
 	* [TOWNS] TownsOS does not require XMS/VCPI (HIMEM.SYS, EMM386.EXE).
 * Basically, it complies with Ver1.2, which is the version of RUN386 for TOWNS.
 
-このソフトは、Phar-Lap RUN386 ほぼ互換の DOS-Extender です。
+このソフトは、Phar-Lap RUN386 互換の DOS-Extender です。
 FM TOWNS / PC-98x1 / AT互換機で動作します。
 
 - このソフトは .EXP 形式（P3 or MP形式）のファイルを実行することができます。
