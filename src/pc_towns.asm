@@ -122,10 +122,8 @@ proc1 .call_coco
 	mov	ax, 0c207h
 	int	8eh
 
-	mov	b [init_CoCo], 1
+	mov	b [inited_coco], 1
 .fail:
-	ret
-
 	ret
 
 
@@ -196,7 +194,7 @@ proc4 init_TOWNS_32
 	;------------------------------------------
 	;wakeup NSDD
 	;------------------------------------------
-	cmp	b [init_CoCo], 0
+	cmp	b [inited_coco], 0
 	je	short .no_nsdd
 
 	mov	ebx,[LDT_adr]
@@ -603,7 +601,7 @@ BITS	16
 ;exit process for TOWNS on 16bit mode
 ;==============================================================================
 proc4 exit_TOWNS_16
-	cmp	b [init_CoCo], 0
+	cmp	b [inited_coco], 0
 	jz	short .no_nsdd
 	;
 	; [clear] real mode to 32bit mode far call routine
@@ -829,7 +827,7 @@ global	load_nsdd
 
 is_emulator	db	0
 load_nsdd	db	1
-init_coco	db	0
+inited_coco	db	0
 loaded_nsdd	db	0
 
 ;==============================================================================
