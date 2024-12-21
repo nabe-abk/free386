@@ -409,7 +409,7 @@ proc4 DOS_Extender_fn
 .chk_02:
 	sub	al,0c0h			;C0h-C3h
 	cmp	al,003h			;chk ?
-	ja	.no_func		;それ以上なら jmp
+	ja	DOSX_unknown		;それ以上なら jmp
 
 	movzx	eax,al				;機能番号 (al)
 	mov	eax,[cs:DOSExt_fn_table2+eax*4]	;ジャンプテーブル参照
@@ -417,23 +417,12 @@ proc4 DOS_Extender_fn
 	xchg	[esp],eax		;呼び出し
 	ret				;
 
+;------------------------------------------------------------------------------
+; Unknown function and non support functions
+;------------------------------------------------------------------------------
+proc4 DOSX_fn_2512h		;ディバグのためのプログラムロード
+proc4 DOSX_fn_2516h		;Ver2.2以降  自分自身のメモリをLDTから全て解放(?)
 
-	align	4
-.no_func:		;未知のファンクション
-	pop	eax
-	iret
-
-;------------------------------------------------------------------------------
-; Not support
-;------------------------------------------------------------------------------
-DOSX_fn_2512h:		;ディバグのためのプログラムロード
-DOSX_fn_2516h:		;Ver2.2以降  自分自身のメモリをLDTから全て解放(?)
-	set_cy
-	iret
-
-;------------------------------------------------------------------------------
-; Unknown function
-;------------------------------------------------------------------------------
 proc4 DOSX_unknown
 	mov	eax,0a5a5a5a5h		;DOS-Extender specification
 	set_cy

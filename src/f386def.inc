@@ -6,11 +6,11 @@
 ;==============================================================================
 ; Version setting
 ;==============================================================================
-%define	VER_STRING	'Ver1.03'
-%define RELEASE_DATE	'2024-11-10'
+%define	VER_STRING	'Ver1.04'
+%define RELEASE_DATE	'2024-12-22'
 Major_ver	equ		01h
-Minor_ver	equ		03h
-F386_Date	equ		20241110h	;Release date
+Minor_ver	equ		04h
+F386_Date	equ		20241222h	;Release date
 
 ;==============================================================================
 ; Default build target
